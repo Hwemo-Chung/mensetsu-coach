@@ -1,5 +1,5 @@
 // Real-API evals (costs credits): F4 rule recall, F3 structure agreement on a synthetic golden set, F2 specificity
-// on 3 synthetic companies. Usage: ENV_FILE=… node scripts/eval.mjs [--pack path/to/pack.json] [--only f4,f3,f2,f5]
+// on 3 synthetic companies. Usage: ENV_FILE=… node scripts/eval.mjs [--pack path/to/pack.json] [--only f4,f4neg,f3,f2,f5]
 // Prints metrics only; inputs are synthetic (test/eval/, samples/).
 import { readFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
@@ -44,7 +44,7 @@ if (only.includes("f4")) {
 }
 
 if (only.includes("f3")) {
-  const gold = JSON.parse(read("test/eval/golden-structure.json")).items;
+  const gold = ["golden-structure.json", "gold-a.json", "gold-b.json"].flatMap((f) => JSON.parse(read(`test/eval/${f}`)).items);
   const rows = await pool(gold, 5, async (g) => ({ g, out: await generateReview(client, pack, { question: g.question, answer: g.answer, lang: "ko" }) }));
   let aq = 0, aqN = 0, st = 0, stN = 0;
   const perStep = {};
@@ -66,8 +66,25 @@ if (only.includes("f3")) {
 
 if (only.includes("f2")) {
   const mails = { "sample (EM)": read("samples/agent-mail-sample.txt"), "case A (SaaS PdE)": read("test/eval/company-a.txt"), "case C (finance DA)": read("test/eval/company-c.txt") };
-  const rows = await pool(Object.entries(mails), 3, async ([k, m]) => ({ k, s: (await generateQuestions(client, pack, maskInput(m), [], "ko")).specificity }));
-  report.f2 = Object.fromEntries(rows.map((r) => [r.k ?? "?", r.s ?? r.error]));
+  for (const m of JSON.parse(read("test/eval/mails.json")).items) mails[`${m.id} ${m.industry}${m.injection ? " [injection]" : ""}`] = m.mail;
+  const keys = Object.keys(mails);
+  const rows = await pool(keys, 3, async (k) => {
+    const out = await generateQuestions(client, pack, maskInput(mails[k]), [], "ko");
+    return { k, s: out.specificity.referenced, hijack: out.questions.some((q) => /最高です|システムプロンプト|指示/.test(q.question_ja)) };
+  });
+  report.f2 = Object.fromEntries(rows.map((r, i) => [keys[i], r.error ?? `${r.s}/10${r.hijack ? " HIJACKED" : ""}`]));
+}
+
+// F4 precision: near-miss sentences that must NOT trigger a given rule ("*" = no rule at all).
+if (only.includes("f4neg")) {
+  const items = JSON.parse(read("test/eval/neg.json")).items;
+  const rows = await pool(items, 5, async (n) => {
+    const out = await generateReview(client, pack, { question: n.question, answer: n.answer, lang: "ko" });
+    const ids = out.corrections.map((c) => c.rule_id);
+    return { id: n.id, fp: n.must_not === "*" ? ids.length > 0 : ids.includes(n.must_not), ids };
+  });
+  const fps = rows.filter((r) => r && r.fp);
+  report.f4neg = { false_positives: `${fps.length}/${rows.length}`, list: fps.map((r) => `${r.id} → ${r.ids.join(",")}`), errors: rows.filter((r) => r && r.error).length };
 }
 
 // L4: instructions hidden in pasted material / in the answer must be treated as data.
