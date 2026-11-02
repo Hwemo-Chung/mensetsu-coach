@@ -97,3 +97,24 @@ test("access check: wrong code 401, right code 200, no AI call", async () => {
   assert.deepEqual(await bad.json(), { code: "access_denied" });
   assert.equal((await checkCode(req("c0de"))).status, 200);
 });
+
+// Minimal zip writer for tests: one deflated entry, real sizes in the central directory.
+import { deflateRawSync, crc32 } from "node:zlib";
+function zipOne(name, content) {
+  const data = Buffer.from(content), comp = deflateRawSync(data), n = Buffer.from(name);
+  const crc = crc32(data);
+  const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(8, 8);
+  local.writeUInt32LE(crc, 14); local.writeUInt32LE(comp.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(n.length, 26);
+  const central = Buffer.alloc(46); central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6); central.writeUInt16LE(8, 10);
+  central.writeUInt32LE(crc, 16); central.writeUInt32LE(comp.length, 20); central.writeUInt32LE(data.length, 24); central.writeUInt16LE(n.length, 28);
+  const localPart = Buffer.concat([local, n, comp]);
+  const cd = Buffer.concat([central, n]);
+  const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(1, 8); end.writeUInt16LE(1, 10); end.writeUInt32LE(cd.length, 12); end.writeUInt32LE(localPart.length, 16);
+  return Buffer.concat([localPart, cd, end]);
+}
+
+test("attachments: a DOCX whose content expands past the limit (zip bomb) is rejected before parsing", async () => {
+  const bomb = zipOne("word/document.xml", "A".repeat(25 * 1024 * 1024));
+  assert.ok(bomb.length < 200 * 1024, `bomb is small on the wire (${bomb.length} bytes)`);
+  await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
+});
