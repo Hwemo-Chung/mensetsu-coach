@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateQuestions, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
+import { loadPack, generateQuestions, EXPLAIN_LANGS, PACKS, maskInput } from "../lib/coach.js";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
@@ -23,6 +23,8 @@ export async function POST(request, deps = {}) {
   }
   const lang = body?.lang ?? "ko";
   if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
+  const pack = body?.pack ?? "jp";
+  if (!PACKS.includes(pack)) return json(400, { code: "pack_unsupported" });
   const mail = typeof body?.mail === "string" ? body.mail.trim() : "";
   if (!mail) return json(400, { code: "mail_required" });
   if (mail.length > MAX_MAIL_CHARS) return json(400, { code: "mail_too_long", max: MAX_MAIL_CHARS });
@@ -33,7 +35,7 @@ export async function POST(request, deps = {}) {
   try {
     const blocks = [...(await toContentBlocks(body.attachment)), ...(profile ? [{ type: "text", text: maskInput(profile) }] : [])];
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateQuestions(c, loadPack("jp"), maskInput(mail), blocks, lang));
+    return json(200, await generateQuestions(c, loadPack(pack), maskInput(mail), blocks, lang));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded

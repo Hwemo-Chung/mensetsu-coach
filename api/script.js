@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateScript, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
+import { loadPack, generateScript, EXPLAIN_LANGS, PACKS, maskInput } from "../lib/coach.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
 const MAX_ANSWER_CHARS = 2000;
@@ -24,6 +24,8 @@ export async function POST(request, deps = {}) {
   }
   const lang = body?.lang ?? "ko";
   if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
+  const pack = body?.pack ?? "jp";
+  if (!PACKS.includes(pack)) return json(400, { code: "pack_unsupported" });
   const answer = text(body?.answer);
   const question = text(body?.question);
   if (!answer) return json(400, { code: "answer_required" });
@@ -35,7 +37,7 @@ export async function POST(request, deps = {}) {
 
   try {
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateScript(c, loadPack("jp"), { question, answer: maskInput(answer), context: maskInput(context), lang }));
+    return json(200, await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang }));
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("script failed:", e?.status ?? "", e?.message); // never log the answer

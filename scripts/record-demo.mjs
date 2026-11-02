@@ -27,14 +27,14 @@ async function fillBlanks(ja) {
 mkdirSync(new URL("../public/demo/", import.meta.url), { recursive: true });
 for (const lang of langs) {
   const q = await generateQuestions(client, pack, maskInput(mail), [], lang);
-  const pick = Math.max(0, q.questions.findIndex((x) => /見積/.test(x.question_ja)));
-  const question = q.questions[pick].question_ja;
+  const pick = Math.max(0, q.questions.findIndex((x) => /見積/.test(x.question)));
+  const question = q.questions[pick].question;
   const context = q.company_context.facts.join("\n");
   const [before, script] = await Promise.all([
     generateReview(client, pack, { question, answer: OFF_TARGET, lang }),
     generateScript(client, pack, { question, answer: OFF_TARGET, context, lang }),
   ]);
-  const IMPROVED = await fillBlanks(script.ja);
+  const IMPROVED = await fillBlanks(script.text);
   const after = await generateReview(client, pack, { question, answer: IMPROVED, lang });
   const demo = { lang, recorded: new Date().toISOString().slice(0, 10), mail, company_context: q.company_context, questions: q.questions, specificity: q.specificity, pick, steps: [{ answer: OFF_TARGET, review: before, script }, { answer: IMPROVED, review: after }] };
   writeFileSync(new URL(`../public/demo/demo-${lang}.json`, import.meta.url), JSON.stringify(demo, null, 1) + "\n");

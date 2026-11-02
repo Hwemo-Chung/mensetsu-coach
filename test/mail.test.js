@@ -110,14 +110,16 @@ test("cron: one failed send does not stop the others", async () => {
 });
 
 test("demand counter: allowlisted targets only, no personal data, logs one line, counts when the store exists", async () => {
-  assert.deepEqual(TARGETS, ["kr", "anglo", "other"]);
+  // Intent changed 11/03: KR opened as a beta destination, so only still-unavailable destinations are counted.
+  assert.deepEqual(TARGETS, ["anglo", "other"]);
   const store = fakeStore();
   const logs = [];
   const req = (body) => new Request("http://x/api/demand", { method: "POST", headers: { "x-forwarded-for": `1.1.1.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
-  const ok = await demand(req({ target: "kr", email: "x@y.z" }), { store, log: (l) => logs.push(l) });
+  const ok = await demand(req({ target: "anglo", email: "x@y.z" }), { store, log: (l) => logs.push(l) });
   assert.equal(ok.status, 200);
-  assert.deepEqual(store.counts, { kr: 1 });
-  assert.deepEqual(logs, ['{"event":"demand","target":"kr"}']);
+  assert.deepEqual(store.counts, { anglo: 1 });
+  assert.deepEqual(logs, ['{"event":"demand","target":"anglo"}']);
   assert.equal((await demand(req({ target: "mars" }), { store, log: () => {} })).status, 400);
-  assert.equal((await demand(req({ target: "anglo" }), { store: null, log: () => {} })).status, 200, "no store → still logged, still ok");
+  assert.equal((await demand(req({ target: "kr" }), { store, log: () => {} })).status, 400, "KR is open now, not a demand count");
+  assert.equal((await demand(req({ target: "other" }), { store: null, log: () => {} })).status, 200, "no store → still logged, still ok");
 });

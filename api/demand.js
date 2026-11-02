@@ -1,8 +1,9 @@
 import { rateLimit } from "../lib/guard.js";
 import { makeStore } from "../lib/mail.js";
 
-// "Coming soon" destinations. A click is one anonymous count: no code, no email, no IP is stored.
-export const TARGETS = ["kr", "anglo", "other"];
+// "Coming soon" destinations (KR opened as beta on 11/03, so it is no longer counted). A click is one anonymous count:
+// no code, no email, no IP is stored.
+export const TARGETS = ["anglo", "other"];
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 export async function POST(request, deps = {}) {

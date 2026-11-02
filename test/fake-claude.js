@@ -6,6 +6,8 @@ export const fixture = load("questions.json");
 export const scriptFixture = load("script.json");
 export const reviewFixture = load("review.json");
 export const reverseFixture = load("reverse.json");
+// The model answers the script under the target language code (ja/ko); generateScript maps it to `text`.
+export const asModelScript = ({ text, ...rest }, key = "ja") => ({ [key]: text, ...rest });
 
 // responses: one result per call, in order (for retry tests); otherwise every call returns `result`.
 export function fakeClient({ result = fixture, responses, stop = "end_turn", fail } = {}) {

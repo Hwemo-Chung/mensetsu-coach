@@ -11,11 +11,11 @@ import { POST as reverse } from "./api/reverse.js";
 import { POST as subscribe } from "./api/subscribe.js";
 import { GET as unsubscribe } from "./api/unsubscribe.js";
 import { POST as demand } from "./api/demand.js";
-import { fakeClient, scriptFixture, reviewFixture, reverseFixture } from "./test/fake-claude.js";
+import { fakeClient, scriptFixture, reviewFixture, reverseFixture, asModelScript } from "./test/fake-claude.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
 const MOCK = !!process.env.MOCK_CLAUDE;
-const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: scriptFixture }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) }, "/api/reverse": { client: fakeClient({ result: reverseFixture }) } };
+const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: asModelScript(scriptFixture) }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) }, "/api/reverse": { client: fakeClient({ result: reverseFixture }) } };
 const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
 const securityHeaders = Object.fromEntries(vercel.headers[0].headers.map((h) => [h.key, h.value]));
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".txt": "text/plain; charset=utf-8" };

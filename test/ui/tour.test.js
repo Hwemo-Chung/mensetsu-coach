@@ -1,0 +1,140 @@
+// Tutorial option A: coach-mark popup n/6, spotlight, typing, fade-in, prev/skip/Esc, reduced motion, tips-off replay.
+// Replays public/demo/demo-<lang>.json only: every test asserts zero /api/ requests.
+import { test, before, after } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { LANGS } from "../../public/i18n/index.js";
+import { startServer, launch, openApp, bubbles, shot, noHorizontalOverflow, VIEWPORTS, ROOT } from "./harness.js";
+
+const ko = LANGS.ko;
+const demo = JSON.parse(readFileSync(join(ROOT, "public/demo/demo-ko.json"), "utf8"));
+let server, browser;
+before(async () => { server = await startServer(); browser = await launch(); });
+after(async () => { await browser?.close(); server?.stop(); });
+
+async function open(viewport, lang = "ko") {
+  const o = await openApp(browser, server.url, viewport, lang);
+  o.api = [];
+  o.page.on("request", (r) => { if (new URL(r.url()).pathname.startsWith("/api/")) o.api.push(r.url()); });
+  return o;
+}
+const stepIs = (page, n) => page.locator("#tourStep", { hasText: `${n}/6` }).waitFor();
+
+test("tour: popup n/6 with spotlight, typing and fade-in; Back undoes a step; Close at 6/6 (desktop)", async () => {
+  const { context, page, errors, api } = await open(VIEWPORTS.desktop);
+  await page.getByRole("button", { name: ko.demo.button }).click();
+  await stepIs(page, 1);
+  assert.equal(await page.textContent("#tourTitle"), ko.tour.steps[0].title);
+  assert.equal(await page.textContent("#tourBody"), ko.tour.steps[0].body);
+  assert.equal(await page.isDisabled("#tourPrev"), true, "no Back on step 1");
+  await page.locator("#log > .msg.spot .q").first().waitFor(); // spotlight on the question list
+  await bubbles(page, "demo-banner").waitFor();
+  assert.equal(await bubbles(page, "note").count(), 0, "explanations live in the popup, not in bubbles");
+  await shot(page, "desktop-13-tour-1");
+
+  await page.locator(".next-btn").click();
+  await stepIs(page, 2);
+  await page.locator("#input.spot").waitFor();
+  await bubbles(page, "me").filter({ hasText: new RegExp(`^${demo.pick + 1}$`) }).waitFor();
+
+  await page.locator(".next-btn").click();
+  await stepIs(page, 3);
+  // Typing motion: the answer appears in the read-only composer a few characters at a time.
+  await page.waitForFunction((len) => { const i = document.querySelector("#input"); return i.readOnly && i.value.length > 0 && i.value.length < len; }, demo.steps[0].answer.length);
+  assert.equal(await page.isDisabled("#tourNext"), true, "Next waits while the step plays");
+  const review = page.locator("#log > .msg.review");
+  await review.waitFor();
+  assert.ok(await review.evaluate((e) => e.classList.contains("appear")), "result card fades in");
+  await page.locator("#log > .msg.review.spot").waitFor();
+  assert.equal(await page.inputValue("#input"), "");
+  await shot(page, "desktop-14-tour-3");
+
+  await page.click("#tourPrev");
+  await stepIs(page, 2);
+  assert.equal(await review.count(), 0, "Back removes what step 3 added");
+  await page.locator("#input.spot").waitFor();
+  await page.locator(".next-btn").click();
+  await stepIs(page, 3);
+  await review.waitFor();
+
+  await page.locator(".next-btn").click();
+  await stepIs(page, 4);
+  await page.locator(".next-btn").click();
+  await stepIs(page, 5);
+  await page.locator("#log > .msg.compare.spot").waitFor(); // step 5 spotlights the before/after view
+  assert.equal(await review.count(), 2);
+  await shot(page, "desktop-15-tour-5");
+  await page.locator(".next-btn").click();
+  await stepIs(page, 6);
+  assert.equal(await page.locator(".next-btn").count(), 0, "no Next on the last step");
+  assert.equal(await page.textContent("#tourNext"), ko.tour.close);
+  assert.equal(await page.locator("#tourSkip").isHidden(), true);
+  await page.getByRole("button", { name: ko.demo.try }).and(page.locator(".spot")).waitFor();
+  await page.click("#tourNext");
+  await page.locator("#tour").waitFor({ state: "hidden" });
+  assert.equal(await page.locator(".spot").count(), 0);
+  assert.equal(await page.locator("#input").evaluate((e) => e.readOnly), false);
+  await page.getByRole("button", { name: ko.demo.try }).click();
+  assert.equal(await bubbles(page, "coach").filter({ hasText: ko.chat.askCode }).count(), 2);
+  assert.deepEqual(api, [], "tour must not call the API");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("tour: reduced motion shows each step at once; Esc skips to the code button; fits 390px (mobile)", async () => {
+  const { context, page, errors, api } = await open(VIEWPORTS.mobile);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.getByRole("button", { name: ko.demo.button }).click();
+  await stepIs(page, 1);
+  assert.ok(await noHorizontalOverflow(page), "popup fits 390px");
+  await shot(page, "mobile-12-tour-1");
+  await page.locator(".next-btn").click();
+  await page.locator(".next-btn").click();
+  // No typing: the review is there well before the 1.5s the typing motion would take.
+  await page.locator("#log > .msg.review").waitFor({ timeout: 500 });
+  assert.equal(await page.locator("#log .appear").count(), 0, "no fade-in");
+  assert.equal(await page.inputValue("#input"), "");
+  await page.locator("#log > .msg.review.spot").waitFor(); // the spotlight is not motion: kept
+  await page.keyboard.press("Escape");
+  await page.locator("#tour").waitFor({ state: "hidden" });
+  assert.equal(await page.locator(".spot").count(), 0);
+  await bubbles(page, "coach").filter({ hasText: ko.demo.done }).getByRole("button", { name: ko.demo.try }).waitFor();
+  assert.equal(await page.locator("#log > .msg.review").count(), 1, "skipping does not play the remaining steps");
+  assert.deepEqual(api, []);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("tour: Skip on step 1 (ja labels)", async () => {
+  const { context, page, errors, api } = await open(VIEWPORTS.desktop, "ja");
+  const ja = LANGS.ja;
+  await page.getByRole("button", { name: ja.demo.button }).click();
+  await stepIs(page, 1);
+  assert.equal(await page.textContent("#tourTitle"), ja.tour.steps[0].title);
+  await page.getByRole("button", { name: ja.tour.skip }).click();
+  await page.locator("#tour").waitFor({ state: "hidden" });
+  await bubbles(page, "coach").filter({ hasText: ja.demo.done }).waitFor();
+  assert.equal(await page.locator("#log > .msg.review").count(), 0);
+  assert.deepEqual(api, []);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("tour: tips turned off in ⚙ options → the plain replay with explanation bubbles", async () => {
+  const { context, page, errors, api } = await open(VIEWPORTS.mobile);
+  await page.click("#opts");
+  await page.click("#tourTips");
+  await page.keyboard.press("Escape");
+  await page.locator("#options").waitFor({ state: "hidden" });
+  await page.getByRole("button", { name: ko.demo.button }).click();
+  await bubbles(page, "note").filter({ hasText: ko.demo.mail }).waitFor();
+  assert.equal(await page.locator("#tour").isHidden(), true);
+  for (let i = 0; i < 5; i++) await page.locator("#log .next-btn").click();
+  await bubbles(page, "coach").filter({ hasText: ko.demo.done }).waitFor();
+  assert.equal(await page.locator("#log > .msg.compare").count(), 1, "plain replay shows the compare view too");
+  assert.equal(await page.locator(".spot").count(), 0);
+  assert.deepEqual(api, []);
+  assert.deepEqual(errors, []);
+  await context.close();
+});

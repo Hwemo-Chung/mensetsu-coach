@@ -22,7 +22,7 @@
    "id": "q1",
    "stage": "一次面接",
    "category": "経歴・志望動機",
-   "question_ja": "在庫管理SaaSを提供している当社のエンジニアリングマネージャーに応募された理由を、これまでのご経歴と結びつけてお話しください。",
+   "question": "在庫管理SaaSを提供している当社のエンジニアリングマネージャーに応募された理由を、これまでのご経歴と結びつけてお話しください。",
    "question_tr": "Please explain why you applied for the Engineering Manager role at our company, which provides inventory management SaaS, linking it to your career so far.",
    "basis": "The company provides inventory management SaaS for logistics warehouses, so the interviewer will check whether the candidate's motivation connects to this business.",
    "refs": [
@@ -34,7 +34,7 @@
    "id": "q2",
    "stage": "一次面接",
    "category": "マネジメント",
-   "question_ja": "見積もりがずれたとき、どのように判断して、関係者にどう伝えましたか。具体的な事例でお聞かせください。",
+   "question": "見積もりがずれたとき、どのように判断して、関係者にどう伝えましたか。具体的な事例でお聞かせください。",
    "question_tr": "When an estimate went off track, how did you make decisions and how did you communicate to stakeholders? Please give a concrete example.",
    "basis": "The company explicitly said it wants to hear specifically how the candidate makes decisions when estimates slip.",
    "refs": []
@@ -43,7 +43,7 @@
    "id": "q3",
    "stage": "一次面接",
    "category": "マネジメント",
-   "question_ja": "バックエンド3名、フロントエンド2名の5名の開発チームを任された場合、最初の3か月で何を優先して取り組みますか。",
+   "question": "バックエンド3名、フロントエンド2名の5名の開発チームを任された場合、最初の3か月で何を優先して取り組みますか。",
    "question_tr": "If you were put in charge of a five-person development team (3 backend, 2 frontend), what would you prioritize in your first three months?",
    "basis": "The role manages a 5-person team split into backend and frontend, so the interviewer will ask about the candidate's initial priorities.",
    "refs": [
@@ -55,7 +55,7 @@
    "id": "q4",
    "stage": "一次面接",
    "category": "技術",
-   "question_ja": "需要予測機能の刷新プロジェクトを進めるうえで、PythonとAWSを使った開発でどのような技術的リスクを想定し、どう管理しますか。",
+   "question": "需要予測機能の刷新プロジェクトを進めるうえで、PythonとAWSを使った開発でどのような技術的リスクを想定し、どう管理しますか。",
    "question_tr": "In driving the demand forecasting renewal project, what technical risks do you foresee in development with Python and AWS, and how would you manage them?",
    "basis": "The role leads the demand forecasting renewal project using Python / AWS, so the interviewer will probe technical risk awareness.",
    "refs": [
@@ -68,7 +68,7 @@
    "id": "q5",
    "stage": "一次面接",
    "category": "技術",
-   "question_ja": "既存の在庫管理SaaSの機能を刷新するとき、稼働中のお客様への影響を抑えながら移行する方法をどう考えますか。",
+   "question": "既存の在庫管理SaaSの機能を刷新するとき、稼働中のお客様への影響を抑えながら移行する方法をどう考えますか。",
    "question_tr": "When renewing features of an existing inventory management SaaS, how would you migrate while minimizing impact on customers already using it?",
    "basis": "Renewing a feature in a live SaaS used by warehouses requires migration planning, which a development director would test.",
    "refs": [
@@ -79,7 +79,7 @@
    "id": "q6",
    "stage": "一次面接",
    "category": "マネジメント",
-   "question_ja": "メンバーの育成と評価で、これまでに最も力を入れた取り組みと、その結果を教えてください。",
+   "question": "メンバーの育成と評価で、これまでに最も力を入れた取り組みと、その結果を教えてください。",
    "question_tr": "What was the initiative you put the most effort into for developing and evaluating members, and what was the result?",
    "basis": "The company said it places importance on experience in developing and evaluating members.",
    "refs": [
@@ -90,7 +90,7 @@
    "id": "q7",
    "stage": "最終面接",
    "category": "経歴・志望動機",
-   "question_ja": "今期から海外拠点の倉庫への導入が始まりますが、その事業の中で、あなたはどのような価値を出せるとお考えですか。",
+   "question": "今期から海外拠点の倉庫への導入が始まりますが、その事業の中で、あなたはどのような価値を出せるとお考えですか。",
    "question_tr": "Deployment to overseas warehouse sites starts this term. What value do you think you can create in that business?",
    "basis": "The company began deploying to overseas warehouse sites this term, and the CTO will check how the candidate fits this expansion.",
    "refs": [
@@ -101,7 +101,7 @@
    "id": "q8",
    "stage": "最終面接",
    "category": "マネジメント",
-   "question_ja": "海外拠点の現場担当者との要件調整で、英語または韓国語を使って意見が食い違ったとき、どのように合意をつくりますか。",
+   "question": "海外拠点の現場担当者との要件調整で、英語または韓国語を使って意見が食い違ったとき、どのように合意をつくりますか。",
    "question_tr": "When opinions differ in requirements coordination with overseas site staff in English or Korean, how do you build agreement?",
    "basis": "The role includes requirements coordination with overseas site staff, and English or Korean ability is welcomed.",
    "refs": [
@@ -113,7 +113,7 @@
    "id": "q9",
    "stage": "最終面接",
    "category": "マネジメント",
-   "question_ja": "当社では評価が半期ごとのOKRですが、チームのOKRをどのように設定し、メンバーの評価につなげますか。",
+   "question": "当社では評価が半期ごとのOKRですが、チームのOKRをどのように設定し、メンバーの評価につなげますか。",
    "question_tr": "Our evaluation uses semiannual OKRs. How would you set team OKRs and link them to member evaluations?",
    "basis": "Evaluation is by semiannual OKR, so the final interview will check how the candidate would operate within this system.",
    "refs": [
@@ -124,7 +124,7 @@
    "id": "q10",
    "stage": "最終面接",
    "category": "逆質問",
-   "question_ja": "ここまでのお話を踏まえて、入社後の期待値や働き方について、確認しておきたいことはありますか。",
+   "question": "ここまでのお話を踏まえて、入社後の期待値や働き方について、確認しておきたいことはありますか。",
    "question_tr": "Based on our discussion so far, is there anything you would like to confirm about expectations after joining or about working style?",
    "basis": "The final interview with the CTO and HR is for aligning post-joining expectations, and the work style is 2 office days per week with remote otherwise, so the candidate is invited to ask questions.",
    "refs": []
@@ -179,7 +179,7 @@
     "dropped": 0
    },
    "script": {
-    "ja": "見積もりがずれたときの判断と、関係者への伝え方についてですね。私は、ずれが基準を超えた時点で、すぐに関係者へ報告します。基準は、見積もりに対するずれの割合で、［ここに基準の数字］を超えたら報告します。前職の管理ツール導入では、［ここに実際のずれと、伝えた相手と対応］でした。判断の経緯と伝え方のどちらから、詳しくお話ししましょうか。",
+    "text": "見積もりがずれたときの判断と、関係者への伝え方についてですね。私は、ずれが基準を超えた時点で、すぐに関係者へ報告します。基準は、見積もりに対するずれの割合で、［ここに基準の数字］を超えたら報告します。前職の管理ツール導入では、［ここに実際のずれと、伝えた相手と対応］でした。判断の経緯と伝え方のどちらから、詳しくお話ししましょうか。",
     "reading": "Mitsumori ga zureta toki no handan to↗ / kankeisha e no tsutaekata ni tsuite desu ne↘ / Watashi wa / zure ga 《kijun》 o koeta jiten de↗ / sugu ni kankeisha e 《houkoku》 shimasu↘ / Kijun wa / mitsumori ni taisuru zure no 《wariai》 de / [koko ni kijun no suuji] o koetara houkoku shimasu↘ / Zenshoku no kanri tsuuru dounyuu dewa↗ / [koko ni jissai no zure to / tsutaeta aite to taiou] deshita↘ / Handan no keii to / tsutaekata no dochira kara↗ / kuwashiku ohanashi shimashouka↗",
     "translation": "You are asking about how I judge an estimate overrun and how I communicate it to stakeholders. I report to stakeholders immediately once the gap exceeds a threshold. My criterion is the gap as a percentage of the estimate: I report when it exceeds [insert your threshold number]. In my previous job's management tool rollout, [insert the actual gap, who you told, and what you did]. Shall I go into more detail on how I made the judgment, or on how I communicated it?",
     "points": [

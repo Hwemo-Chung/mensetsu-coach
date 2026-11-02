@@ -1,25 +1,32 @@
 // F6: turns the browser session into one Markdown document. Pure function, so tests run it in Node.
+// Same patterns and order as lib/privacy.js maskInput (public/ cannot import lib/; test/export.test.js keeps them equal).
 const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
-const PHONE = /\+?\d[\d\s-]{8,}\d/g;
-const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE, "[phone]");
+const PHONE = /\+?\d[\d \t-]{8,}\d/g;
+const POSTAL = /(?:〒\s?)?\d{3}-\d{4}/g;
+const SALUTATION = /^[ \t　]*[^\s　、。,.]{1,12}?[ \t　]*(様|さん|殿|님)[ \t　]*$/gm;
+export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE, "[phone]").replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
 
-const STEPS = [["fukusho", "復唱"], ["ketsuron", "結論"], ["kijun", "基準・数字"], ["sentakushi", "選択肢"]];
+// JP labels are the fallback for sessions saved before the server sent pack meta.
+const JP_STEPS = [{ key: "fukusho", label: "復唱" }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "選択肢" }];
 
 export function sessionToMarkdown(session, t) {
   const c = session.company_context;
+  const target = session.pack?.target ?? "ja"; // sessions saved before pack meta are Japan
   const out = [`# ${t.export.title} — ${c.company} · ${c.position}`, ""];
   if (c.facts?.length) out.push(...c.facts.map((f) => `- ${f}`), "");
   out.push(`## ${t.export.questions} (${session.questions.length})`, "");
   for (const q of session.questions) {
-    out.push(`${q.id.slice(1)}. [${t.stages[q.stage] ?? q.stage} · ${t.categories[q.category] ?? q.category}] ${q.question_ja}`, `   - ${q.question_tr}`, `   - ${t.chat.basis}: ${q.basis}`);
+    out.push(`${q.id.slice(1)}. [${t.stages[q.stage] ?? q.stage} · ${t.categories[q.category] ?? q.category}] ${q.question}`, ...(q.question_tr ? [`   - ${q.question_tr}`] : []), `   - ${t.chat.basis}: ${q.basis}`);
+    const note = session.notes?.[q.id]?.trim();
+    if (note) out.push(`   - ${t.export.notes}: ${note.replace(/\n/g, "\n     ")}`); // indented so a multi-line memo stays in the item
   }
   session.attempts.forEach((a, i) => {
     const q = session.questions.find((x) => x.id === a.question_id);
-    out.push("", `## ${t.export.practice} ${i + 1}: Q${q ? q.id.slice(1) : "?"}`, "", `> ${q?.question_ja ?? ""}`, "", `**${t.export.myAnswer}**`, "", a.answer, "");
+    out.push("", `## ${t.export.practice} ${i + 1}: Q${q ? q.id.slice(1) : "?"}`, "", `> ${q?.question ?? ""}`, "", `**${t.export.myAnswer}**`, "", a.answer, "");
     if (a.review) {
       const r = a.review;
       out.push(`### ${t.review.title}`, "", `- ${t.review.answers[r.answers_question]} — ${r.answers_question_reason}`);
-      for (const [key, label] of STEPS) {
+      for (const { key, label } of session.pack?.steps ?? JP_STEPS) {
         const v = r.steps[key];
         out.push(`- ${v.present ? "✓" : "✗"} ${label} ${t.steps[key]}${v.present ? "" : ` → ${v.note}`}`);
       }
@@ -30,12 +37,16 @@ export function sessionToMarkdown(session, t) {
     }
     if (a.script) {
       const s = a.script;
-      out.push(`### ${t.script.title}`, "", `**${t.script.ja}**`, "", s.ja, "", `**${t.script.reading}**`, "", s.reading, "", `_${t.script.legend}_`, "", `**${t.script.translation}**`, "", s.translation, "", `**${t.script.points}**`, "", ...s.points.map((p) => `- ${p}`));
+      out.push(`### ${t.script.title}`, "", `**${t.script.text[target]}**`, "", s.text, "");
+      // No reading/translation when the interview language is the screen language.
+      if (s.reading != null) out.push(`**${t.script.reading[target]}**`, "", s.reading, "", `_${t.script.legend}_`, "");
+      if (s.translation != null) out.push(`**${t.script.translation}**`, "", s.translation, "");
+      out.push(`**${t.script.points}**`, "", ...s.points.map((p) => `- ${p}`));
     }
   });
   if (session.reverse?.length) {
     out.push("", `## ${t.reverse.title}`, "");
-    session.reverse.forEach((q, i) => out.push(`${i + 1}. ${q.question_ja}`, `   - ${t.reverse.intent}: ${q.intent}`));
+    session.reverse.forEach((q, i) => out.push(`${i + 1}. ${q.question}`, `   - ${t.reverse.intent}: ${q.intent}`));
   }
   const habits = habitCounts(session);
   if (habits.length) {
@@ -62,3 +73,16 @@ export const exportFileName = (d) => {
   const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
   return `mensetsu-${p}.md`;
 };
+
+// Before/after view: the first and the latest reviewed attempt at one question. null until there are two.
+export function compareAttempts(session, qid) {
+  const tries = (session?.attempts ?? []).filter((a) => a.question_id === qid && a.review);
+  if (tries.length < 2) return null;
+  const [first, last] = [tries[0], tries.at(-1)];
+  return {
+    n: qid.slice(1),
+    answered: [first.review.answers_question, last.review.answers_question],
+    steps: (session.pack?.steps ?? JP_STEPS).map(({ key, label }) => ({ key, label, first: !!first.review.steps[key]?.present, last: !!last.review.steps[key]?.present })),
+    answers: [first.answer, last.answer],
+  };
+}

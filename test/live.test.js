@@ -14,11 +14,12 @@ test("sample agent mail → 10 company-specific questions (Day 1 acceptance)", {
   assert.equal(out.questions.length, 10);
   const cats = new Set(out.questions.map((q) => q.category));
   for (const q of out.questions) {
-    assert.ok(pack.question_taxonomy.categories.includes(q.category), q.category);
+    // Optional categories (e.g. 日本で働く理由・在留) are valid output, so check against the union.
+    assert.ok([...pack.question_taxonomy.categories, ...(pack.question_taxonomy.optional_categories ?? [])].includes(q.category), q.category);
     assert.ok(pack.question_taxonomy.stages.includes(q.stage), q.stage);
   }
   assert.ok(cats.size >= 3, `only ${[...cats]}`);
-  const all = out.questions.map((q) => q.question_ja + q.basis).join("\n");
+  const all = out.questions.map((q) => q.question + q.basis).join("\n");
   assert.match(all, /需要予測|在庫|物流|海外|6名|OKR|見積/, "questions should reflect the sample company");
   console.log(JSON.stringify(out, null, 2));
 });

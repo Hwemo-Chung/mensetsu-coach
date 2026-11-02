@@ -21,6 +21,8 @@ export async function POST(request, deps = {}) {
   }
   const lang = body?.lang ?? "ko";
   if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
+  // Reverse questions are JP-only for now: the conditions list and one-question gate are Japanese-specific.
+  if ((body?.pack ?? "jp") !== "jp") return json(400, { code: "pack_unsupported" });
   const c = body?.context;
   if (!c || typeof c !== "object" || !Array.isArray(c.facts)) return json(400, { code: "context_required" });
   const context = { company: str(c.company, 200), position: str(c.position, 200), facts: c.facts.slice(0, MAX_FACTS).map((f) => str(f, 300)) };

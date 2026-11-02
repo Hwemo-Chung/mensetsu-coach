@@ -2,7 +2,8 @@
   "id": "jp",
   "version": 1,
   "name": "日本 (Japan)",
-  "language_pair": { "target": "ja", "native": "ko" },
+  "country": "日本",
+  "language_pair": { "target": "ja" },
   "answer_structure": {
     "name": "4文型",
     "steps": [
@@ -34,13 +35,13 @@
     {"id": "rep-uchi-keishou", "pattern": "勤務先の上司を面接官に対して「〇〇部長」「おっしゃる」などで立てる", "type": "replace", "replacement": "「上司の〇〇」「部長の〇〇」＋普通の動詞（言う・申す）", "reason": "社外の相手に対しては自分側の人物を立てない。名前＋役職はウチ扱いにならない。", "example_before": "現職では、鈴木部長がいつもおっしゃっているとおり、週次で数字を報告しています。", "example_after": "現職では、上司の鈴木がいつも申しているとおり、週次で数字を報告しています。"}
   ],
   "model_answer_format": {
-    "duration_seconds": 60,
-    "lines": ["ja", "pronunciation_ko", "translation_ko"],
-    "description": "日本語の1文ごとに、ハングルの発音表記と韓国語訳を続ける3段フォーマット。"
+    "duration_seconds": 60
   },
   "question_taxonomy": {
     "stages": ["一次面接", "最終面接"],
-    "categories": ["経歴・志望動機", "技術", "マネジメント", "逆質問"]
+    "categories": ["経歴・志望動機", "技術", "マネジメント", "逆質問"],
+    "optional_categories": ["日本で働く理由・在留"],
+    "generic_terms": ["経験", "開発", "チーム", "入社", "面接", "仕事", "業務", "会社", "当社", "御社", "弊社", "応募", "志望", "転職", "理由", "成果", "課題", "担当", "役割", "メンバー"]
   },
   "culture_notes": [
     "前回の面談で分かった前提は、逆質問で確認し直さず、前提として話す。準備の証拠になる。",

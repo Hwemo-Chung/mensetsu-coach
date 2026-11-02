@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>面接コーチ</title>
+  <link rel="icon" href="data:,">
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -11,13 +12,24 @@
     <header class="bar">
       <span class="brand">面接コーチ <span class="sub" data-i18n="title"></span></span>
       <div class="controls">
-      <select id="dest" class="lang" data-i18n-label-dest="label"></select>
-      <select id="lang" class="lang" data-i18n-label="language"></select>
-      <button type="button" id="end" class="end" data-i18n="end"></button>
+        <select id="dest" class="lang"></select>
+        <select id="lang" class="lang" data-i18n-label="language"></select>
+        <button type="button" id="panelToggle" class="end" aria-controls="panel" aria-expanded="false" data-i18n="panel" hidden></button>
+        <button type="button" id="opts" class="end icon" aria-haspopup="dialog" aria-controls="options" data-i18n-label="opts.button">⚙</button>
+        <button type="button" id="end" class="end" data-i18n="end"></button>
       </div>
     </header>
     <main id="log" class="log" aria-live="polite"></main>
     <form id="composer" class="composer">
+      <div id="tour" class="tour" role="dialog" aria-labelledby="tourTitle" aria-describedby="tourBody" tabindex="-1" hidden>
+        <p class="tour-head"><span id="tourStep"></span><strong id="tourTitle"></strong></p>
+        <p id="tourBody"></p>
+        <div class="tour-actions">
+          <button type="button" id="tourSkip" class="inline-btn"></button>
+          <button type="button" id="tourPrev" class="inline-btn"></button>
+          <button type="button" id="tourNext" class="inline-btn"></button>
+        </div>
+      </div>
       <div id="chip" class="chip" hidden><span id="chipName"></span><button type="button" id="chipX" data-i18n-label="removeFile">×</button></div>
       <div class="row">
         <label class="attach" data-i18n-label="attach">📎<input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
@@ -26,7 +38,43 @@
       </div>
       <p class="note"><span data-i18n="note"></span> <a href="/privacy.html" data-i18n="privacy"></a></p>
     </form>
+    <aside id="panel" class="panel" aria-labelledby="panelToggle" hidden>
+      <div class="panel-head">
+        <div class="tabs" role="tablist">
+          <button type="button" id="tabReview" class="tab" role="tab" aria-selected="true" aria-controls="paneReview" data-i18n="panel.review"></button>
+          <button type="button" id="tabNotes" class="tab" role="tab" aria-selected="false" aria-controls="paneNotes" tabindex="-1" data-i18n="panel.notes"></button>
+        </div>
+        <button type="button" id="panelClose" class="tab panel-close" data-i18n="panelClose"></button>
+      </div>
+      <div id="paneReview" class="pane" role="tabpanel" aria-labelledby="tabReview"><p id="reviewEmpty" class="legend" data-i18n="panel.empty"></p><div id="reviewBox"></div></div>
+      <div id="paneNotes" class="pane" role="tabpanel" aria-labelledby="tabNotes" hidden>
+        <p id="notesEmpty" class="legend" data-i18n="notes.empty"></p>
+        <div id="noteBox" class="note-box" hidden>
+          <label id="noteLabel" for="note"></label>
+          <textarea id="note" rows="8"></textarea>
+          <p id="noteStatus" class="legend" role="status"></p>
+        </div>
+      </div>
+    </aside>
   </div>
+  <dialog id="confirm" class="mail" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
+    <form method="dialog">
+      <h2 id="confirmTitle"></h2>
+      <p id="confirmBody" class="mail-body"></p>
+      <div class="mail-actions">
+        <button id="confirmNo" value="no"></button>
+        <button id="confirmYes" class="primary" value="yes"></button>
+      </div>
+    </form>
+  </dialog>
+  <dialog id="options" class="mail" aria-labelledby="optionsTitle">
+    <form method="dialog">
+      <h2 id="optionsTitle" data-i18n="opts.button"></h2>
+      <label class="consent switch"><input id="tourTips" type="checkbox" role="switch" aria-describedby="tourTipsHint" checked> <span data-i18n="opts.tourTips"></span></label>
+      <p id="tourTipsHint" class="legend" data-i18n="opts.tourTipsHint"></p>
+      <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
+    </form>
+  </dialog>
   <dialog id="mail" class="mail">
     <form id="mailForm" method="dialog">
       <h2 data-i18n-mail="title"></h2>
@@ -36,7 +84,7 @@
       <p id="mailMsg" class="mail-msg" role="status"></p>
       <div class="mail-actions">
         <button type="button" id="mailLater" data-i18n-mail="later"></button>
-        <button type="submit" id="mailSubmit" data-i18n-mail="submit"></button>
+        <button type="submit" id="mailSubmit" class="primary" data-i18n-mail="submit"></button>
       </div>
     </form>
   </dialog>

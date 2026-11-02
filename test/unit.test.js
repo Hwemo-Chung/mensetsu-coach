@@ -50,6 +50,24 @@ test("question request wraps material and attaches blocks", () => {
   assert.equal(typeof buildQuestionRequest(pack, "MAIL").messages[0].content, "string");
 });
 
+test("optional question category: in the enum, excluded from 最低1つ, used only on residence/visa material", () => {
+  const t = pack.question_taxonomy;
+  assert.deepEqual(t.optional_categories, ["日本で働く理由・在留"]);
+  const req = buildQuestionRequest(pack, "MAIL");
+  assert.deepEqual(req.output_config.format.schema.properties.questions.items.properties.category.enum, [...t.categories, ...t.optional_categories]);
+  const text = req.messages[0].content;
+  assert.ok(text.includes(`各カテゴリ（${t.categories.join(" / ")}）を最低1つ含める。`), text);
+  assert.doesNotMatch(text, /最低1つ[^。]*在留/);
+  assert.match(text, /日本で働く理由・在留 は、資料に在留資格・外国籍採用・ビザ・海外拠点の記述があるときだけ、最大1問使う。/);
+  // A pack without optional categories (future packs) gets no condition sentence and the required enum only.
+  const plain = { ...pack, question_taxonomy: { ...t, optional_categories: undefined } };
+  const r2 = buildQuestionRequest(plain, "MAIL");
+  assert.deepEqual(r2.output_config.format.schema.properties.questions.items.properties.category.enum, t.categories);
+  assert.doesNotMatch(r2.messages[0].content, /最大1問|undefined/);
+  // The 国籍・出身 guard stays in the pack.
+  assert.ok(pack.culture_notes.some((n) => n.includes("本籍・出生地")));
+});
+
 test("redact strips email and phone", () => {
   assert.equal(redact("a@b.co / 090-1234-5678 / 120名"), "[email] / [phone] / 120名");
 });

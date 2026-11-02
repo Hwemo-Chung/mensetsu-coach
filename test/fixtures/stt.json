@@ -1,0 +1,12 @@
+{
+  "candidates": [
+    {
+      "content": {
+        "parts": [{ "audioTranscription": { "text": "えーと、前職では、なんか、新しいツールをちょっと導入しまして、あの、プロジェクトは成功しました。" } }],
+        "role": "model"
+      },
+      "finishReason": "STOP",
+      "index": 0
+    }
+  ]
+}

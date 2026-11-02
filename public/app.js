@@ -1,43 +1,28 @@
-const $ = (id) => document.getElementById(id);
-const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
-const SESSION_KEY = "mensetsu-session";
-let attachment = null;
-let stage = "code"; // code → mail → pick ⇄ answer
-let session = null; // { company_context, questions, attempts }
-let current = null; // question being answered
-let lastMail = null, lastAttachment = null; // memory only, for the optional career-line regeneration
-
 import { LANGS } from "./i18n/index.js";
-import { sessionToMarkdown, exportFileName, habitCounts } from "./export.js";
+import { sessionToMarkdown, exportFileName, compareAttempts } from "./export.js";
+import { loadSession, clearSession, SESSION_KEY } from "./session.js";
+import { $, el, state, T, message, LS, persist, bubble, fill, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
+import { panel, wide, closePanel, showReview, renderNotes, resetPanel } from "./panel.js";
+import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS } from "./demo.js";
+
+const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
+let attachment = null;
+// Verified access code. sessionStorage only mirrors it and can throw where site data is blocked, so memory is the source.
+let code = null;
+function keepCode(v) {
+  code = v;
+  try { v ? sessionStorage.setItem("code", v) : sessionStorage.removeItem("code"); } catch {}
+}
+let stage = "code"; // code → mail → pick ⇄ answer
+let lastMail = null, lastAttachment = null; // memory only, for the optional career-line regeneration
+let destPack = "jp"; // destination pack for the next question set (jp, or kr beta)
+const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
 
 const LANG_KEY = "mensetsu-lang";
 const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
 const browser = (navigator.language || "ko").slice(0, 2);
-let lang = LANGS[stored] ? stored : LANGS[browser] ? browser : "ko";
-const T = () => LANGS[lang];
-// Server returns codes; the sentence comes from the selected language file.
-const message = (d) => (T().errors[d?.code] ?? T().errors.unknown)(d ?? {});
+state.lang = LANGS[stored] ? stored : LANGS[browser] ? browser : "ko";
 
-function el(tag, cls, text) {
-  const e = document.createElement(tag);
-  if (cls) e.className = cls;
-  if (text != null) e.textContent = text; // textContent only: model output is never parsed as HTML
-  return e;
-}
-function bubble(cls, text) {
-  const b = el("div", `msg ${cls}`, text);
-  log.append(b);
-  log.scrollTop = log.scrollHeight;
-  return b;
-}
-
-// Display order and labels of the 4 steps (from packs/jp.json answer_structure).
-const PACK_STEPS = [
-  { key: "fukusho", label: "復唱" },
-  { key: "ketsuron", label: "結論" },
-  { key: "kijun", label: "基準・数字" },
-  { key: "sentakushi", label: "選択肢" },
-];
 const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder", profile: "profilePlaceholder" };
 function setStage(next) {
   stage = next;
@@ -48,112 +33,23 @@ function askForCode() {
   const b = bubble("coach", T().chat.askCode);
   const demoBtn = el("button", "inline-btn", T().demo.button);
   demoBtn.type = "button";
-  demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(); });
+  demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(askForCode); });
   b.append(el("br"), demoBtn);
 }
 
-// No-code demo: replays a real recorded run (public/demo/demo-<lang>.json). No API, no session, no storage.
-async function startDemo() {
-  let d;
-  try {
-    d = await (await fetch(`/demo/demo-${lang}.json`)).json();
-  } catch {
-    return bubble("err", message({ code: "network" }));
-  }
-  const t = T().demo;
-  bubble("coach demo-banner", t.banner);
-  const q = d.questions[d.pick];
-  const steps = [
-    () => { bubble("coach note", t.mail); bubble("me", d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail); renderQuestions(d); },
-    () => { bubble("coach note", t.pick); bubble("me", String(d.pick + 1)); bubble("coach", `Q${d.pick + 1}. ${q.question_ja}\n(${q.question_tr})`); },
-    () => { bubble("coach note", t.bad); bubble("me", d.steps[0].answer); renderReview(d.steps[0].review, bubble("coach", "")); },
-    () => { bubble("coach note", t.script); renderScript(d.steps[0].script, bubble("coach", "")); },
-    () => { bubble("coach note", t.good); bubble("me", d.steps[1].answer); renderReview(d.steps[1].review, bubble("coach", "")); },
-    () => {
-      const b = bubble("coach note", t.done);
-      const btn = el("button", "inline-btn", t.try);
-      btn.type = "button";
-      btn.addEventListener("click", () => { btn.disabled = true; askForCode(); });
-      b.append(el("br"), btn);
-    },
-  ];
-  let i = 0;
-  const next = () => {
-    steps[i++]();
-    if (i < steps.length) {
-      const btn = el("button", "inline-btn next-btn", t.next);
-      btn.type = "button";
-      btn.addEventListener("click", () => { btn.remove(); next(); });
-      log.append(btn);
-    }
-    log.scrollTop = log.scrollHeight;
-  };
-  next();
-}
 function askForMail() {
   setStage("mail");
   bubble("coach", T().chat.askMail);
 }
 function askForPick(again) {
   setStage("pick");
-  bubble("coach", again ? T().chat.askPickAgain : T().chat.askPick({ count: session.questions.length }));
-}
-
-function renderQuestions({ company_context: c, questions }) {
-  const t = T();
-  const b = bubble("coach", t.chat.questionsMade({ company: c.company, position: c.position, count: questions.length }));
-  for (const q of questions) {
-    const item = el("div", "q");
-    item.append(el("span", "tag", t.stages[q.stage] ?? q.stage), el("span", "tag", t.categories[q.category] ?? q.category));
-    item.append(el("p", "ja", `${q.id.slice(1)}. ${q.question_ja}`), el("p", "tr", q.question_tr), el("p", "basis", `${t.chat.basis}: ${q.basis}`));
-    b.append(item);
-  }
-  log.scrollTop = log.scrollHeight;
-}
-
-// Cards are created in ①②③ order up front and filled as each response lands.
-function fill(slot, cls) {
-  slot.className = `msg ${cls}`;
-  slot.textContent = "";
-  return slot;
-}
-
-function renderReview(r, slot) {
-  const t = T().review;
-  const b = fill(slot, "coach script review");
-  b.append(el("p", "title", t.title));
-  b.append(el("p", `verdict ${r.answers_question}`, t.answers[r.answers_question]), el("p", "tr", r.answers_question_reason));
-  for (const step of PACK_STEPS) {
-    const v = r.steps[step.key];
-    b.append(el("p", `step ${v.present ? "ok" : "miss"}`, `${v.present ? "✓" : "✗"} ${step.label} ${T().steps[step.key]}`));
-    if (!v.present) b.append(el("p", "hint", `→ ${v.note}`));
-  }
-  b.append(el("p", "title", t.corrections));
-  if (!r.corrections.length) b.append(el("p", "tr", t.noCorrections));
-  for (const c of r.corrections) {
-    b.append(el("p", "rule", `【${c.rule_id}】`), el("p", "ja", `${c.before} → ${c.after}`), el("p", "tr", c.reason));
-  }
-  log.scrollTop = log.scrollHeight;
-}
-
-function renderScript(s, slot) {
-  const t = T().script;
-  const b = fill(slot, "coach script");
-  b.append(el("p", "title", t.title));
-  b.append(el("p", "label", t.ja), el("p", "ja", s.ja));
-  b.append(el("p", "label", t.reading), el("p", "reading", s.reading));
-  b.append(el("p", "legend", t.legend));
-  b.append(el("p", "label", t.translation), el("p", "tr", s.translation));
-  const ul = el("ul", "points");
-  for (const p of s.points) ul.append(el("li", null, p));
-  b.append(el("p", "label", t.points), ul);
-  log.scrollTop = log.scrollHeight;
+  bubble("coach", again ? T().chat.askPickAgain : T().chat.askPick({ count: state.session.questions.length }));
 }
 
 async function post(path, body, extraHeaders = {}) {
   const res = await fetch(path, {
     method: "POST",
-    headers: { "content-type": "application/json", "x-access-code": sessionStorage.getItem("code") ?? "", ...extraHeaders },
+    headers: { "content-type": "application/json", "x-access-code": code ?? "", ...extraHeaders },
     body: body == null ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({ code: "generation_failed" }));
@@ -164,16 +60,34 @@ async function post(path, body, extraHeaders = {}) {
 function failed(res, data) {
   bubble("err", message(data));
   if (res.status === 401) {
-    sessionStorage.removeItem("code");
+    keepCode(null);
     askForCode();
   }
 }
 
 async function onCode(text) {
   bubble("me", "••••");
+  // A header value must be Latin-1 or fetch throws; such a code can never match, so refuse it here.
+  if (/[^\u0000-\u00ff]/.test(text)) {
+    bubble("err", message({ code: "access_denied" }));
+    return askForCode();
+  }
+  const my = state.epoch;
   const { res, data } = await post("/api/access", null, { "x-access-code": text });
+  if (my !== state.epoch) return;
   if (res.ok) {
-    sessionStorage.setItem("code", text);
+    keepCode(text);
+    // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
+    if (state.demoActive) {
+      state.demoActive = false;
+      resetPanel();
+    }
+    // REL-4: restore after the code check only. A 401 re-ask keeps the session in memory and must not draw it twice.
+    if (!state.session) {
+      const saved = loadSession(LS);
+      if (saved) return restore(saved);
+      clearSession(LS); // broken or unreadable leftovers would keep triggering the reset dialog
+    }
     return askForMail();
   }
   bubble("err", message(data));
@@ -190,25 +104,50 @@ function offerProfile() {
     setStage("profile");
     input.focus();
   });
+  b.append(el("br"), btn);
+  if (packOf() === "jp") b.append(" ", reverseButton()); // reverse questions are JP-only (api/reverse returns pack_unsupported)
+}
+function reverseButton() {
   const rev = el("button", "inline-btn", T().reverse.button);
   rev.type = "button";
   rev.addEventListener("click", () => { rev.disabled = true; makeReverse(); });
-  b.append(el("br"), btn, " ", rev);
+  return rev;
+}
+
+// REL-4 (UIUX-SPEC (g)): one-line notice, the question list again, then pick. The mail is never stored, so the
+// career-line offer cannot come back; reverse questions only need the company summary.
+function restore(saved) {
+  state.session = saved;
+  destPack = packOf();
+  fillDest();
+  const b = bubble("coach", T().chat.restored({ q: state.session.questions.length, a: state.session.attempts.length }));
+  const again = el("button", "inline-btn", T().chat.restoreNew);
+  again.type = "button";
+  again.addEventListener("click", finish); // same as 끝내기·저장: download first, never a delete-only button
+  b.append(el("br"), again);
+  if (packOf() === "jp") b.append(" ", reverseButton());
+  renderQuestions(state.session);
+  const last = state.session.attempts.findLast((a) => a.review);
+  if (last) showReview(last.review, compareAttempts(state.session, last.question_id), false);
+  renderNotes();
+  askForPick(true);
 }
 
 // F10: reverse questions from the company summary already in the session (no mail re-sent).
 async function makeReverse() {
   const wait = bubble("coach typing", T().reverse.wait);
+  const my = state.epoch;
   try {
-    const { res, data } = await post("/api/reverse", { context: session.company_context, lang });
+    const { res, data } = await post("/api/reverse", { context: state.session.company_context, lang: state.lang, pack: packOf() });
+    if (my !== state.epoch) return;
     if (!res.ok) return failed(res, data);
     const t = T().reverse;
     const b = bubble("coach script reverse", null);
     b.append(el("p", "title", t.title));
-    data.questions.forEach((q, i) => b.append(el("p", "ja", `${i + 1}. ${q.question_ja}`), el("p", "tr", `${t.intent}: ${q.intent}`)));
+    data.questions.forEach((q, i) => b.append(el("p", "ja", `${i + 1}. ${q.question}`), el("p", "tr", `${t.intent}: ${q.intent}`)));
     b.append(el("p", "legend", t.tip));
-    session.reverse = data.questions;
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    state.session.reverse = data.questions;
+    persist();
   } catch {
     bubble("err", message({ code: "network" }));
   } finally {
@@ -216,12 +155,9 @@ async function makeReverse() {
   }
 }
 
-// F9: one line after each answer with the running count of rule hits in this session.
 function showHabits() {
-  const h = habitCounts(session);
-  if (!h.length) return;
-  const t = T().habits;
-  bubble("coach note", `${t.title({ n: session.attempts.length })}\n${h.map((x) => `${x.label} ${t.times({ c: x.count })}${x.habit ? " ⚠" : ""}`).join(" · ")}`);
+  const line = habitsLine();
+  if (line) bubble("coach note", line);
 }
 
 async function onProfile(text) {
@@ -239,12 +175,17 @@ async function onMail(text) {
 
 async function requestQuestions(mail, file, profile, waitText) {
   const wait = bubble("coach typing", waitText);
+  const my = state.epoch;
   try {
-    const { res, data } = await post("/api/questions", { mail, attachment: file, lang, ...(profile ? { profile } : {}) });
+    const { res, data } = await post("/api/questions", { mail, attachment: file, lang: state.lang, pack: destPack, ...(profile ? { profile } : {}) });
+    if (my !== state.epoch) return;
     if (!res.ok) return failed(res, data);
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
-    session = { company_context: data.company_context, questions: data.questions, attempts: [] };
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    // A regenerated set (career line) starts fresh, notes included.
+    state.session = { pack: data.pack, company_context: data.company_context, questions: data.questions, attempts: [], specificity: data.specificity, notes: {} };
+    state.current = null;
+    persist();
+    renderNotes();
     attachment = null;
     $("chip").hidden = true;
     renderQuestions(data);
@@ -259,20 +200,22 @@ async function requestQuestions(mail, file, profile, waitText) {
 function onPick(text) {
   bubble("me", text);
   const n = Number(text.normalize("NFKC"));
-  const q = Number.isInteger(n) ? session.questions[n - 1] : undefined;
-  if (!q) return bubble("err", T().chat.badPick({ count: session.questions.length }));
-  current = q;
+  const q = Number.isInteger(n) ? state.session.questions[n - 1] : undefined;
+  if (!q) return bubble("err", T().chat.badPick({ count: state.session.questions.length }));
+  state.current = q;
+  renderNotes();
   setStage("answer");
-  bubble("coach", `Q${n}. ${q.question_ja}\n(${q.question_tr})\n\n${T().chat.askAnswer}`);
+  bubble("coach", `Q${n}. ${withTr(q)}\n\n${T().chat.askAnswer[targetOf()]}`);
 }
 
 // Review (①②) and script (③) run at the same time; a failed review does not block the script.
 async function onAnswer(text) {
   bubble("me", text);
-  const q = current;
-  const reviewSlot = bubble("coach typing", T().chat.waitReview);
+  const q = state.current;
+  const reviewSlot = bubble("coach typing", T().chat.waitReview[targetOf()]);
   const scriptSlot = bubble("coach typing", T().chat.waitScript);
   const attempt = { question_id: q.id, answer: text, review: null, script: null };
+  const my = state.epoch;
   let denied = null;
   const run = async (path, body, render, key, slot) => {
     try {
@@ -285,15 +228,19 @@ async function onAnswer(text) {
     }
   };
   await Promise.all([
-    run("/api/review", { question: q.question_ja, answer: text, lang }, renderReview, "review", reviewSlot),
-    run("/api/script", { question: q.question_ja, answer: text, context: session.company_context.facts.join("\n"), lang }, renderScript, "script", scriptSlot),
+    run("/api/review", { question: q.question, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
+    run("/api/script", { question: q.question, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, renderScript, "script", scriptSlot),
   ]);
+  if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);
   if (attempt.review || attempt.script) {
-    session.attempts.push(attempt);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    state.session.attempts.push(attempt);
+    persist();
     showHabits();
   }
+  const cmp = attempt.review ? compareAttempts(state.session, q.id) : null;
+  if (cmp) renderCompare(cmp, bubble("coach", ""));
+  if (attempt.review) showReview(attempt.review, cmp);
   askForPick(true);
 }
 
@@ -314,6 +261,7 @@ $("chipX").addEventListener("click", () => { attachment = null; $("chip").hidden
 
 $("composer").addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (state.tour) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled)
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
@@ -337,38 +285,48 @@ input.addEventListener("keydown", (e) => {
 });
 
 // Static labels follow the language; bubbles already shown stay as they were.
+// Plain keys live in `ui`; dotted keys ("panel.review") are paths from the language root.
+const label = (t, k) => (k.includes(".") ? k.split(".").reduce((o, x) => o[x], t) : t.ui[k]);
 function applyLanguage() {
   const t = T();
-  document.documentElement.lang = lang;
+  document.documentElement.lang = state.lang;
   document.title = t.ui.title;
-  for (const e of document.querySelectorAll("[data-i18n]")) e.textContent = t.ui[e.dataset.i18n];
+  for (const e of document.querySelectorAll("[data-i18n]")) e.textContent = label(t, e.dataset.i18n);
   for (const e of document.querySelectorAll("[data-i18n-mail]")) e.textContent = t.mail[e.dataset.i18nMail];
   for (const e of document.querySelectorAll("[data-i18n-label]")) {
-    e.setAttribute("aria-label", t.ui[e.dataset.i18nLabel]);
-    e.title = t.ui[e.dataset.i18nLabel];
+    e.setAttribute("aria-label", label(t, e.dataset.i18nLabel));
+    e.title = label(t, e.dataset.i18nLabel);
   }
   input.placeholder = t.chat[PLACEHOLDER[stage]];
   fillDest();
 }
 // F6: the session lives only in this browser, so the document is built and downloaded here, then cleared.
-$("end").addEventListener("click", () => {
-  if (!session) return bubble("coach", T().export.empty);
+// The session is cleared only after the download was triggered; if building it fails, nothing is lost.
+function finish() {
+  if (!state.session) return bubble("coach", T().export.empty);
   const file = exportFileName(new Date());
-  const url = URL.createObjectURL(new Blob([sessionToMarkdown(session, T())], { type: "text/markdown;charset=utf-8" }));
-  const a = Object.assign(document.createElement("a"), { href: url, download: file });
-  document.body.append(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-  session = null;
+  try {
+    const url = URL.createObjectURL(new Blob([sessionToMarkdown(state.session, T())], { type: "text/markdown;charset=utf-8" }));
+    const a = Object.assign(document.createElement("a"), { href: url, download: file });
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch {
+    return bubble("err", message({ code: "unknown" }));
+  }
+  state.session = null;
   lastMail = null;
   lastAttachment = null;
-  current = null;
-  localStorage.removeItem(SESSION_KEY);
+  state.current = null;
+  clearSession(LS);
+  resetPanel();
+  renderNotes();
   bubble("coach", T().export.saved({ file }));
-  if (sessionStorage.getItem("code")) setStage("mail");
+  if (code) setStage("mail");
   offerMail();
-});
+}
+$("end").addEventListener("click", finish);
 
 // Daily-tip signup: offered once after the first save; "not now" is remembered too.
 const MAIL_ASKED = "mensetsu-mail-asked";
@@ -389,7 +347,7 @@ $("mailForm").addEventListener("submit", async (ev) => {
   const msg = $("mailMsg");
   $("mailSubmit").disabled = true;
   try {
-    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang });
+    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang: state.lang });
     if (!res.ok) return void (msg.textContent = message(data));
     closeMail();
     bubble("coach", T().mail.done);
@@ -400,32 +358,85 @@ $("mailForm").addEventListener("submit", async (ev) => {
   }
 });
 
-// Destination menu: only Japan works today; the rest are "coming soon" and each click is an anonymous demand count.
+// Destination menu: Japan, Korea (beta); the rest are "coming soon" and each click is an anonymous demand count.
 const DESTS = ["jp", "kr", "anglo", "other"];
+const OPEN_DESTS = ["jp", "kr"];
 const dest = $("dest");
 function fillDest() {
   const t = T().dest;
-  dest.replaceChildren(...DESTS.map((d) => new Option(d === "jp" ? t.jp : `${t[d]} · ${t.soonTag}`, d, false, d === "jp")));
+  const name = (d) => (d === "jp" ? t.jp : `${t[d]} · ${d === "kr" ? t.beta : t.soonTag}`);
+  dest.replaceChildren(...DESTS.map((d) => new Option(name(d), d, false, d === destPack)));
   dest.setAttribute("aria-label", t.label);
   dest.title = t.label;
 }
 dest.addEventListener("change", () => {
   const d = dest.value;
-  if (d === "jp") return;
+  if (OPEN_DESTS.includes(d)) return switchTo("dest", dest, () => (dest.value = destPack), () => { destPack = d; });
   bubble("coach", T().dest.soon({ name: T().dest[d] }));
   fetch("/api/demand", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ target: d }) }).catch(() => {});
-  dest.value = "jp";
+  dest.value = destPack;
 });
 
 const picker = $("lang");
-for (const [code, t] of Object.entries(LANGS)) picker.append(new Option(t.label, code, false, code === lang));
-picker.addEventListener("change", () => {
-  lang = picker.value;
-  try { localStorage.setItem(LANG_KEY, lang); } catch {}
+for (const [code, t] of Object.entries(LANGS)) picker.append(new Option(t.label, code, false, code === state.lang));
+picker.addEventListener("change", () => switchTo("lang", picker, () => (picker.value = state.lang), () => {
+  state.lang = picker.value;
+  try { localStorage.setItem(LANG_KEY, state.lang); } catch {}
   applyLanguage();
+}));
+
+// Language/destination change (UIUX-SPEC (j)): nothing to lose → switch silently. Otherwise ask in the current
+// language; Yes clears chat, session, stored session and panel (the verified code stays), No/Esc reverts the select.
+const hasHistory = () => Boolean(state.session || state.demoActive || send.disabled || (() => { try { return LS.getItem(SESSION_KEY); } catch { return null; } })());
+const confirmDlg = $("confirm");
+function confirmReset(kind, select) {
+  const t = T().confirm;
+  $("confirmTitle").textContent = t[kind];
+  $("confirmBody").textContent = t.body;
+  $("confirmNo").textContent = t.no;
+  $("confirmYes").textContent = t.yes;
+  confirmDlg.returnValue = "";
+  confirmDlg.showModal();
+  $("confirmNo").focus();
+  // `close` fires for No, Yes and Esc alike; only the Yes button sets returnValue "yes".
+  return new Promise((done) => confirmDlg.addEventListener("close", () => { select.focus(); done(confirmDlg.returnValue === "yes"); }, { once: true }));
+}
+async function switchTo(kind, select, revert, apply) {
+  const had = hasHistory();
+  if (had && !(await confirmReset(kind, select))) return revert();
+  const demo = state.demoActive;
+  if (had) resetChat();
+  apply();
+  if (!had) return;
+  if (demo && kind === "lang") startDemo(askForCode); // recordings exist per language, not per destination
+  else if (code) askForMail();
+  else askForCode();
+}
+function resetChat() {
+  state.epoch++;
+  state.demoActive = false;
+  endTour();
+  log.replaceChildren();
+  state.session = state.current = null;
+  lastMail = lastAttachment = attachment = null;
+  $("chip").hidden = true;
+  clearSession(LS);
+  resetPanel();
+  renderNotes();
+}
+
+// Esc: a mobile panel closes first, else the tour is skipped. Open dialogs handle their own Esc.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
+  if (!panel.hidden && !wide.matches) closePanel();
+  else if (state.tour) skipTour();
 });
 
+$("opts").addEventListener("click", () => { $("tourTips").checked = tourTipsOn(); $("options").showModal(); });
+$("tourTips").addEventListener("change", (e) => { try { localStorage.setItem(TOUR_TIPS, e.target.checked ? "1" : "0"); } catch {} });
+$("options").addEventListener("close", () => $("opts").focus());
+
 // Clear any unverified code left by an earlier page version; the chat always asks for the code on load.
-sessionStorage.removeItem("code");
+keepCode(null);
 applyLanguage();
 askForCode();
