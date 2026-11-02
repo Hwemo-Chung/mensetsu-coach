@@ -13,11 +13,11 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - `npm run test:live` — real Claude call (~35s, costs credits). Run by hand once after a prompt or model change, never in routine checks.
 
 ## Code map
-- `api/questions.js` — Vercel web-standard `POST` handler (access code → rate limit → validation → Claude). `dev.js` runs the same handler locally with `vercel.json` headers.
-- `lib/coach.js` — pack loading, system prompt v1, question request (structured JSON output, enums from pack taxonomy), PII redaction
+- `api/questions.js`, `api/script.js` — Vercel web-standard `POST` handlers (access code → rate limit → validation incl. `lang` → Claude). `api/access.js` checks the code only (no AI). All errors are `{ code }`; the UI turns codes into sentences. `dev.js` runs the same handlers locally with `vercel.json` headers; `MOCK_CLAUDE=1` uses per-route fixtures (0 tokens).
+- `lib/coach.js` — `MODEL`, pack loading, prompts, question + script requests (structured JSON output), `EXPLAIN_LANGS` (explanation language registry + language gates, 1 retry), PII redaction
 - `lib/attachment.js` — resume upload → Claude content blocks (PDF/image native, DOCX via mammoth, text); nothing touches disk
 - `lib/guard.js` — fail-closed access code, in-memory rate limit
-- `public/` — static chat UI (no inline script; CSP `script-src 'self'`). Session JSON lives in browser localStorage only.
+- `public/` — static chat UI (no inline script; CSP `script-src 'self'`). Stages code → mail → pick ⇄ answer. Enter = newline, Ctrl/Cmd+Enter = send (keep). `public/i18n/{ko,en,ja}.js` + `index.js`; `test/i18n.test.js` fails on a missing key. Session JSON lives in browser localStorage only.
 - Deploy: Vercel, `outputDirectory: public`. `.vercelignore` excludes `01_설계문서/`, `02_로컬원본/`.
 
 Deadline: **11/8 (일) 20:00 submit, target 17:00** (킥오프 공지, 비공개 폴더). DESIGN-KAKAOTALK-INTERVIEW-COACH.md still says 11/10 — that date is stale.
