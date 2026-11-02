@@ -24,11 +24,12 @@ test("no denylisted personal identifiers in packs/ or research outputs", { skip:
 });
 
 // URLs are stripped first: government document IDs (mhlw.go.jp/content/.../001742822.pdf) look like phone numbers.
-const piiMatches = (text) => text.replace(/https?:\/\/\S+/g, "").match(/0\d{1,3}-?\d{2,4}-?\d{4}|[\w.+-]+@[\w-]+\.[\w.-]+/g);
+const piiMatches = (text) => text.replace(/https?:\/\/\S+/g, "").match(/(?<!\d)0[1-9]\d{0,2}-?\d{2,4}-?\d{4}(?!\d)|[\w.+-]+@[\w-]+\.[\w.-]+/g);
 
 test("PII detector still catches phone/email but ignores URL document IDs", () => {
   assert.deepEqual(piiMatches("tel 090-1234-5678 / a.b@example.jp"), ["090-1234-5678", "a.b@example.jp"]);
   assert.equal(piiMatches("[PDF](https://www.mhlw.go.jp/content/11655000/001742822.pdf)"), null);
+  assert.equal(piiMatches("文書番号 001603370 と 001366995"), null, "document numbers starting 00 are not phones");
 });
 
 test("generic PII patterns (phone / email) absent from packs and research", () => {

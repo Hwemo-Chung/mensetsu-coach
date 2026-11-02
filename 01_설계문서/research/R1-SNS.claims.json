@@ -1,0 +1,133 @@
+[
+ {
+  "id": "R1SNS-01",
+  "claim_ko": "외국인 지원자의 면접 탈락 사례에서, 지원 동기가 일본 문화·일본어에 대한 개인적 호감에 머물고 지원 기업의 사업과 연결되지 않거나, 같은 지원서를 여러 기업에 돌려 쓴 경우가 반복 보고된다.",
+  "source_url": "internal-research",
+  "publisher": "community (4 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "志望動機",
+   "日本が好き",
+   "企業研究",
+   "使い回し"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-02",
+  "claim_ko": "JLPT N1 보유자도 면접에서 표현이 부자연스럽거나 면접식 답변 구조(결론 우선·경어)가 안 되어 감점·탈락했다는 보고가 반복되며, 급수는 지표일 뿐 실제 회화로 평가된다는 증언이 있다.",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "N1",
+   "面接の日本語",
+   "不自然な表現",
+   "結論から"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-03",
+  "claim_ko": "希望年収이 구인 레인지와 어긋나 선고가 끝났다는 보고가 2건 있다: 직무 전환인데 높은 금액을 제시한 경우, 그리고 현재 연봉이 기업 레인지보다 훨씬 높다는 이유로 본인이 레인지를 수용해도 선고가 중단된 경우.",
+  "source_url": "internal-research",
+  "publisher": "community (2 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "希望年収",
+   "現年収",
+   "レンジ",
+   "見送り"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-04",
+  "claim_ko": "최종면접은 능력보다 입사 의지·장기 근속 의향·회사 방향 이해를 확인하는 자리라는 보고가 반복되며, 의지가 느껴지지 않는 지원자는 면접관의 기억에 남지 않는다는 면접관 측 관찰이 있다.",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "最終面接",
+   "入社意欲",
+   "長く働く",
+   "志望度"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-05",
+  "claim_ko": "기업은 불합격 사유를 정형 문구로만 통지하고 구체적 피드백을 주지 않는 경우가 대부분이라는 보고가 반복되며, 면접관 측은 분쟁 소지 때문에 관행적으로 피드백을 주지 않는다고 설명한다.",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "不採用理由",
+   "フィードバック",
+   "お見送り"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-06",
+  "claim_ko": "학위·급수·어학 점수 등 자격을 나열한 답변이 1~2차에서 통하지 않았고, 면접관은 그 경험에서 무엇을 판단했는지를 묻는다는 보고가 반복된다. 근거 중 1건은 상업 코칭 블로그다.",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "資格の羅列",
+   "判断",
+   "自己分析"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-07",
+  "claim_ko": "작은 목소리·굳은 표정·흐릿한 답이 입사 후 불안으로 읽혀 기술 평가가 좋아도 채용 책임자 단계에서 떨어진다는 면접관 측 관찰이 2건 있으며, 긴장 자체는 감점이 아니라고 한다.",
+  "source_url": "internal-research",
+  "publisher": "community (2 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "声",
+   "自信",
+   "元気",
+   "緊張"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-08",
+  "claim_ko": "독자적 판단·리더십·변혁을 앞세운 자기 어필이 조직 적합성 우려로 읽힌다는 보고가 2건 있고, 반대로 지나치게 조심스러우면 추진력이 없어 보인다는 보고도 있다. 보고자들은 출신 문화를 원인으로 들었으나 이 문서는 행동 기준으로만 기록한다.",
+  "source_url": "internal-research",
+  "publisher": "community (2 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "自己主張",
+   "変革",
+   "協調性"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-09",
+  "claim_ko": "재류 잔여기간이 짧은 상태의 이직 활동에서 면접 단계까지 비자 문제가 우려 사항으로 다뤄졌다는 보고, 구인에서 취업 제한 없는 자격 보유자를 조건으로 거는 사례 보고가 있으며, 필요 잔여기간 수치는 단일 출처라 미확인이다.",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "在留期限",
+   "ビザ",
+   "在留資格変更"
+  ],
+  "confidence": "low"
+ }
+]

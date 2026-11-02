@@ -1,0 +1,421 @@
+[
+ {
+  "id": "R1T2b-01",
+  "claim_ko": "[법률] 민법 627조 1항: 고용 기간을 정하지 않은 경우 각 당사자는 언제든 해약을 신청할 수 있고, 고용은 신청일로부터 2주가 지나면 끝난다.",
+  "source_url": "https://laws.e-gov.go.jp/law/129AC0000000089",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "民法627条",
+   "解約の申入れ",
+   "二週間"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-02",
+  "claim_ko": "[법률] 민법 627조 2항(보수 기간 단위의 해약 시기 제한)과 3항은 조문상 '사용자로부터의' 해약 신청에만 적용된다. 따라서 노동자 측 사직 예고는 급여 지급 형태와 무관하게 1항의 2주가 기준이다(조문 문언 기준의 해석).",
+  "source_url": "https://laws.e-gov.go.jp/law/129AC0000000089",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "使用者からの解約の申入れ",
+   "次期以後"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-03",
+  "claim_ko": "[법률] 민법 628조: 기간을 정한 고용은 부득이한 사유가 있을 때 즉시 해제할 수 있으며, 그 사유가 한쪽 과실이면 상대방에게 손해배상 책임을 진다.",
+  "source_url": "https://laws.e-gov.go.jp/law/129AC0000000089",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "民法628条",
+   "やむを得ない事由"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-04",
+  "claim_ko": "[법률] 노동기준법 15조 1항: 사용자는 노동계약 체결 시 임금·노동시간 등 노동조건을 명시해야 하고, 임금·노동시간 등 성령이 정한 사항은 성령이 정한 방법으로 명시해야 한다.",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "労働基準法15条",
+   "労働条件の明示"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-05",
+  "claim_ko": "[법률] 노동기준법 15조 2항: 명시된 노동조건이 사실과 다르면 노동자는 즉시 노동계약을 해제할 수 있다. 3항은 취업을 위해 거주지를 옮긴 노동자가 14일 이내 귀향할 때 사용자가 여비를 부담하도록 한다.",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "事実と相違",
+   "即時に労働契約を解除"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-06",
+  "claim_ko": "[법률] 노동기준법 시행규칙 5조 1항: 명시해야 할 노동조건에는 계약 기간, 취업 장소와 업무(그 변경 범위 포함), 시업·종업 시각과 휴일, 임금의 결정·계산·지급 방법과 승급, 퇴직(해고 사유 포함) 등이 포함된다.",
+  "source_url": "https://laws.e-gov.go.jp/law/322M40000100023",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "施行規則5条",
+   "変更の範囲",
+   "昇給"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-07",
+  "claim_ko": "[법률] 노동기준법 22조: 노동자가 퇴직 시 사용 기간·업무 종류·지위·임금·퇴직 사유의 증명서를 청구하면 사용자는 지체 없이 교부해야 하며, 노동자가 청구하지 않은 사항은 적으면 안 된다.",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "退職時等の証明",
+   "請求しない事項"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-08",
+  "claim_ko": "[법률] 직업안정법 5조의3 3항: 구인자가 직업소개사업자의 소개로 온 구직자와 계약을 맺으면서 먼저 명시한 업무 내용·임금 등을 바꾸는 경우, 그 변경 내용을 계약 상대방에게 명시해야 한다(1항의 소개사업자 명시 의무는 R1T4-13).",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000141",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "職業安定法5条の3",
+   "変更する場合"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-09",
+  "claim_ko": "[법률] 직업안정법 32조의3 2항: 유료 직업소개사업자는 원칙적으로 구직자로부터 수수료를 받으면 안 된다. 예외는 성령이 정하는 경우뿐이다.",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000141",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "32条の3",
+   "求職者からは手数料を徴収してはならない"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-10",
+  "claim_ko": "[법률] 직업안정법 시행규칙 20조 2항: 구직자 수수료 예외는 예능가·모델로 소개한 경우와, 임금이 후생노동대신이 정한 금액을 넘는 과학기술자·경영관리자·숙련기능자로 소개한 경우이며, 취직 후 6개월 내 임금의 11%(면세사업자 10.3%) 이하로 제한된다. 대신이 정한 금액 자체는 이번에 확인하지 않았다.",
+  "source_url": "https://laws.e-gov.go.jp/law/322M40002000012",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "施行規則20条",
+   "経営管理者",
+   "百分の十一"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-11",
+  "claim_ko": "[지침] 후생노동성 리플릿: 직업소개사업자는 자신이 소개해 무기고용으로 취직한 사람에게 취직일로부터 2년간 전직을 권유하면 안 된다. 같은 리플릿은 2021-04-01 지침 개정으로 '취직 축하금' 등 명목의 과도한 금전 제공에 의한 구직 신청 권유를 금지했다고 안내한다.",
+  "source_url": "https://www.mhlw.go.jp/content/11600000/001603370.pdf",
+  "publisher": "厚生労働省・都道府県労働局",
+  "kind": "public",
+  "terms_url": "https://www.mhlw.go.jp/chosakuken/index.html",
+  "key_tokens": [
+   "転職の勧奨",
+   "２年間",
+   "お祝い金"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-12",
+  "claim_ko": "[법률·지침] 같은 리플릿: 소개사업자는 인재서비스종합사이트에 취직자 수, 무기고용 취직자 중 6개월 내 이직자 수, 수수료표, 반환금 제도 유무를 제공해야 하며(직업안정법 32조의16 3항), 반환금 제도 마련이 바람직하고 구직자·구인자 양쪽 수수료를 쌍방에 명시해야 한다.",
+  "source_url": "https://www.mhlw.go.jp/content/11600000/001603370.pdf",
+  "publisher": "厚生労働省・都道府県労働局",
+  "kind": "public",
+  "terms_url": "https://www.mhlw.go.jp/chosakuken/index.html",
+  "key_tokens": [
+   "人材サービス総合サイト",
+   "返戻金制度",
+   "32条の16"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-13",
+  "claim_ko": "[행정 안내] 이바라키 노동국 Q&A: 노동자의 사직 의사표시는 사용자 승낙이 없어도 도달 다음 날부터 세어 2주가 지나면 효력이 생긴다.",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "承諾",
+   "2週間"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-14",
+  "claim_ko": "[행정 안내] 같은 Q&A: 취업규칙이 부당하게 길지 않은 예고 기간(예: 1개월)을 정하고 있으면 분쟁 예방을 위해 따르는 것이 바람직하다고 권한다(법적 효력 기준이 아니라 권고).",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "就業規則",
+   "1か月"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-15",
+  "claim_ko": "[행정 안내] 같은 Q&A: 후임이 정해질 때까지 기다리라는 요구가 사직의 효력을 막지는 못하며, 문제가 생기면 총합노동상담코너나 노동기준감독서 상담을 안내한다.",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "後任",
+   "総合労働相談コーナー"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-16",
+  "claim_ko": "[충돌 메모] 같은 Q&A는 완전월급제 노동자는 임금 계산 기간 전반에 신고해야 한다는 취지의 설명을 싣고 있으나, 현행 민법 627조 2항 문언은 사용자 측 신청만 규정한다. 이 설명은 채택하지 않는다(개정 전 서술이 남은 것으로 추정, 개정 시행일은 미확인).",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局 (대조: e-Gov 民法)",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "完全月給制",
+   "使用者からの"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-17",
+  "claim_ko": "[판례 소개, 민간 kind] 후생노동성 '確かめよう労働条件' 페이지는 취업규칙으로 2주 기간을 대폭 늘리거나 회사 허가를 조건으로 하는 규정은 무효로 본 하급심 판례(東京地判 昭和51.10.29)를 소개한다. 사이트 이용약관을 찾지 못해 private로 둔다.",
+  "source_url": "https://www.check-roudou.mhlw.go.jp/study/roudousya_taisyoku.html",
+  "publisher": "厚生労働省「確かめよう労働条件」",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "大幅に伸ばす",
+   "無効"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-18",
+  "claim_ko": "[법적 해석, 민간 kind] 같은 페이지: 합의퇴직 신청은 회사가 승낙하기 전까지만 철회할 수 있고, 회사가 승낙하지 않아도 일방적 사직은 2주 후 효력이 생긴다.",
+  "source_url": "https://www.check-roudou.mhlw.go.jp/study/roudousya_taisyoku.html",
+  "publisher": "厚生労働省「確かめよう労働条件」",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "合意退職",
+   "撤回"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-19",
+  "claim_ko": "[법적 해석, 민간 kind] 노동계약 포털(위탁 운영): 취업규칙에 퇴직 절차가 있으면 내용이 합리적인 한 따라야 한다고 하고, 채용 내정으로 계약 성립이 인정되면 내정 취소에는 객관적으로 합리적인 이유가 필요하다고 설명한다.",
+  "source_url": "https://roukeiseminar.mhlw.go.jp/expiration.html",
+  "publisher": "厚生労働省 労働契約等解説セミナー (委託運営)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "採用内定",
+   "合理的"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-20",
+  "claim_ko": "[관행] 리쿠르트 에이전트 기사: 면접에서 희망연봉을 물으면 현재 연봉을 토대로 최저액과 희망액을 나눠 말하고 승급 예정·실적 같은 근거를 붙이라고 권한다. '귀사 규정에 따르겠다'는 말은 유연성을 보여 주는 보조 문장으로 다룬다.",
+  "source_url": "https://www.r-agent.com/guide/article11673/",
+  "publisher": "株式会社リクルート (リクルートエージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "希望年収",
+   "現年収",
+   "最低希望額"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-21",
+  "claim_ko": "[관행] JAC 기사: 희망연봉은 질문을 받은 뒤 구인표 범위 안에서, 현재 연봉을 기준으로 근거와 함께 답하고 최저선을 덧붙이는 방법도 있다. 결혼·주택대출 같은 개인 사정을 이유로 들거나 도중에 금액을 바꾸는 것은 피하라고 한다.",
+  "source_url": "https://www.jac-recruitment.jp/market/knowhow/annual-income/jobchange-annual-income/",
+  "publisher": "株式会社ジェイエイシーリクルートメント",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "求人票",
+   "最低ライン",
+   "一貫性"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-22",
+  "claim_ko": "[관행] 두 기사(리쿠르트·JAC) 모두 기업 상정액을 크게 넘는 희망액은 선고 우선순위를 낮출 수 있다고 본다. 실수령액과 총지급액을 섞어 말하는 것을 NG로 드는 것은 리쿠르트 1곳이다.",
+  "source_url": "https://www.r-agent.com/guide/article11673/",
+  "publisher": "株式会社リクルート / JAC",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "想定",
+   "手取り",
+   "総支給"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-23",
+  "claim_ko": "[관행] 시기: 리쿠르트는 물으면 그때 답하고, 묻지 않으면 내정 전에 꺼내되 선고 초반은 피하라고 한다. JAC는 묻지 않으면 최종면접 전후를 권한다.",
+  "source_url": "https://www.r-agent.com/guide/article11673/",
+  "publisher": "株式会社リクルート / JAC",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "内定前",
+   "最終面接"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-24",
+  "claim_ko": "[관행] 마이나비 전직 에이전트: 내정 전에는 희망을 전하는 데 그치고 조건 교섭은 내정 후 처우 면담(오퍼 면담)에서 한다. 에이전트에게는 조건의 우선순위, 양보 불가·양보 가능 조건, 그 이유를 전하라고 한다.",
+  "source_url": "https://mynavi-agent.jp/knowledge/common/71.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "処遇面談",
+   "オファー面談",
+   "優先順位"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-25",
+  "claim_ko": "[관행] MyVision 기사: 에이전트는 기업이 조건을 내기 전에 후보자 희망을 기업과 조정하는 것이 보통이며, 교섭 시기는 정식 조건 제시 후 내정 승낙 전이다. 의뢰 시 현 연봉·실적·희망액과 근거·기대 역할을 전하고, 요구가 아니라 상담으로 꺼내라고 한다. 컨설팅 업계 특화 에이전트의 단일 출처.",
+  "source_url": "https://my-vision.co.jp/articles/offer-negotiation",
+  "publisher": "株式会社MyVision",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "条件提示",
+   "内定承諾前",
+   "相談"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1T2b-26",
+  "claim_ko": "[관행] 마이나비 기사: 전직 내정 회답 기한은 수일~1주가 흔하고, 보류는 1주 정도면 받아들여지기 쉬우나 2주 이상은 기업 나름, 1개월 이상은 어렵다고 한다(단일 출처 수치).",
+  "source_url": "https://mynavi-agent.jp/knowledge/common/1555.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "回答期限",
+   "1週間",
+   "保留"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1T2b-27",
+  "claim_ko": "[관행] 같은 기사: 보류를 청할 때는 보류임을 분명히 하고 이유를 짧게, 기한은 본인이 제시한다. 타사 선고 중이라는 사실을 숨길 필요는 없지만 면접에서 말한 지망도와 어긋나지 않게 하라고 한다. 에이전트 경유면 보류 기간 교섭을 에이전트가 맡는다.",
+  "source_url": "https://mynavi-agent.jp/knowledge/common/1555.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "他社選考中",
+   "志望度",
+   "保留期間"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-28",
+  "claim_ko": "[관행] 리쿠르트 에이전트 기사: 내정 통지에는 먼저 받았다는 답을 빨리 보내고 기한 안에 회답한다. 에이전트 경유면 회답을 에이전트에게 보내 기업 전달을 부탁한다. 연장 요청은 타사 선고 상황과 구체적 희망일을, 사퇴는 감사·사과·명확한 결론을 담고 이유는 짧게 쓴다.",
+  "source_url": "https://www.r-agent.com/guide/article12635/",
+  "publisher": "株式会社リクルート (リクルートエージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "内定通知",
+   "延長",
+   "辞退"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-29",
+  "claim_ko": "[관행] 마이나비 FAQ: 에이전트 경유 내정 사퇴는 기업이 아니라 담당 에이전트에게, 가능하면 전화로(메일도 가능) 빨리 알린다. 승낙 후 사퇴도 입사 14일 이상 전이면 가능하다고 설명하는데, 이는 민법 627조(R1T2b-01)에 기댄 민간 해석이다.",
+  "source_url": "https://mynavi-agent.jp/service/faq/agent/1713.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "担当エージェント",
+   "電話",
+   "14日"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-30",
+  "claim_ko": "[관행] 리쿠르트 에이전트 기사: 재직 중이면 퇴직 교섭·인수인계·유급휴가 소화까지 1~2개월이 일반적이고, 취업규칙에 'O개월 전' 신고 기간을 둔 회사가 많으며 만류가 강하면 2개월 이상 걸린다. 입사 가능일을 물으면 최단일과 희망일을 함께 말하고 퇴직일 미정이면 늦어질 가능성을 덧붙이라고 한다.",
+  "source_url": "https://www.r-agent.com/guide/article12715/",
+  "publisher": "株式会社リクルート (リクルートエージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "入社可能日",
+   "最短",
+   "引き継ぎ"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-31",
+  "claim_ko": "[관행] 리쿠르트 다이렉트 스카우트 기사: 내정에서 입사까지는 대체로 1~3개월이며, 취업규칙의 퇴직 신고 기한을 미리 확인하고 인수인계에 2주 정도를 잡으라고 한다. 입사일 교섭은 내정 전에 하는 것이 기본이라고 한다.",
+  "source_url": "https://directscout.recruit.co.jp/contents/article/4232",
+  "publisher": "株式会社リクルート (リクルートダイレクトスカウト)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "1〜3カ月",
+   "退職の告知",
+   "入社日"
+  ],
+  "confidence": "medium"
+ }
+]
