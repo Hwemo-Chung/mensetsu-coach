@@ -8,9 +8,9 @@ Hackathon workspace for **Built with Claude: Japan 2026** (solo). Product: 일�
 Public GitHub repo. Only publicly shareable data is committed; secrets and personal data live outside the repo (see Layout).
 
 ## Commands
-- `npm run dev` — local server at http://localhost:3000. Reads `ENV_FILE` (default `.env`: `ANTHROPIC_API_KEY`, `ACCESS_CODE`). Real secrets: `ENV_FILE=../BuiltWithClaude-2026-private/secrets/.env npm run dev`
-- `npm test` — offline unit tests + PII scan. Scan the real denylist with `PII_DENYLIST=../BuiltWithClaude-2026-private/secrets/.pii-denylist.txt npm test`
-- `npm run test:live` — real Claude call with `samples/agent-mail-sample.txt`, asserts 10 questions (~35s, costs credits)
+- `npm run dev` — local server at http://localhost:3000. Reads `ENV_FILE` (default `.env`: `ANTHROPIC_API_KEY`, `ACCESS_CODE`). Real secrets: `ENV_FILE=../BuiltWithClaude-2026-private/secrets/.env npm run dev`. Token-free UI test: `MOCK_CLAUDE=1 npm run dev` (fixed answer from `test/fixtures/questions.json`, no Claude call).
+- `npm test` — offline, 0 tokens: unit tests, fake Claude client (`test/fake-claude.js`), PII scan. Scan the real denylist with `PII_DENYLIST=../BuiltWithClaude-2026-private/secrets/.pii-denylist.txt npm test`
+- `npm run test:live` — real Claude call (~35s, costs credits). Run by hand once after a prompt or model change, never in routine checks.
 
 ## Code map
 - `api/questions.js` — Vercel web-standard `POST` handler (access code → rate limit → validation → Claude). `dev.js` runs the same handler locally with `vercel.json` headers.

@@ -1,11 +1,11 @@
-// Calls the real Claude API (costs credits). Needs ANTHROPIC_API_KEY in .env.
+// Calls the real Claude API (costs credits). Run by hand only after a prompt or model change: npm run test:live. Key from ENV_FILE (default .env).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { loadPack, generateQuestions } from "../lib/coach.js";
 
-try { process.loadEnvFile(new URL("../.env", import.meta.url)); } catch {}
+try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
 
 test("sample agent mail → 10 company-specific questions (Day 1 acceptance)", { skip: !process.env.ANTHROPIC_API_KEY && "ANTHROPIC_API_KEY not set", timeout: 180000 }, async () => {
   const pack = loadPack("jp");

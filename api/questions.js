@@ -9,7 +9,7 @@ const json = (status, body) => Response.json(body, { status, headers: { "cache-c
 let client;
 
 // Vercel web-standard handler; dev.js calls the same function locally.
-export async function POST(request) {
+export async function POST(request, deps = {}) {
   if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { error: "접근 코드가 맞지 않습니다." });
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(ip)) return json(429, { error: "요청이 너무 많습니다. 10분 뒤에 다시 시도해 주세요." });
@@ -26,8 +26,8 @@ export async function POST(request) {
 
   try {
     const blocks = await toContentBlocks(body.attachment);
-    client ??= new Anthropic();
-    return json(200, await generateQuestions(client, loadPack("jp"), mail, blocks));
+    const c = deps.client ?? (client ??= new Anthropic());
+    return json(200, await generateQuestions(c, loadPack("jp"), mail, blocks));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { error: e.message });
     if (e instanceof Anthropic.RateLimitError) return json(503, { error: "AI 서버가 혼잡합니다. 잠시 뒤 다시 시도해 주세요." });
