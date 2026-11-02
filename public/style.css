@@ -36,3 +36,10 @@ textarea:focus, button:focus-visible, .attach:focus-within { outline: 2px solid 
 .bar { display: flex; align-items: center; gap: 6px; }
 .lang { margin-left: auto; font: inherit; font-size: 13px; border: 0; border-radius: 8px; padding: 3px 6px; background: rgba(255,255,255,.9); }
 .note.msg { background: #fff8e1; color: #6d4c00; font-size: 13px; }
+.review .verdict { font-weight: 700; margin: 2px 0; }
+.review .verdict.no { color: #b00020; }
+.review .verdict.unclear { color: #8a6d00; }
+.review .step { margin: 6px 0 0; }
+.review .step.miss { color: #b00020; }
+.review .hint { margin: 0 0 0 16px; font-size: 13px; color: #555; }
+.review .rule { margin: 8px 0 0; font-size: 12px; color: #058a3c; font-weight: 700; }

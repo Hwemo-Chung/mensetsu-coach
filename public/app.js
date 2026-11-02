@@ -29,6 +29,13 @@ function bubble(cls, text) {
   return b;
 }
 
+// Display order and labels of the 4 steps (from packs/jp.json answer_structure).
+const PACK_STEPS = [
+  { key: "fukusho", label: "復唱" },
+  { key: "ketsuron", label: "結論" },
+  { key: "kijun", label: "基準・数字" },
+  { key: "sentakushi", label: "選択肢" },
+];
 const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder" };
 function setStage(next) {
   stage = next;
@@ -59,9 +66,34 @@ function renderQuestions({ company_context: c, questions }) {
   log.scrollTop = log.scrollHeight;
 }
 
-function renderScript(s) {
+// Cards are created in ①②③ order up front and filled as each response lands.
+function fill(slot, cls) {
+  slot.className = `msg ${cls}`;
+  slot.textContent = "";
+  return slot;
+}
+
+function renderReview(r, slot) {
+  const t = T().review;
+  const b = fill(slot, "coach script review");
+  b.append(el("p", "title", t.title));
+  b.append(el("p", `verdict ${r.answers_question}`, t.answers[r.answers_question]), el("p", "tr", r.answers_question_reason));
+  for (const step of PACK_STEPS) {
+    const v = r.steps[step.key];
+    b.append(el("p", `step ${v.present ? "ok" : "miss"}`, `${v.present ? "✓" : "✗"} ${step.label} ${T().steps[step.key]}`));
+    if (!v.present) b.append(el("p", "hint", `→ ${v.note}`));
+  }
+  b.append(el("p", "title", t.corrections));
+  if (!r.corrections.length) b.append(el("p", "tr", t.noCorrections));
+  for (const c of r.corrections) {
+    b.append(el("p", "rule", `【${c.rule_id}】`), el("p", "ja", `${c.before} → ${c.after}`), el("p", "tr", c.reason));
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderScript(s, slot) {
   const t = T().script;
-  const b = bubble("coach script", null);
+  const b = fill(slot, "coach script");
   b.append(el("p", "title", t.title));
   b.append(el("p", "label", t.ja), el("p", "ja", s.ja));
   b.append(el("p", "label", t.reading), el("p", "reading", s.reading));
@@ -133,20 +165,34 @@ function onPick(text) {
   bubble("coach", `Q${n}. ${q.question_ja}\n(${q.question_tr})\n\n${T().chat.askAnswer}`);
 }
 
+// Review (①②) and script (③) run at the same time; a failed review does not block the script.
 async function onAnswer(text) {
   bubble("me", text);
-  const wait = bubble("coach typing", T().chat.waitScript);
-  try {
-    const context = session.company_context.facts.join("\n");
-    const { res, data } = await post("/api/script", { question: current.question_ja, answer: text, context, lang });
-    if (!res.ok) return failed(res, data);
-    renderScript(data);
-    session.attempts.push({ question_id: current.id, answer: text, script: data });
+  const q = current;
+  const reviewSlot = bubble("coach typing", T().chat.waitReview);
+  const scriptSlot = bubble("coach typing", T().chat.waitScript);
+  const attempt = { question_id: q.id, answer: text, review: null, script: null };
+  let denied = null;
+  const run = async (path, body, render, key, slot) => {
+    try {
+      const { res, data } = await post(path, body);
+      if (res.ok) return render(data, slot), (attempt[key] = data);
+      if (res.status === 401) denied = { res, data };
+      fill(slot, "err").textContent = message(data);
+    } catch {
+      fill(slot, "err").textContent = message({ code: "network" });
+    }
+  };
+  await Promise.all([
+    run("/api/review", { question: q.question_ja, answer: text, lang }, renderReview, "review", reviewSlot),
+    run("/api/script", { question: q.question_ja, answer: text, context: session.company_context.facts.join("\n"), lang }, renderScript, "script", scriptSlot),
+  ]);
+  if (denied) return failed(denied.res, denied.data);
+  if (attempt.review || attempt.script) {
+    session.attempts.push(attempt);
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-    askForPick(true);
-  } finally {
-    wait.remove();
   }
+  askForPick(true);
 }
 
 fileInput.addEventListener("change", () => {

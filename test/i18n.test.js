@@ -21,6 +21,7 @@ test("every pack stage, category and every API error code has a label in every l
   for (const [code, L] of Object.entries(LANGS)) {
     for (const s of t.stages) assert.ok(L.stages[s], `${code} stage ${s}`);
     for (const c of t.categories) assert.ok(L.categories[c], `${code} category ${c}`);
+    for (const st of loadPack("jp").answer_structure.steps) assert.ok(L.steps[st.key], `${code} step ${st.key}`);
     for (const e of codes) assert.equal(typeof L.errors[e], "function", `${code} error ${e}`);
     assert.match(L.errors.mail_too_long({ max: 8000 }), /8000|8,000/, `${code} interpolates max`);
   }
