@@ -26,3 +26,10 @@ textarea:focus, button:focus-visible, .attach:focus-within { outline: 2px solid 
 .chip button { border: 0; background: none; font-size: 16px; cursor: pointer; }
 .note { margin: 6px 4px 0; font-size: 11px; color: #888; }
 [hidden] { display: none !important; }
+.script { max-width: 92%; white-space: normal; }
+.script .title { font-weight: 700; margin: 0 0 6px; }
+.script .label { font-size: 11px; color: #058a3c; font-weight: 700; margin: 8px 0 2px; }
+.script .ja, .script .ko, .reading { margin: 0; white-space: pre-wrap; }
+.reading { font-size: 15px; letter-spacing: .02em; }
+.legend { font-size: 11px; color: #888; margin: 2px 0 0; }
+.points { margin: 0; padding-left: 18px; font-size: 13px; color: #333; }
