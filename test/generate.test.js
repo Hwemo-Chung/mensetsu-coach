@@ -47,5 +47,6 @@ test("API route: Claude failure → 502 with a generic message (no mail text ech
   const res = await POST(req, { client: fakeClient({ fail: new Error("boom") }) });
   const text = await res.text();
   assert.equal(res.status, 502);
+  assert.deepEqual(JSON.parse(text), { code: "generation_failed" });
   assert.ok(!text.includes("秘密のメール本文"));
 });

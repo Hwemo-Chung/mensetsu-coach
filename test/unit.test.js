@@ -59,10 +59,12 @@ test("attachments: pdf, text, rejects", async () => {
   assert.equal((await toContentBlocks({ name: "cv.pdf", type: "application/pdf", data: b64("%PDF-1.4 x") }))[0].type, "document");
   assert.deepEqual(await toContentBlocks({ name: "cv.txt", type: "text/plain", data: b64("経歴") }), [{ type: "text", text: "経歴" }]);
   assert.deepEqual(await toContentBlocks(undefined), []);
-  await assert.rejects(toContentBlocks({ name: "x.pdf", type: "application/pdf", data: b64("nope") }), AttachmentError);
-  await assert.rejects(toContentBlocks({ name: "x.docx", type: "", data: b64("nope") }), AttachmentError);
-  await assert.rejects(toContentBlocks({ name: "x.exe", type: "application/octet-stream", data: b64("MZ") }), AttachmentError);
-  await assert.rejects(toContentBlocks({ name: "big.txt", type: "text/plain", data: Buffer.alloc(3 * 1024 * 1024 + 1).toString("base64") }), AttachmentError);
+  const code = (c) => (e) => e instanceof AttachmentError && e.code === c;
+  await assert.rejects(toContentBlocks({ name: "x.txt", type: "text/plain", data: "" }), code("attachment_empty"));
+  await assert.rejects(toContentBlocks({ name: "x.pdf", type: "application/pdf", data: b64("nope") }), code("attachment_not_pdf"));
+  await assert.rejects(toContentBlocks({ name: "x.docx", type: "", data: b64("nope") }), code("attachment_not_docx"));
+  await assert.rejects(toContentBlocks({ name: "x.exe", type: "application/octet-stream", data: b64("MZ") }), code("attachment_unsupported"));
+  await assert.rejects(toContentBlocks({ name: "big.txt", type: "text/plain", data: Buffer.alloc(3 * 1024 * 1024 + 1).toString("base64") }), code("attachment_too_large"));
 });
 
 test("access check fails closed", () => {
@@ -81,14 +83,17 @@ test("rate limit blocks the 11th request in the window", () => {
 test("API rejects bad access code and empty mail before calling Claude", async () => {
   process.env.ACCESS_CODE = "c0de";
   const req = (code, body) => new Request("http://x/api/questions", { method: "POST", headers: { "x-access-code": code, "x-forwarded-for": "9.9.9.9" }, body: JSON.stringify(body) });
-  assert.equal((await POST(req("bad", { mail: "x" }))).status, 401);
-  assert.equal((await POST(req("c0de", { mail: "  " }))).status, 400);
-  assert.equal((await POST(req("c0de", { mail: "x".repeat(8001) }))).status, 400);
+  const check = async (res, status, body) => { assert.equal(res.status, status); assert.deepEqual(await res.json(), body); };
+  await check(await POST(req("bad", { mail: "x" })), 401, { code: "access_denied" });
+  await check(await POST(req("c0de", { mail: "  " })), 400, { code: "mail_required" });
+  await check(await POST(req("c0de", { mail: "x".repeat(8001) })), 400, { code: "mail_too_long", max: 8000 });
 });
 
 test("access check: wrong code 401, right code 200, no AI call", async () => {
   process.env.ACCESS_CODE = "c0de";
   const req = (code) => new Request("http://x/api/access", { method: "POST", headers: { "x-access-code": code, "x-forwarded-for": "8.8.8.8" } });
-  assert.equal((await checkCode(req("bad"))).status, 401);
+  const bad = await checkCode(req("bad"));
+  assert.equal(bad.status, 401);
+  assert.deepEqual(await bad.json(), { code: "access_denied" });
   assert.equal((await checkCode(req("c0de"))).status, 200);
 });
