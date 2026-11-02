@@ -19,6 +19,8 @@
 | 질문 번호 선택 → 답변 → 모범 스크립트 (일본어 경어·발음·번역·억양 포인트 2~4개) | 구현. 발음은 한국어 화면 한글, English 화면 로마자, 日本語 화면 히라가나. ↗ 올림 · ↘ 내림 · 《 》 강조 · / 끊기 |
 | 화면 언어 (한국어·English·日本語, 브라우저 언어 기본, 선택 기억) | 구현 |
 | (선택) 경력 한 줄 → 질문 다시 만들기 (질문 표시 후에만, 저장 안 함) | 구현 |
+| 말버릇 카운터 (세션 안 첨삭을 규칙별로 세고 2회 이상 ⚠) | 구현 |
+| 역질문 3개 + 의도 (조건 질문은 에이전트에게) | 구현 (`claude-sonnet-5-5`) |
 | 끝내기·저장 (세션 전체를 마크다운으로 내려받고 비움) | 구현 |
 | 매일 아침 9시 면접 팁 메일 (가입 팝업, 수신 거부 링크) | 구현. 발송은 Resend·Upstash 키 설정 후 동작 (그 전에는 "준비 중" 응답) |
 | 답변 구조 점검 (질문에 답했는가 + 復唱→結論→基準・数字→選択肢) | 구현. 채점은 생성과 분리한 별도 호출 (`claude-opus-5-5`) |
@@ -77,6 +79,7 @@ npm run dev             # http://localhost:3000
 - `api/questions.js`: 질문 생성 API (POST)
 - `api/script.js`: 모범 스크립트 API (POST)
 - `api/review.js`: 구조 점검·첨삭 API (POST)
+- `api/reverse.js`: 역질문 API (POST)
 - `api/subscribe.js`, `api/unsubscribe.js`, `api/cron/daily.js`, `lib/mail.js`: 메일링 가입·수신 거부·매일 09:00 JST 발송 (Vercel Cron)
 - `public/export.js`: 세션 → 마크다운 내보내기
 - `api/access.js`: 접근 코드 확인 API (POST, AI 호출 없음). 모든 API는 오류를 문장이 아닌 코드(`{ code }`)로 반환합니다.
