@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { fakeClient, fixture, scriptFixture } from "./fake-claude.js";
@@ -185,4 +185,33 @@ test("F2 prompt asks for material phrases in refs", () => {
   assert.ok(r.output_config.format.schema.properties.questions.items.required.includes("refs"));
   assert.match(r.messages[0].content, /refs/);
   assert.match(r.messages[0].content, /6/);
+});
+
+test("L9 maskInput: email, phone, postal code and a salutation-only name line are masked; company and role stay", () => {
+  const raw = "テスト太郎様\nいつもお世話になっております。\n連絡先: taro.test@example.co.jp / 090-1234-5678 / +81 3 1234 5678\n〒123-4567 東京都\n株式会社サンプルロジ（仮）様より、エンジニアリングマネージャーの件です。\nPython / AWS、5名の開発チーム";
+  const m = maskInput(raw);
+  for (const leak of ["テスト太郎", "taro.test@example.co.jp", "090-1234-5678", "+81 3 1234 5678", "123-4567"]) assert.ok(!m.includes(leak), leak);
+  for (const keep of ["株式会社サンプルロジ（仮）様より", "エンジニアリングマネージャー", "Python / AWS", "5名の開発チーム"]) assert.ok(m.includes(keep), keep);
+  assert.match(m, /\[氏名\]様/);
+});
+
+test("L9 questions API: personal data is masked BEFORE it reaches Claude", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const client = fakeClient();
+  const req = new Request("http://x/api/questions", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": "4.4.4.4", "content-type": "application/json" },
+    body: JSON.stringify({ mail: "テスト花子様\n担当: hanako@example.jp 080-9999-0000\n" + MAIL }) });
+  assert.equal((await POST(req, { client })).status, 200);
+  const sent = JSON.stringify(client.requests);
+  for (const leak of ["テスト花子", "hanako@example.jp", "080-9999-0000"]) assert.ok(!sent.includes(leak), leak);
+  assert.ok(sent.includes("需要予測"), "business content still sent");
+});
+
+test("L9 script API: personal data in the answer is masked before Claude", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const client = fakeClient({ result: scriptFixture });
+  const req = new Request("http://x/api/script", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": "4.4.4.5", "content-type": "application/json" },
+    body: JSON.stringify({ question: "Q", answer: "제 메일은 me@example.com, 전화 010-1234-5678입니다" }) });
+  assert.equal((await scriptPOST(req, { client })).status, 200);
+  const sent = JSON.stringify(client.requests);
+  for (const leak of ["me@example.com", "010-1234-5678"]) assert.ok(!sent.includes(leak), leak);
 });

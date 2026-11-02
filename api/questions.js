@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateQuestions, EXPLAIN_LANGS } from "../lib/coach.js";
+import { loadPack, generateQuestions, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
@@ -29,7 +29,7 @@ export async function POST(request, deps = {}) {
   try {
     const blocks = await toContentBlocks(body.attachment);
     const c = deps.client ?? (client ??= new Anthropic());
-    return json(200, await generateQuestions(c, loadPack("jp"), mail, blocks, lang));
+    return json(200, await generateQuestions(c, loadPack("jp"), maskInput(mail), blocks, lang));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });
     if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });

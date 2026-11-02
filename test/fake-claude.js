@@ -14,5 +14,6 @@ export function fakeClient({ result = fixture, responses, stop = "end_turn", fai
     calls++;
     return { stop_reason: stop, content: [{ type: "text", text: typeof r === "string" ? r : JSON.stringify(r) }] };
   };
-  return { beta: { messages: { stream: () => ({ finalMessage }) } }, calls: () => calls };
+  const requests = [];
+  return { beta: { messages: { stream: (req) => (requests.push(req), { finalMessage }) } }, calls: () => calls, requests };
 }
