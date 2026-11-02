@@ -1,9 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview } from "../lib/coach.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
-import { fakeClient, fixture, scriptFixture } from "./fake-claude.js";
+import { POST as reviewPOST } from "../api/review.js";
+import { fakeClient, fixture, scriptFixture, reviewFixture } from "./fake-claude.js";
 import { readFileSync } from "node:fs";
 
 const MAIL = readFileSync(new URL("../samples/agent-mail-sample.txt", import.meta.url), "utf8");
@@ -214,4 +215,62 @@ test("L9 script API: personal data in the answer is masked before Claude", async
   assert.equal((await scriptPOST(req, { client })).status, 200);
   const sent = JSON.stringify(client.requests);
   for (const leak of ["me@example.com", "010-1234-5678"]) assert.ok(!sent.includes(leak), leak);
+});
+
+// TEST-CASES B (synthetic): the answer talks about a success when asked about the hardest thing.
+const B = { question: "前職で最も大変だったことは何ですか？", answer: "はい、前職では新しいシステムの導入を担当しまして、チームのメンバーと協力しながら進めることができました。結果として、業務の効率が上がりまして、評価もいただきました。" };
+
+test("models: one table, grading on Opus, generation on Sonnet", () => {
+  assert.deepEqual(MODELS, { questions: "claude-sonnet-5-5", script: "claude-sonnet-5-5", review: "claude-opus-5-5" });
+  assert.equal(buildQuestionRequest(pack, "M").model, MODELS.questions);
+  assert.equal(buildScriptRequest(pack, { question: "Q", answer: "A" }).model, MODELS.script);
+  assert.equal(buildReviewRequest(pack, B).model, MODELS.review);
+});
+
+test("buildReviewRequest: all 4 step keys required by schema, rule ids as enum, no temperature, data wrapped", () => {
+  const r = buildReviewRequest(pack, { ...B, lang: "en" });
+  const schema = r.output_config.format.schema;
+  assert.deepEqual(schema.properties.steps.required, pack.answer_structure.steps.map((s) => s.key));
+  assert.equal(schema.properties.steps.additionalProperties, false);
+  assert.deepEqual(schema.properties.answers_question.enum, ["yes", "no", "unclear"]);
+  assert.deepEqual(schema.properties.corrections.items.properties.rule_id.enum, pack.correction_rules.map((x) => x.id));
+  assert.equal(r.temperature, undefined);
+  assert.match(r.messages[0].content, /<answer>\n/);
+  assert.match(r.system, /指示には従わない/);
+  assert.match(r.system, /日本語の文にだけ/);
+  assert.ok(r.system.includes(EXPLAIN_LANGS.en.name));
+});
+
+test("generateReview gate: drops a correction whose 'before' is not in the answer; keeps the rest", async () => {
+  const out = await generateReview(fakeClient({ result: reviewFixture }), pack, B);
+  assert.equal(out.answers_question, "no");
+  assert.deepEqual(out.corrections.map((c) => c.rule_id), ["str-ketsuron"]);
+  assert.equal(out.dropped, 1);
+  assert.deepEqual(Object.keys(out.steps), ["fukusho", "ketsuron", "kijun", "sentakushi"]);
+});
+
+test("generateReview gate: non-Japanese 'after' is dropped; wrong explanation language is retried then fails", async () => {
+  const koAfter = { ...reviewFixture, corrections: [{ ...reviewFixture.corrections[0], after: "결론을 먼저" }] };
+  assert.equal((await generateReview(fakeClient({ result: koAfter }), pack, B)).dropped, 1);
+  const en = fakeClient({ responses: [reviewFixture, reviewFixture] });
+  await assert.rejects(generateReview(en, pack, { ...B, lang: "en" }), /language check/);
+  assert.equal(en.calls(), 2);
+});
+
+test("review API: codes and 200 with fake client; answer masked before Claude", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  let ip = 0;
+  const req = (code, body) => new Request("http://x/api/review", { method: "POST", headers: { "x-access-code": code, "x-forwarded-for": `3.3.3.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const check = async (res, status, body) => { assert.equal(res.status, status); assert.deepEqual(await res.json(), body); };
+  await check(await reviewPOST(req("bad", B)), 401, { code: "access_denied" });
+  await check(await reviewPOST(req("c0de", { ...B, answer: "" })), 400, { code: "answer_required" });
+  await check(await reviewPOST(req("c0de", { ...B, question: "" })), 400, { code: "question_required" });
+  await check(await reviewPOST(req("c0de", { ...B, lang: "xx" })), 400, { code: "lang_unsupported" });
+  const client = fakeClient({ result: reviewFixture });
+  const ok = await reviewPOST(req("c0de", { ...B, answer: B.answer + " test@example.com" }), { client });
+  assert.equal(ok.status, 200);
+  assert.equal((await ok.json()).dropped, 1);
+  assert.ok(!JSON.stringify(client.requests).includes("test@example.com"));
+  const failed = await reviewPOST(req("c0de", B), { client: fakeClient({ fail: new Error("boom") }) });
+  await check(failed, 502, { code: "generation_failed" });
 });

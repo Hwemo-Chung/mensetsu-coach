@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 const load = (name) => JSON.parse(readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8"));
 export const fixture = load("questions.json");
 export const scriptFixture = load("script.json");
+export const reviewFixture = load("review.json");
 
 // responses: one result per call, in order (for retry tests); otherwise every call returns `result`.
 export function fakeClient({ result = fixture, responses, stop = "end_turn", fail } = {}) {

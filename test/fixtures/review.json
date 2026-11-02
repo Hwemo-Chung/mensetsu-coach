@@ -1,0 +1,14 @@
+{
+  "answers_question": "no",
+  "answers_question_reason": "질문은 가장 힘들었던 일인데, 답변은 성과 사례를 말하고 있습니다.",
+  "steps": {
+    "fukusho": { "present": false, "note": "질문(가장 힘들었던 일)을 다시 말하는 첫 문장이 없습니다." },
+    "ketsuron": { "present": false, "note": "무엇이 힘들었는지 결론이 첫 문장에 없습니다." },
+    "kijun": { "present": false, "note": "근거가 될 숫자나 기준이 없습니다." },
+    "sentakushi": { "present": false, "note": "마지막에 상대에게 넘기는 선택지가 없습니다." }
+  },
+  "corrections": [
+    { "rule_id": "str-ketsuron", "before": "はい、前職では新しいシステムの導入を担当しまして", "after": "前職で最も大変だったのは、［大変だったこと］です。", "reason": "결론을 첫 문장에 둡니다." },
+    { "rule_id": "del-chanto", "before": "ちゃんと確認しました", "after": "確認しました", "reason": "답변에 없는 문장이라 표시되면 안 됩니다." }
+  ]
+}
