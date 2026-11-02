@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>面接コーチ — 일본 면접 스크립트 코치</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="bar">面接コーチ <span class="sub">일본 면접 코치</span></header>
+    <main id="log" class="log" aria-live="polite"></main>
+    <form id="composer" class="composer">
+      <div id="chip" class="chip" hidden><span id="chipName"></span><button type="button" id="chipX" aria-label="첨부 취소">×</button></div>
+      <div class="row">
+        <label class="attach" title="이력서·경력서 첨부 (선택)" aria-label="이력서·경력서 첨부 (선택)">📎<input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
+        <textarea id="input" rows="2" required></textarea>
+        <button id="send" type="submit">보내기</button>
+      </div>
+      <p class="note">첨부 파일과 메일은 저장하지 않으며, 질문을 만들기 위해 Claude API로만 전송됩니다.</p>
+    </form>
+  </div>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

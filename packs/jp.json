@@ -1,0 +1,47 @@
+{
+  "id": "jp",
+  "version": 1,
+  "name": "日本 (Japan)",
+  "language_pair": { "target": "ja", "native": "ko" },
+  "answer_structure": {
+    "name": "4文型",
+    "steps": [
+      { "key": "fukusho", "label": "復唱", "label_native": "질문 확인", "rule": "最初の1文で、聞かれた質問を短く言い直す。", "example": "見積もりがずれたときの判断、ですね。" },
+      { "key": "ketsuron", "label": "結論", "label_native": "결론", "rule": "最初の1文で結論を言い切る。前置きをしない。", "example": "止める・縮小する・続けるの3つで判断します。" },
+      { "key": "kijun", "label": "基準・数字", "label_native": "근거 하나", "rule": "根拠は基準か数字を1つだけ。複数並べない。", "example": "基準は、残りのコストと、残りのリターンです。" },
+      { "key": "sentakushi", "label": "選択肢", "label_native": "상대에게 반환", "rule": "最後に、相手が判断できる選択肢の形で返す。", "example": "事業側には、止める場合の損失も含めて選択肢で出します。" }
+    ],
+    "core_principle": "質問されたことに答える。準備した隣の質問に答えない。"
+  },
+  "correction_rules": [
+    { "id": "del-katachi", "pattern": "〜の形 / 〜という形で", "type": "delete", "replacement": "", "reason": "意味がない。1回も言わない。文が短くなる。", "example_before": "チームで共有する形で進めました。", "example_after": "チームで共有して進めました。" },
+    { "id": "del-chanto", "pattern": "ちゃんと", "type": "delete", "replacement": "確実に / 最後まで / 具体的な動詞（確認する・合意する・止める）", "reason": "幼く聞こえる。", "example_before": "ちゃんと確認しました。", "example_after": "リリース前に全件確認しました。" },
+    { "id": "del-nanka", "pattern": "なんか", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "なんか、課題が多かったです。", "example_after": "課題が多かったです。" },
+    { "id": "del-chotto", "pattern": "ちょっと（形容詞として使う場合以外）", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "ちょっと説明させてください。", "example_after": "説明させてください。" },
+    { "id": "del-gyakuni", "pattern": "逆に（逆接でない所）", "type": "delete", "replacement": "", "reason": "逆接でない所で使うと意味が反転して聞こえる。", "example_before": "逆に、私はテストを重視しています。", "example_after": "私はテストを重視しています。" },
+    { "id": "rep-jibunteki", "pattern": "自分的には", "type": "replace", "replacement": "私としては", "reason": "砕けすぎ。", "example_before": "自分的には、この方法が良いと考えます。", "example_after": "私としては、この方法が良いと考えます。" },
+    { "id": "rep-touka", "pattern": "透過", "type": "replace", "replacement": "理解", "reason": "透過は物理現象を表す言葉。", "example_before": "おっしゃる内容を十分透過しております。", "example_after": "おっしゃる内容を十分理解しております。" },
+    { "id": "rep-shuchu", "pattern": "集中いたしました（承知の意味で）", "type": "replace", "replacement": "承知いたしました", "reason": "集中は別の意味。了解の意味なら承知。", "example_before": "集中いたしました。", "example_after": "承知いたしました。" },
+    { "id": "rep-shisan", "pattern": "資産（工数・費用の意味で）", "type": "replace", "replacement": "コスト / 工数 / リソース", "reason": "資産は会計用語。", "example_before": "資産をどこまで使うかを決めます。", "example_after": "工数をどこまで使うかを決めます。" },
+    { "id": "rep-jijitsu", "pattern": "〜ことが事実になる", "type": "replace", "replacement": "〜も事実です", "reason": "二重表現。", "example_before": "遅れたことが事実になるんですけど。", "example_after": "遅れたことも事実です。" },
+    { "id": "rep-omoimasu", "pattern": "〜と思います（連続使用）", "type": "replace", "replacement": "事実は断定形、未来は「〜と考えています」", "reason": "連続すると自信がない印象になる。", "example_before": "効果があったと思います。改善できると思います。", "example_after": "効果がありました。さらに改善できると考えています。" },
+    { "id": "str-ketsuron", "pattern": "結論が最初の1文にない", "type": "structure", "replacement": "最初の1文で結論を言い切る", "reason": "結論が後ろにあると、面接官は質問が伝わったか分からない。", "example_before": "前職では色々なプロジェクトがあって、その中で…、結果的にAを選びました。", "example_after": "Aを選びます。理由は〜です。" },
+    { "id": "str-number", "pattern": "根拠が複数並ぶ / 数字がない", "type": "structure", "replacement": "根拠は数字か基準を1つだけ", "reason": "根拠が多いと、どれが本当の理由か伝わらない。", "example_before": "理由は3つあって、1つ目は…2つ目は…3つ目は…", "example_after": "基準は、残りのコストです。" },
+    { "id": "str-rebuttal", "pattern": "反論されたときに対抗する", "type": "structure", "replacement": "相手の正しさを先に認める → 目的を分ける → 使い分けを言う", "reason": "対抗すると論点がずれる。反論しない。目的が違う、で終える。", "example_before": "いえ、スクラムの方が早いです。", "example_after": "おっしゃる通りです。目的が違うので、納期固定ならウォーターフォール、新規事業なら2週間単位で使い分けます。" },
+    { "id": "str-answer-first", "pattern": "自分の答えを言う前に「どう思いますか」と返す", "type": "structure", "replacement": "まず自分の考えを言い、質問は後に1つだけ", "reason": "答えが空のまま質問を返すと、考えがない印象になる。", "example_before": "AI活用について、御社はどう思いますか。", "example_after": "まず私の考えを言います。AIはチームの再現性に効かせるべきだと考えています。そのうえで1つ伺いたいです。" }
+  ],
+  "model_answer_format": {
+    "duration_seconds": 60,
+    "lines": ["ja", "pronunciation_ko", "translation_ko"],
+    "description": "日本語の1文ごとに、ハングルの発音表記と韓国語訳を続ける3段フォーマット。"
+  },
+  "question_taxonomy": {
+    "stages": ["一次面接", "最終面接"],
+    "categories": ["経歴・志望動機", "技術", "マネジメント", "逆質問"]
+  },
+  "culture_notes": [
+    "前回の面談で分かった前提は、逆質問で確認し直さず、前提として話す。準備の証拠になる。",
+    "エージェント経由の面接では、面接ごとに企業固有の前提（組織・役割・評価・出社条件）を押さえてから答える。",
+    "敬語の正確さより、質問に答えている構造のほうが評価に効く。"
+  ]
+}

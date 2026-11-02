@@ -1,0 +1,6 @@
+02_로컬원본/
+01_설계문서/
+test/
+.env
+.pii-denylist.txt
+.env.local

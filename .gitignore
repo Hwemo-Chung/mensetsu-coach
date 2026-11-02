@@ -1,0 +1,9 @@
+.env
+node_modules/
+sessions/
+02_로컬원본/
+.vercel/
+.pii-denylist.txt
+.vercel
+.env*
+!.env.example
