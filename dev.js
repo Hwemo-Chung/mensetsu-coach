@@ -9,6 +9,7 @@ import { POST as script } from "./api/script.js";
 import { POST as review } from "./api/review.js";
 import { POST as subscribe } from "./api/subscribe.js";
 import { GET as unsubscribe } from "./api/unsubscribe.js";
+import { POST as demand } from "./api/demand.js";
 import { fakeClient, scriptFixture, reviewFixture } from "./test/fake-claude.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
@@ -23,7 +24,7 @@ createServer(async (req, res) => {
   for (const [k, v] of Object.entries(securityHeaders)) res.setHeader(k, v);
   const url = new URL(req.url, "http://localhost");
   try {
-    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/subscribe": subscribe }[url.pathname];
+    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/subscribe": subscribe, "/api/demand": demand }[url.pathname];
     if (url.pathname === "/api/unsubscribe") {
       const r = await unsubscribe(new Request(url));
       res.writeHead(r.status, Object.fromEntries(r.headers));

@@ -44,6 +44,15 @@ export default {
     submit: "Sign me up",
     done: "You're in. The first email arrives tomorrow at 9:00.",
   },
+  dest: {
+    label: "Destination",
+    jp: "🇯🇵 Jobs in Japan (for non-Japanese)",
+    kr: "🇰🇷 Jobs in Korea (日本人向け)",
+    anglo: "🇺🇸🇬🇧 Jobs in the US / UK",
+    other: "🌏 Somewhere else",
+    soonTag: "coming soon",
+    soon: (d) => `${d.name} coaching is coming soon.\nWe'll open the most requested ones first. (Counted — no personal data kept)`,
+  },
   script: {
     title: "③ Model script",
     ja: "日本語",

@@ -246,6 +246,7 @@ function applyLanguage() {
     e.title = t.ui[e.dataset.i18nLabel];
   }
   input.placeholder = t.chat[PLACEHOLDER[stage]];
+  fillDest();
 }
 // F6: the session lives only in this browser, so the document is built and downloaded here, then cleared.
 $("end").addEventListener("click", () => {
@@ -293,6 +294,23 @@ $("mailForm").addEventListener("submit", async (ev) => {
   } finally {
     $("mailSubmit").disabled = false;
   }
+});
+
+// Destination menu: only Japan works today; the rest are "coming soon" and each click is an anonymous demand count.
+const DESTS = ["jp", "kr", "anglo", "other"];
+const dest = $("dest");
+function fillDest() {
+  const t = T().dest;
+  dest.replaceChildren(...DESTS.map((d) => new Option(d === "jp" ? t.jp : `${t[d]} · ${t.soonTag}`, d, false, d === "jp")));
+  dest.setAttribute("aria-label", t.label);
+  dest.title = t.label;
+}
+dest.addEventListener("change", () => {
+  const d = dest.value;
+  if (d === "jp") return;
+  bubble("coach", T().dest.soon({ name: T().dest[d] }));
+  fetch("/api/demand", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ target: d }) }).catch(() => {});
+  dest.value = "jp";
 });
 
 const picker = $("lang");

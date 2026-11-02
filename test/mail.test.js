@@ -5,6 +5,7 @@ import { dailyTip, subscriberId, tipIndex } from "../lib/mail.js";
 import { POST as subscribe } from "../api/subscribe.js";
 import { GET as unsubscribe } from "../api/unsubscribe.js";
 import { GET as cron } from "../api/cron/daily.js";
+import { POST as demand, TARGETS } from "../api/demand.js";
 
 const pack = loadPack("jp");
 const SECRET = "test-secret";
@@ -12,7 +13,8 @@ const SECRET = "test-secret";
 // In-memory stand-ins for Upstash (hash) and Resend. No network, no tokens.
 const fakeStore = () => {
   const m = new Map();
-  return { m, set: async (id, v) => m.set(id, v), del: async (id) => m.delete(id), all: async () => [...m.entries()] };
+  const counts = {};
+  return { m, counts, set: async (id, v) => m.set(id, v), del: async (id) => m.delete(id), all: async () => [...m.entries()], incr: async (k) => (counts[k] = (counts[k] ?? 0) + 1) };
 };
 const fakeMailer = () => {
   const sent = [];
@@ -105,4 +107,17 @@ test("cron: one failed send does not stop the others", async () => {
   const mailer = { send: async () => { if (n++ === 0) throw new Error("bounce"); return { id: "ok" }; } };
   const res = await cron(new Request("http://x/api/cron/daily", { headers: { authorization: "Bearer cron" } }), { store, mailer });
   assert.deepEqual(await res.json(), { sent: 1, failed: 1 });
+});
+
+test("demand counter: allowlisted targets only, no personal data, logs one line, counts when the store exists", async () => {
+  assert.deepEqual(TARGETS, ["kr", "anglo", "other"]);
+  const store = fakeStore();
+  const logs = [];
+  const req = (body) => new Request("http://x/api/demand", { method: "POST", headers: { "x-forwarded-for": `1.1.1.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const ok = await demand(req({ target: "kr", email: "x@y.z" }), { store, log: (l) => logs.push(l) });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(store.counts, { kr: 1 });
+  assert.deepEqual(logs, ['{"event":"demand","target":"kr"}']);
+  assert.equal((await demand(req({ target: "mars" }), { store, log: () => {} })).status, 400);
+  assert.equal((await demand(req({ target: "anglo" }), { store: null, log: () => {} })).status, 200, "no store → still logged, still ok");
 });

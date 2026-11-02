@@ -8,9 +8,13 @@
 </head>
 <body>
   <div class="app">
-    <header class="bar">面接コーチ <span class="sub" data-i18n="title"></span>
+    <header class="bar">
+      <span class="brand">面接コーチ <span class="sub" data-i18n="title"></span></span>
+      <div class="controls">
+      <select id="dest" class="lang" data-i18n-label-dest="label"></select>
       <select id="lang" class="lang" data-i18n-label="language"></select>
       <button type="button" id="end" class="end" data-i18n="end"></button>
+      </div>
     </header>
     <main id="log" class="log" aria-live="polite"></main>
     <form id="composer" class="composer">

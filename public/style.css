@@ -54,3 +54,8 @@ textarea:focus, button:focus-visible, .attach:focus-within { outline: 2px solid 
 .mail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
 .mail-actions button { font: inherit; border-radius: 10px; padding: 8px 14px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
 .mail-actions #mailSubmit { background: #06c755; color: #fff; border-color: #06c755; }
+.bar { flex-wrap: wrap; row-gap: 6px; padding: 10px 12px; }
+.brand { white-space: nowrap; }
+.controls { display: flex; gap: 6px; margin-left: auto; min-width: 0; max-width: 100%; }
+.controls select { margin-left: 0; min-width: 0; max-width: 42vw; text-overflow: ellipsis; }
+.controls .end { white-space: nowrap; }
