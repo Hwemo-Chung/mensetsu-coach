@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateQuestions } from "../lib/coach.js";
+import { loadPack, generateQuestions, EXPLAIN_LANGS } from "../lib/coach.js";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
@@ -20,6 +20,8 @@ export async function POST(request, deps = {}) {
   } catch {
     return json(400, { code: "bad_request" });
   }
+  const lang = body?.lang ?? "ko";
+  if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
   const mail = typeof body?.mail === "string" ? body.mail.trim() : "";
   if (!mail) return json(400, { code: "mail_required" });
   if (mail.length > MAX_MAIL_CHARS) return json(400, { code: "mail_too_long", max: MAX_MAIL_CHARS });
@@ -27,7 +29,7 @@ export async function POST(request, deps = {}) {
   try {
     const blocks = await toContentBlocks(body.attachment);
     const c = deps.client ?? (client ??= new Anthropic());
-    return json(200, await generateQuestions(c, loadPack("jp"), mail, blocks));
+    return json(200, await generateQuestions(c, loadPack("jp"), mail, blocks, lang));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });
     if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });

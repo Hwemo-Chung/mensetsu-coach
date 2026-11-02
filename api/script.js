@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateScript } from "../lib/coach.js";
+import { loadPack, generateScript, EXPLAIN_LANGS } from "../lib/coach.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
 const MAX_ANSWER_CHARS = 2000;
@@ -22,6 +22,8 @@ export async function POST(request, deps = {}) {
   } catch {
     return json(400, { code: "bad_request" });
   }
+  const lang = body?.lang ?? "ko";
+  if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
   const answer = text(body?.answer);
   const question = text(body?.question);
   if (!answer) return json(400, { code: "answer_required" });
@@ -33,7 +35,7 @@ export async function POST(request, deps = {}) {
 
   try {
     const c = deps.client ?? (client ??= new Anthropic());
-    return json(200, await generateScript(c, loadPack("jp"), { question, answer, context }));
+    return json(200, await generateScript(c, loadPack("jp"), { question, answer, context, lang }));
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });
     console.error("script failed:", e?.status ?? "", e?.message); // never log the answer

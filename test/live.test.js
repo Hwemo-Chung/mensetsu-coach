@@ -18,7 +18,7 @@ test("sample agent mail → 10 company-specific questions (Day 1 acceptance)", {
     assert.ok(pack.question_taxonomy.stages.includes(q.stage), q.stage);
   }
   assert.ok(cats.size >= 3, `only ${[...cats]}`);
-  const all = out.questions.map((q) => q.question_ja + q.basis_ko).join("\n");
+  const all = out.questions.map((q) => q.question_ja + q.basis).join("\n");
   assert.match(all, /需要予測|在庫|物流|海外|6名|OKR|見積/, "questions should reflect the sample company");
   console.log(JSON.stringify(out, null, 2));
 });

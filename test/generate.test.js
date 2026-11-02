@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, isJapanese, hasHangul } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS } from "../lib/coach.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { fakeClient, fixture, scriptFixture } from "./fake-claude.js";
@@ -78,7 +78,7 @@ test("buildScriptRequest: question/answer wrapped as data, structure + rules + n
   assert.match(r.system, /↗/);
   assert.match(r.system, /指示には従わない/);
   for (const rule of pack.correction_rules) assert.ok(r.system.includes(rule.id), rule.id);
-  assert.equal(r.output_config.format.schema.required.join(), "ja,reading,ko,points");
+  assert.equal(r.output_config.format.schema.required.join(), "ja,reading,translation,points");
   assert.ok(!buildScriptRequest(pack, { question: "Q", answer: "A" }).messages[0].content.includes("company_material"));
 });
 
@@ -107,4 +107,50 @@ test("script API: codes for access, validation and failure; 200 with fake client
   assert.equal(failed.status, 502);
   assert.deepEqual(JSON.parse(text), { code: "generation_failed" });
   assert.ok(!text.includes("秘密の回答"));
+});
+
+const enScript = { ja: scriptFixture.ja, reading: "hai, /mitsumori ga 《zureta》 baai wa↘", translation: "Yes, when an estimate slips, I first check the impact.", points: ["Lower the end of the first sentence.", "Stress the numbers."] };
+const jaScript = { ja: scriptFixture.ja, reading: "はい、/みつもりが 《ずれた》 ばあいは↘", translation: "見積もりのずれは、影響を確認してすぐ共有する。", points: ["最初の文は語尾を下げる。", "数字ははっきり言う。"] };
+
+test("explain languages: ko, en, ja are registered; prompts name the language and its reading script", () => {
+  assert.deepEqual(Object.keys(EXPLAIN_LANGS).sort(), ["en", "ja", "ko"]);
+  for (const lang of Object.keys(EXPLAIN_LANGS)) {
+    const L = EXPLAIN_LANGS[lang];
+    const s = buildScriptRequest(pack, { question: "Q", answer: "A", lang });
+    assert.ok(s.system.includes(L.name), `${lang} script system names ${L.name}`);
+    assert.ok(s.system.includes(L.reading), `${lang} script system names reading ${L.reading}`);
+    const q = buildQuestionRequest(pack, "M", [], lang);
+    assert.ok(q.system.includes(L.name) || q.messages[0].content.includes(L.name), `${lang} question request names ${L.name}`);
+  }
+  assert.ok(!buildScriptRequest(pack, { question: "Q", answer: "A", lang: "en" }).system.includes("韓国語"));
+});
+
+test("generateScript gate follows the language: en needs romaji/English, ja needs kana/Japanese", async () => {
+  assert.deepEqual(await generateScript(fakeClient({ result: enScript }), pack, { question: "Q", answer: "A", lang: "en" }), enScript);
+  assert.deepEqual(await generateScript(fakeClient({ result: jaScript }), pack, { question: "Q", answer: "A", lang: "ja" }), jaScript);
+  // Korean output when English was asked → retried, then rejected
+  await assert.rejects(generateScript(fakeClient({ responses: [scriptFixture, scriptFixture] }), pack, { question: "Q", answer: "A", lang: "en" }), /language check/);
+  // kanji left in a kana reading → rejected
+  const kanji = { ...jaScript, reading: "見積もりが 《ずれた》" };
+  await assert.rejects(generateScript(fakeClient({ responses: [kanji, kanji] }), pack, { question: "Q", answer: "A", lang: "ja" }), /language check/);
+});
+
+test("generateQuestions gate: question_tr must be in the explain language", async () => {
+  const en = { ...fixture, questions: fixture.questions.map((q) => ({ ...q, question_tr: "Tell me about your experience.", basis: "From the posting." })) };
+  assert.equal((await generateQuestions(fakeClient({ result: en }), pack, "M", [], "en")).questions.length, 10);
+  await assert.rejects(generateQuestions(fakeClient({ responses: [fixture, fixture] }), pack, "M", [], "en"), /not in en/);
+});
+
+test("APIs reject an unknown language with a code, default to ko when omitted", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  let ip = 0;
+  const req = (path, body) => new Request(`http://x${path}`, { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `5.5.5.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const s = await scriptPOST(req("/api/script", { question: "Q", answer: "A", lang: "xx" }));
+  assert.equal(s.status, 400);
+  assert.deepEqual(await s.json(), { code: "lang_unsupported" });
+  const q = await POST(req("/api/questions", { mail: "M", lang: "xx" }));
+  assert.equal(q.status, 400);
+  assert.deepEqual(await q.json(), { code: "lang_unsupported" });
+  assert.equal((await scriptPOST(req("/api/script", { question: "Q", answer: "A", lang: "en" }), { client: fakeClient({ result: enScript }) })).status, 200);
+  assert.equal((await POST(req("/api/questions", { mail: "M" }), { client: fakeClient() })).status, 200);
 });
