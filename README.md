@@ -71,5 +71,6 @@ npm run dev             # http://localhost:3000
 - `public/`: 채팅 UI (단일 화면). `public/i18n/`에 화면 언어 파일 (언어 추가 = 파일 1개 + 등록 1줄 + 서버 `EXPLAIN_LANGS` 1줄)
 - `test/`: 단위 테스트, 개인정보 패턴 검사, 실호출 테스트
 - `01_설계문서/`: PRD, 설계서, 개발 기록(DEVLOG), 공적 자료 리서치(`research/`)
+- `01_설계문서/dev-notes/`: 개발 노하우 공개본 — 설계 취약점과 방어(`HARDENING-REVIEW.md`), Claude 자료 점검표(`CLAUDE-RESOURCES-CHECKLIST.md`), 리서치에 쓴 Claude Code 멀티 에이전트 워크플로 스크립트(`agent-workflows/`). 실제 면접 기업명·계정 정보는 지웠습니다.
 
 일본 면접·서류 규범은 공적 자료를 확인해 `01_설계문서/research/README.md`에 신뢰도 태그와 함께 정리했습니다. 출신 국가별 면접 행동 규칙은 근거를 찾지 못해 만들지 않았습니다.

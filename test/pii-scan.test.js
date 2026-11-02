@@ -9,8 +9,9 @@ const denyPath = process.env.PII_DENYLIST ?? fileURLToPath(new URL(".pii-denylis
 const targets = [
   ...(existsSync(new URL("packs/", root)) ? readdirSync(new URL("packs/", root)).map((f) => `packs/${f}`) : []),
   ...(existsSync(new URL("01_설계문서/research/", root)) ? readdirSync(new URL("01_설계문서/research/", root)).map((f) => `01_설계문서/research/${f}`) : []),
+  ...(existsSync(new URL("01_설계문서/dev-notes/", root)) ? readdirSync(new URL("01_설계문서/dev-notes/", root), { recursive: true }).map((f) => `01_설계문서/dev-notes/${f}`) : []),
   "README.md",
-].filter((p) => existsSync(new URL(p, root)) && /\.(json|md)$/.test(p));
+].filter((p) => existsSync(new URL(p, root)) && /\.(json|md|js)$/.test(p));
 
 test("no denylisted personal identifiers in packs/ or research outputs", { skip: !existsSync(denyPath) && ".pii-denylist.txt not present" }, () => {
   const terms = readFileSync(denyPath, "utf8").split("\n").map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
