@@ -112,4 +112,6 @@ input.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("composer").requestSubmit();
 });
 
-sessionStorage.getItem("code") ? askForMail() : askForCode();
+// Clear any unverified code left by an earlier page version; the chat always asks for the code on load.
+sessionStorage.removeItem("code");
+askForCode();
