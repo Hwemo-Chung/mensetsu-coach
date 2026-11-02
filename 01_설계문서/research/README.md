@@ -45,7 +45,7 @@
 | `R1-T2a.md` + `.claims.json` | 中途 선고 플로우·단계별 평가축·転職理由·スカウト 답신 | R1 조사 완료, 검증 §5 |
 | `R1-SNS.md` + `.claims.json` | SNS·커뮤니티 실패 사례 반복 패턴(내부 리서치, 원문·URL 없음) | R1 조사 완료, 검증 §6. 원 문서에 로컬 절대경로 남아 있음(공개 전 제거) |
 | `VERIFICATION-LOG.md` | R1 후보 71건의 keep/drop·실패 관점·사유 + 유닛별 문서 이슈 | 작성(R1만 대상. T1~T4는 미포함) |
-| `SUMMARY.md` | 유닛별 집계, 코치 출력 변화, 미확인 칸, 다음 병합 후보 | **미작성** — R1 통합 서브에이전트의 파일 쓰기가 하네스에 차단됨. 내용은 통합 결과 보고에 있음, 메인 세션에서 저장 필요 |
+| `SUMMARY.md` | 유닛별 집계, 코치 출력 변화, 미확인 칸, 다음 병합 후보 | 작성 완료 (통합 결과를 메인 세션에서 저장) |
 | `jp-draft-v2.json` | `packs/jp.json` + R1 1차 병합안(rules +3, notes +5, enum +4, 874자) | 초안. 사람 승인 전 병합 금지. 병합 시 `public/i18n/{ko,ja,en}.js`에 새 enum 4개 라벨 추가 필요(`test/i18n.test.js` 22~23행). 새 카테고리는 coach.js 101행 때문에 10문항마다 1개 이상 강제. PRD §5 재현 테스트 미실행 → 채택은 잠정 |
 | `failure-patterns-r1.json` | SNS-P1~P9 실패 패턴(비주입 설계 참고) | 작성. 팩에 넣지 않음 |
 | `validate-draft.mjs` | `jp-draft-v2.json` 키·7필드·id·예산 검사(단독 실행, npm test 미연결) | 작성. `--verbatim` 미구현 |
