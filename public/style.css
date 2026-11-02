@@ -61,3 +61,5 @@ textarea:focus, button:focus-visible, .attach:focus-within { outline: 2px solid 
 .controls .end { white-space: nowrap; }
 .inline-btn { margin-top: 6px; font: inherit; font-size: 13px; border: 1px solid #06c755; color: #058a3c; background: #fff; border-radius: 10px; padding: 5px 10px; cursor: pointer; }
 .inline-btn:disabled { opacity: .5; cursor: default; }
+.demo-banner { background: #fff3cd; color: #6d4c00; font-size: 12px; font-weight: 700; }
+.next-btn { align-self: center; font-size: 15px; padding: 8px 18px; background: #06c755; color: #fff; border-color: #06c755; }

@@ -45,7 +45,50 @@ function setStage(next) {
 }
 function askForCode() {
   setStage("code");
-  bubble("coach", T().chat.askCode);
+  const b = bubble("coach", T().chat.askCode);
+  const demoBtn = el("button", "inline-btn", T().demo.button);
+  demoBtn.type = "button";
+  demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(); });
+  b.append(el("br"), demoBtn);
+}
+
+// No-code demo: replays a real recorded run (public/demo/demo-<lang>.json). No API, no session, no storage.
+async function startDemo() {
+  let d;
+  try {
+    d = await (await fetch(`/demo/demo-${lang}.json`)).json();
+  } catch {
+    return bubble("err", message({ code: "network" }));
+  }
+  const t = T().demo;
+  bubble("coach demo-banner", t.banner);
+  const q = d.questions[d.pick];
+  const steps = [
+    () => { bubble("coach note", t.mail); bubble("me", d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail); renderQuestions(d); },
+    () => { bubble("coach note", t.pick); bubble("me", String(d.pick + 1)); bubble("coach", `Q${d.pick + 1}. ${q.question_ja}\n(${q.question_tr})`); },
+    () => { bubble("coach note", t.bad); bubble("me", d.steps[0].answer); renderReview(d.steps[0].review, bubble("coach", "")); },
+    () => { bubble("coach note", t.script); renderScript(d.steps[0].script, bubble("coach", "")); },
+    () => { bubble("coach note", t.good); bubble("me", d.steps[1].answer); renderReview(d.steps[1].review, bubble("coach", "")); },
+    () => {
+      const b = bubble("coach note", t.done);
+      const btn = el("button", "inline-btn", t.try);
+      btn.type = "button";
+      btn.addEventListener("click", () => { btn.disabled = true; askForCode(); });
+      b.append(el("br"), btn);
+    },
+  ];
+  let i = 0;
+  const next = () => {
+    steps[i++]();
+    if (i < steps.length) {
+      const btn = el("button", "inline-btn next-btn", t.next);
+      btn.type = "button";
+      btn.addEventListener("click", () => { btn.remove(); next(); });
+      log.append(btn);
+    }
+    log.scrollTop = log.scrollHeight;
+  };
+  next();
 }
 function askForMail() {
   setStage("mail");

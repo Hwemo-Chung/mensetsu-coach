@@ -1,0 +1,221 @@
+{
+ "lang": "en",
+ "recorded": "2026-11-02",
+ "mail": "件名：【面接日程のご案内】株式会社サンプルロジ（仮）　エンジニアリングマネージャー（一次面接）\n\n〇〇様\n\nいつもお世話になっております。キャリアエージェントの担当でございます。\n先日ご応募いただいた株式会社サンプルロジ（仮）様より、書類選考通過のご連絡をいただきました。\n\n■企業概要\n・物流倉庫向けの在庫管理SaaSを提供（2018年創業、従業員100名）\n・今期より海外拠点の倉庫への導入を開始\n\n■募集ポジション\nエンジニアリングマネージャー（プロダクト開発部）\n・5名の開発チーム（バックエンド3名、フロントエンド2名）のマネジメント\n・需要予測機能の刷新プロジェクトの推進（Python / AWS）\n・海外拠点の現場担当者との要件調整（英語または韓国語が使える方歓迎）\n\n■選考フロー\n一次面接：開発部長（技術・マネジメント経験の確認）\n最終面接：CTO・人事（カルチャーフィット、入社後の期待値すり合わせ）\n\n■勤務条件\n・週2日出社、その他リモート\n・評価は半期ごとのOKR\n\n■面接のポイント（企業様より）\n・見積もりがずれたときの判断の仕方を具体的に聞きたい\n・メンバーの育成と評価の経験を重視している\n\nご不明点がございましたら、お気軽にお問い合わせください。\n",
+ "company_context": {
+  "company": "株式会社サンプルロジ（仮）",
+  "position": "エンジニアリングマネージャー（プロダクト開発部）",
+  "facts": [
+   "物流倉庫向けの在庫管理SaaSを提供している（2018年創業、従業員100名）",
+   "今期より海外拠点の倉庫への導入を開始",
+   "5名の開発チーム（バックエンド3名、フロントエンド2名）をマネジメントする",
+   "需要予測機能の刷新プロジェクトを推進する（Python / AWS）",
+   "海外拠点の現場担当者との要件調整があり、英語または韓国語が使える人を歓迎",
+   "一次面接は開発部長、最終面接はCTO・人事",
+   "週2日出社、その他リモート",
+   "評価は半期ごとのOKR",
+   "企業側は、見積もりがずれたときの判断の仕方と、メンバーの育成と評価の経験を重視している"
+  ]
+ },
+ "questions": [
+  {
+   "id": "q1",
+   "stage": "一次面接",
+   "category": "経歴・志望動機",
+   "question_ja": "在庫管理SaaSを提供している当社のエンジニアリングマネージャーに応募された理由を、これまでのご経歴と結びつけてお話しください。",
+   "question_tr": "Please explain why you applied for the Engineering Manager role at our company, which provides inventory management SaaS, linking it to your career so far.",
+   "basis": "The company provides inventory management SaaS for logistics warehouses, so the interviewer will check whether the candidate's motivation connects to this business.",
+   "refs": [
+    "在庫管理SaaS",
+    "エンジニアリングマネージャー"
+   ]
+  },
+  {
+   "id": "q2",
+   "stage": "一次面接",
+   "category": "マネジメント",
+   "question_ja": "見積もりがずれたとき、どのように判断して、関係者にどう伝えましたか。具体的な事例でお聞かせください。",
+   "question_tr": "When an estimate went off track, how did you make decisions and how did you communicate to stakeholders? Please give a concrete example.",
+   "basis": "The company explicitly said it wants to hear specifically how the candidate makes decisions when estimates slip.",
+   "refs": []
+  },
+  {
+   "id": "q3",
+   "stage": "一次面接",
+   "category": "マネジメント",
+   "question_ja": "バックエンド3名、フロントエンド2名の5名の開発チームを任された場合、最初の3か月で何を優先して取り組みますか。",
+   "question_tr": "If you were put in charge of a five-person development team (3 backend, 2 frontend), what would you prioritize in your first three months?",
+   "basis": "The role manages a 5-person team split into backend and frontend, so the interviewer will ask about the candidate's initial priorities.",
+   "refs": [
+    "バックエンド3名、フロントエンド2名",
+    "5名の開発チーム"
+   ]
+  },
+  {
+   "id": "q4",
+   "stage": "一次面接",
+   "category": "技術",
+   "question_ja": "需要予測機能の刷新プロジェクトを進めるうえで、PythonとAWSを使った開発でどのような技術的リスクを想定し、どう管理しますか。",
+   "question_tr": "In driving the demand forecasting renewal project, what technical risks do you foresee in development with Python and AWS, and how would you manage them?",
+   "basis": "The role leads the demand forecasting renewal project using Python / AWS, so the interviewer will probe technical risk awareness.",
+   "refs": [
+    "需要予測機能の刷新プロジェクト",
+    "Python",
+    "AWS"
+   ]
+  },
+  {
+   "id": "q5",
+   "stage": "一次面接",
+   "category": "技術",
+   "question_ja": "既存の在庫管理SaaSの機能を刷新するとき、稼働中のお客様への影響を抑えながら移行する方法をどう考えますか。",
+   "question_tr": "When renewing features of an existing inventory management SaaS, how would you migrate while minimizing impact on customers already using it?",
+   "basis": "Renewing a feature in a live SaaS used by warehouses requires migration planning, which a development director would test.",
+   "refs": [
+    "在庫管理SaaS"
+   ]
+  },
+  {
+   "id": "q6",
+   "stage": "一次面接",
+   "category": "マネジメント",
+   "question_ja": "メンバーの育成と評価で、これまでに最も力を入れた取り組みと、その結果を教えてください。",
+   "question_tr": "What was the initiative you put the most effort into for developing and evaluating members, and what was the result?",
+   "basis": "The company said it places importance on experience in developing and evaluating members.",
+   "refs": [
+    "メンバーの育成と評価"
+   ]
+  },
+  {
+   "id": "q7",
+   "stage": "最終面接",
+   "category": "経歴・志望動機",
+   "question_ja": "今期から海外拠点の倉庫への導入が始まりますが、その事業の中で、あなたはどのような価値を出せるとお考えですか。",
+   "question_tr": "Deployment to overseas warehouse sites starts this term. What value do you think you can create in that business?",
+   "basis": "The company began deploying to overseas warehouse sites this term, and the CTO will check how the candidate fits this expansion.",
+   "refs": [
+    "海外拠点の倉庫への導入"
+   ]
+  },
+  {
+   "id": "q8",
+   "stage": "最終面接",
+   "category": "マネジメント",
+   "question_ja": "海外拠点の現場担当者との要件調整で、英語または韓国語を使って意見が食い違ったとき、どのように合意をつくりますか。",
+   "question_tr": "When opinions differ in requirements coordination with overseas site staff in English or Korean, how do you build agreement?",
+   "basis": "The role includes requirements coordination with overseas site staff, and English or Korean ability is welcomed.",
+   "refs": [
+    "海外拠点の現場担当者との要件調整",
+    "英語または韓国語"
+   ]
+  },
+  {
+   "id": "q9",
+   "stage": "最終面接",
+   "category": "マネジメント",
+   "question_ja": "当社では評価が半期ごとのOKRですが、チームのOKRをどのように設定し、メンバーの評価につなげますか。",
+   "question_tr": "Our evaluation uses semiannual OKRs. How would you set team OKRs and link them to member evaluations?",
+   "basis": "Evaluation is by semiannual OKR, so the final interview will check how the candidate would operate within this system.",
+   "refs": [
+    "半期ごとのOKR"
+   ]
+  },
+  {
+   "id": "q10",
+   "stage": "最終面接",
+   "category": "逆質問",
+   "question_ja": "ここまでのお話を踏まえて、入社後の期待値や働き方について、確認しておきたいことはありますか。",
+   "question_tr": "Based on our discussion so far, is there anything you would like to confirm about expectations after joining or about working style?",
+   "basis": "The final interview with the CTO and HR is for aligning post-joining expectations, and the work style is 2 office days per week with remote otherwise, so the candidate is invited to ask questions.",
+   "refs": []
+  }
+ ],
+ "specificity": {
+  "referenced": 8,
+  "required": 6,
+  "passed": true
+ },
+ "pick": 1,
+ "steps": [
+  {
+   "answer": "はい、前職ではチームで新しい管理ツールを導入しまして、メンバーとも協力して、プロジェクトは無事に成功しました。社内でも評価をいただきました。",
+   "review": {
+    "answers_question": "no",
+    "answers_question_reason": "The question asks how the candidate judged and communicated a specific estimate deviation. The answer describes introducing a management tool and a successful project. It never mentions an estimate deviation, the decision made, or how stakeholders were informed.",
+    "steps": {
+     "fukusho": {
+      "present": false,
+      "note": "Open by restating the question briefly, e.g. 「見積もりがずれたときの判断と伝え方ですね。」"
+     },
+     "ketsuron": {
+      "present": false,
+      "note": "Right after the restatement, state the decision you made when the estimate slipped (e.g. cut scope or extend the deadline) and who you told first."
+     },
+     "kijun": {
+      "present": false,
+      "note": "Give one number or criterion behind the decision, such as how many days or what percentage the estimate was off, or the remaining cost."
+     },
+     "sentakushi": {
+      "present": false,
+      "note": "End by showing the options you presented to stakeholders so they could decide, e.g. 「納期を延ばすか、範囲を削るかを提示しました。」"
+     }
+    },
+    "corrections": [
+     {
+      "rule_id": "str-ketsuron",
+      "before": "はい、前職ではチームで新しい管理ツールを導入しまして、メンバーとも協力して、プロジェクトは無事に成功しました。",
+      "after": "見積もりがずれたとき、［判断した内容］と決め、［誰に］最初に伝えました。",
+      "reason": "The opening is background and an outcome, not a conclusion to the question. State your decision on the estimate deviation in the first sentence after the restatement.",
+      "pattern": "結論が冒頭にない"
+     },
+     {
+      "rule_id": "str-number",
+      "before": "プロジェクトは無事に成功しました",
+      "after": "見積もりが［数字］ずれたため、［基準］で判断しました",
+      "reason": "「無事に成功」 gives no number or criterion. Use one figure (size of the deviation) or one criterion to support the judgment.",
+      "pattern": "根拠が複数並ぶ / 数字がない"
+     }
+    ],
+    "dropped": 0
+   },
+   "script": {
+    "ja": "見積もりがずれたときの判断と、関係者への伝え方についてですね。私は、ずれが基準を超えた時点で、すぐに関係者へ報告します。基準は、見積もりに対するずれの割合で、［ここに基準の数字］を超えたら報告します。前職の管理ツール導入では、［ここに実際のずれと、伝えた相手と対応］でした。判断の経緯と伝え方のどちらから、詳しくお話ししましょうか。",
+    "reading": "Mitsumori ga zureta toki no handan to↗ / kankeisha e no tsutaekata ni tsuite desu ne↘ / Watashi wa / zure ga 《kijun》 o koeta jiten de↗ / sugu ni kankeisha e 《houkoku》 shimasu↘ / Kijun wa / mitsumori ni taisuru zure no 《wariai》 de / [koko ni kijun no suuji] o koetara houkoku shimasu↘ / Zenshoku no kanri tsuuru dounyuu dewa↗ / [koko ni jissai no zure to / tsutaeta aite to taiou] deshita↘ / Handan no keii to / tsutaekata no dochira kara↗ / kuwashiku ohanashi shimashouka↗",
+    "translation": "You are asking about how I judge an estimate overrun and how I communicate it to stakeholders. I report to stakeholders immediately once the gap exceeds a threshold. My criterion is the gap as a percentage of the estimate: I report when it exceeds [insert your threshold number]. In my previous job's management tool rollout, [insert the actual gap, who you told, and what you did]. Shall I go into more detail on how I made the judgment, or on how I communicated it?",
+    "points": [
+     "Stress 基準 (kijun) and 報告 (houkoku): the answer is a clear criterion plus reporting right away.",
+     "Say the threshold number [koko ni kijun no suuji] slowly and clearly with a slight pause before it, so the interviewer registers the number.",
+     "Let your voice fall (↘) at the end of each statement sentence to sound confident; do not trail off.",
+     "Raise your pitch (↗) on the final question, 'dochira kara ... ohanashi shimashouka', to hand the choice to the interviewer."
+    ]
+   }
+  },
+  {
+   "answer": "見積もりがずれたときの判断と、関係者への伝え方についてですね。私は、ずれが基準を超えた時点で、すぐに関係者へ報告します。基準は、見積もりに対するずれの割合で、20％を超えたら報告します。前職の管理ツール導入では、当初40人日で見積もっていた設定作業が、既存データの形式不統一により52人日（30％超過）かかる見込みとなり、判明した翌日に、プロジェクトの責任者である部長と利用部門の担当者3名へ報告し、データ整備の担当を利用部門から1名追加してもらうとともに、全体の納期を2週間延ばす対応をしました。判断の経緯と伝え方のどちらから、詳しくお話ししましょうか。",
+   "review": {
+    "answers_question": "yes",
+    "answers_question_reason": "The question asks how the candidate judged an estimate deviation and how they communicated it, with a concrete case. The answer gives the judgment rule (report once the deviation exceeds 20%). It then gives a specific case: 40 to 52 person-days, reported the next day to the department head and three users, with the added staff and a 2-week extension as the response.",
+    "steps": {
+     "fukusho": {
+      "present": true,
+      "note": "The opening sentence briefly restates the question. No change needed."
+     },
+     "ketsuron": {
+      "present": true,
+      "note": "The conclusion comes right after the restatement: report immediately once the deviation exceeds the threshold. No change needed."
+     },
+     "kijun": {
+      "present": true,
+      "note": "The answer uses one criterion, a 20% deviation threshold, backed by concrete figures (40 to 52 person-days, 30%). The example sentence is very long; splitting it into two or three sentences would make the numbers easier to follow."
+     },
+     "sentakushi": {
+      "present": true,
+      "note": "The answer ends by asking whether to go deeper on the judgment process or the communication, which lets the interviewer choose. No change needed."
+     }
+    },
+    "corrections": [],
+    "dropped": 0
+   }
+  }
+ ]
+}

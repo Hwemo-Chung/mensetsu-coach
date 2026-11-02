@@ -59,6 +59,18 @@ export default {
   },
   habits: { title: (d) => `📊 Today's speech habits (${d.n} answers)`, times: (d) => `${d.c}×`, summary: "Speech habit summary", rule: "Expression", count: "Count" },
   reverse: { button: "Make 3 questions to ask", wait: "Writing questions to ask this company…", title: "Questions to ask the interviewer", intent: "Why", tip: "💡 Ask your agent about pay, overtime and start date." },
+  demo: {
+    button: "▶ Watch the 1-minute demo (no code)",
+    banner: "DEMO — a recording of real output on a fictional email. No AI calls are made.",
+    next: "Next ▶",
+    try: "Try it yourself (access code needed)",
+    mail: "① Paste a recruiter email and you get 10 questions for that company.",
+    pick: "② Pick one question and answer it.",
+    bad: "③ Give an answer that misses the question on purpose — the structure check catches it.",
+    script: "④ You get a model script (Japanese, reading, translation, intonation). Missing facts stay as ［blanks］.",
+    good: "⑤ Fill the blanks with your own experience and answer again —",
+    done: "Now the answer actually answers the question. Try it yourself.",
+  },
   script: {
     title: "③ Model script",
     ja: "日本語",
