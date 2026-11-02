@@ -11,9 +11,9 @@ let client;
 
 // Vercel web-standard handler; dev.js calls the same function locally.
 export async function POST(request, deps = {}) {
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`questions:${ip}`, { limit: 10 })) return json(429, { code: "rate_limited" });
+  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
 
   let body;
   try {
@@ -32,7 +32,7 @@ export async function POST(request, deps = {}) {
 
   try {
     const blocks = [...(await toContentBlocks(body.attachment)), ...(profile ? [{ type: "text", text: maskInput(profile) }] : [])];
-    const c = deps.client ?? (client ??= new Anthropic());
+    const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
     return json(200, await generateQuestions(c, loadPack("jp"), maskInput(mail), blocks, lang));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });

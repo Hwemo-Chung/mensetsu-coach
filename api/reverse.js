@@ -10,9 +10,9 @@ let client;
 
 // F10: reverse questions from the company summary the UI already holds. Same gate order as the other APIs.
 export async function POST(request, deps = {}) {
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`reverse:${ip}`, { limit: 10 })) return json(429, { code: "rate_limited" });
+  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   let body;
   try {
     body = await request.json();
@@ -25,7 +25,7 @@ export async function POST(request, deps = {}) {
   if (!c || typeof c !== "object" || !Array.isArray(c.facts)) return json(400, { code: "context_required" });
   const context = { company: str(c.company, 200), position: str(c.position, 200), facts: c.facts.slice(0, MAX_FACTS).map((f) => str(f, 300)) };
   try {
-    const cl = deps.client ?? (client ??= new Anthropic());
+    const cl = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
     return json(200, await generateReverse(cl, loadPack("jp"), { context, lang }));
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });

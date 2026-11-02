@@ -371,3 +371,22 @@ test("rate limit buckets are per route: a session of access + questions + 8 answ
     assert.equal((await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: h, body }), { client: fakeClient({ result: scriptFixture }) })).status, 200, `script ${i + 1}`);
   }
 });
+
+test("EVAL-06: English explanations may quote Japanese terms; Korean reading must be pure Hangul", () => {
+  const en = EXPLAIN_LANGS.en, ko = EXPLAIN_LANGS.ko;
+  assert.equal(en.isText("The 復唱 step is missing: restate 「最も大変だったこと」 first."), true);
+  assert.equal(en.isText("Use 私としては instead."), true);
+  assert.equal(en.isText("これは日本語の説明です。"), false);
+  assert.equal(en.isText("결론이 없습니다"), false);
+  assert.equal(ko.isReading("하이↗ / 미츠모리가 《즈레타》"), true);
+  assert.equal(ko.isReading("하이↗ 見積もり"), false, "kanji left in a Hangul reading");
+});
+
+test("SEC: wrong access codes also consume the rate limit (no unlimited brute force via AI routes)", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const h = { "x-access-code": "nope", "x-forwarded-for": "66.66.66.66", "content-type": "application/json" };
+  const codes = [];
+  for (let i = 0; i < 11; i++) codes.push((await POST(new Request("http://x/api/questions", { method: "POST", headers: h, body: "{}" }))).status);
+  assert.deepEqual(codes.slice(0, 10), Array(10).fill(401));
+  assert.equal(codes[10], 429);
+});

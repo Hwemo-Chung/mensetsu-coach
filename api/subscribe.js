@@ -6,9 +6,9 @@ const json = (status, body) => Response.json(body, { status, headers: { "cache-c
 
 // Daily-tip signup. Stores only email + language + consent time, keyed by an HMAC id.
 export async function POST(request, deps = {}) {
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`subscribe:${ip}`, { limit: 5 })) return json(429, { code: "rate_limited" });
+  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   let body;
   try {
     body = await request.json();

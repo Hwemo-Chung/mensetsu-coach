@@ -11,9 +11,9 @@ let client;
 
 // Structure check (F3) + rule-based corrections (F4) for one answer. Same gate order as /api/script.
 export async function POST(request, deps = {}) {
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`review:${ip}`, { limit: 30 })) return json(429, { code: "rate_limited" });
+  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
 
   let body;
   try {
@@ -31,7 +31,7 @@ export async function POST(request, deps = {}) {
   if (question.length > MAX_QUESTION_CHARS) return json(400, { code: "question_too_long", max: MAX_QUESTION_CHARS });
 
   try {
-    const c = deps.client ?? (client ??= new Anthropic());
+    const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
     return json(200, await generateReview(c, loadPack("jp"), { question, answer: maskInput(answer), lang }));
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });

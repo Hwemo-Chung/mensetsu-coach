@@ -118,3 +118,8 @@ test("attachments: a DOCX whose content expands past the limit (zip bomb) is rej
   assert.ok(bomb.length < 200 * 1024, `bomb is small on the wire (${bomb.length} bytes)`);
   await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
 });
+
+test("SEC: extracted attachment text is capped at 20,000 characters", async () => {
+  const out = await toContentBlocks({ name: "cv.txt", type: "text/plain", data: Buffer.from("あ".repeat(30000)).toString("base64") });
+  assert.equal(out[0].text.length, 20000);
+});
