@@ -38,3 +38,17 @@ test("F6 markdown: works with no attempts and with a failed review; labels follo
 test("F6 file name: date only, no company name", () => {
   assert.equal(exportFileName(new Date("2026-11-02T10:00:00+09:00")), "mensetsu-2026-11-02.md");
 });
+
+test("F9 habitCounts: counts corrections per rule across attempts, flags ≥2 as a habit, uses the short pattern", async () => {
+  const { habitCounts } = await import("../public/export.js");
+  const mk = (ids) => ({ review: { corrections: ids.map((id) => ({ rule_id: id, pattern: id === "del-chanto" ? "ちゃんと" : "〜の形 / 〜という形で" })) } });
+  const counts = habitCounts({ attempts: [mk(["del-chanto", "del-katachi"]), mk(["del-chanto"]), { review: null }, mk(["del-chanto"])] });
+  assert.deepEqual(counts, [{ rule_id: "del-chanto", label: "ちゃんと", count: 3, habit: true }, { rule_id: "del-katachi", label: "〜の形", count: 1, habit: false }]);
+  assert.deepEqual(habitCounts({ attempts: [] }), []);
+});
+
+test("F9 export includes a habit summary when there are corrections", () => {
+  const withC = { ...session, attempts: [{ ...session.attempts[0] }] };
+  const md = sessionToMarkdown(withC, LANGS.ko);
+  assert.ok(md.includes(LANGS.ko.habits.summary));
+});

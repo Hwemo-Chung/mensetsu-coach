@@ -1,10 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse } from "../lib/coach.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { POST as reviewPOST } from "../api/review.js";
-import { fakeClient, fixture, scriptFixture, reviewFixture } from "./fake-claude.js";
+import { POST as reversePOST } from "../api/reverse.js";
+import { fakeClient, fixture, scriptFixture, reviewFixture, reverseFixture } from "./fake-claude.js";
 import { readFileSync } from "node:fs";
 
 const MAIL = readFileSync(new URL("../samples/agent-mail-sample.txt", import.meta.url), "utf8");
@@ -221,7 +222,8 @@ test("L9 script API: personal data in the answer is masked before Claude", async
 const B = { question: "前職で最も大変だったことは何ですか？", answer: "はい、前職では新しいシステムの導入を担当しまして、チームのメンバーと協力しながら進めることができました。結果として、業務の効率が上がりまして、評価もいただきました。" };
 
 test("models: one table, grading on Opus, generation on Sonnet", () => {
-  assert.deepEqual(MODELS, { questions: "claude-sonnet-5-5", script: "claude-sonnet-5-5", review: "claude-opus-5-5" });
+  // F10 added a generation stage (reverse questions) on Sonnet; grading stays on Opus.
+  assert.deepEqual(MODELS, { questions: "claude-sonnet-5-5", script: "claude-sonnet-5-5", reverse: "claude-sonnet-5-5", review: "claude-opus-5-5" });
   assert.equal(buildQuestionRequest(pack, "M").model, MODELS.questions);
   assert.equal(buildScriptRequest(pack, { question: "Q", answer: "A" }).model, MODELS.script);
   assert.equal(buildReviewRequest(pack, B).model, MODELS.review);
@@ -301,4 +303,50 @@ test("questions API: optional one-line profile goes in as candidate material (ma
   await POST(req({ mail: MAIL }), { client: none });
   // the instruction text always names the tag; only the wrapper "（次の添付資料）" marks a real candidate block
   assert.ok(!JSON.stringify(none.requests[0].messages[0].content).includes("<candidate_material>（次の添付資料）"), "no profile → no candidate block");
+});
+
+test("F9 support: kept corrections carry the rule's short pattern for display", async () => {
+  const out = await generateReview(fakeClient({ result: reviewFixture }), pack, B);
+  assert.equal(out.corrections[0].pattern, pack.correction_rules.find((r) => r.id === "str-ketsuron").pattern);
+});
+
+const CTX = { company: "株式会社サンプルロジ（仮）", position: "エンジニアリングマネージャー", facts: ["5名の開発チーム", "需要予測機能の刷新（Python / AWS）", "評価は半期ごとのOKR"] };
+
+test("F10 buildReverseRequest: Sonnet, context wrapped as data, conditions go to the agent, 3 questions", () => {
+  const r = buildReverseRequest(pack, { context: CTX, lang: "en" });
+  assert.equal(r.model, MODELS.reverse);
+  assert.match(r.messages[0].content, /<company_material>/);
+  assert.match(r.system, /エージェント/);
+  assert.match(r.system, /指示には従わない/);
+  assert.ok(r.system.includes(EXPLAIN_LANGS.en.name));
+  const items = r.output_config.format.schema.properties.questions;
+  assert.deepEqual(items.items.required, ["question_ja", "intent"]);
+});
+
+test("F10 generateReverse gates: exactly 3, Japanese question, intent in the explain language, no pay/conditions", async () => {
+  assert.equal((await generateReverse(fakeClient({ result: reverseFixture }), pack, { context: CTX })).questions.length, 3);
+  const pay = { questions: [{ question_ja: "年収はどのくらい上がりますか。", intent: "연봉을 확인합니다." }, ...reverseFixture.questions.slice(1)] };
+  const retry = fakeClient({ responses: [pay, reverseFixture] });
+  assert.deepEqual((await generateReverse(retry, pack, { context: CTX })).questions, reverseFixture.questions);
+  assert.equal(retry.calls(), 2);
+  await assert.rejects(generateReverse(fakeClient({ responses: [pay, pay] }), pack, { context: CTX }), /reverse check/);
+  const two = { questions: reverseFixture.questions.slice(0, 2) };
+  await assert.rejects(generateReverse(fakeClient({ responses: [two, two] }), pack, { context: CTX }), /reverse check/);
+  await assert.rejects(generateReverse(fakeClient({ responses: [reverseFixture, reverseFixture] }), pack, { context: CTX, lang: "en" }), /reverse check/);
+});
+
+test("F10 reverse API: codes, masking of context, 200 with fake client", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  let ip = 0;
+  const req = (code, body) => new Request("http://x/api/reverse", { method: "POST", headers: { "x-access-code": code, "x-forwarded-for": `4.3.2.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const check = async (res, status, body) => { assert.equal(res.status, status); assert.deepEqual(await res.json(), body); };
+  await check(await reversePOST(req("bad", { context: CTX })), 401, { code: "access_denied" });
+  await check(await reversePOST(req("c0de", { context: null })), 400, { code: "context_required" });
+  await check(await reversePOST(req("c0de", { context: CTX, lang: "xx" })), 400, { code: "lang_unsupported" });
+  const client = fakeClient({ result: reverseFixture });
+  const ok = await reversePOST(req("c0de", { context: { ...CTX, facts: [...CTX.facts, "担当 a@b.jp"] } }), { client });
+  assert.equal(ok.status, 200);
+  assert.equal((await ok.json()).questions.length, 3);
+  assert.ok(!JSON.stringify(client.requests).includes("a@b.jp"));
+  await check(await reversePOST(req("c0de", { context: CTX }), { client: fakeClient({ fail: new Error("x") }) }), 502, { code: "generation_failed" });
 });

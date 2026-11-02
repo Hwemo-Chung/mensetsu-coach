@@ -57,6 +57,8 @@ export default {
     soonTag: "coming soon",
     soon: (d) => `${d.name} coaching is coming soon.\nWe'll open the most requested ones first. (Counted — no personal data kept)`,
   },
+  habits: { title: (d) => `📊 Today's speech habits (${d.n} answers)`, times: (d) => `${d.c}×`, summary: "Speech habit summary", rule: "Expression", count: "Count" },
+  reverse: { button: "Make 3 questions to ask", wait: "Writing questions to ask this company…", title: "Questions to ask the interviewer", intent: "Why", tip: "💡 Ask your agent about pay, overtime and start date." },
   script: {
     title: "③ Model script",
     ja: "日本語",
@@ -91,6 +93,7 @@ export default {
     consent_required: () => "Please tick the consent box.",
     mail_unavailable: () => "The mail service is not ready yet. Please try again later.",
     profile_too_long: (d) => `Please keep your career line within ${d.max} characters.`,
+    context_required: () => "Paste an email and create questions first.",
     unknown: () => "An unknown error occurred.",
   },
 };

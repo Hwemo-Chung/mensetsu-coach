@@ -8,7 +8,7 @@ let current = null; // question being answered
 let lastMail = null, lastAttachment = null; // memory only, for the optional career-line regeneration
 
 import { LANGS } from "./i18n/index.js";
-import { sessionToMarkdown, exportFileName } from "./export.js";
+import { sessionToMarkdown, exportFileName, habitCounts } from "./export.js";
 
 const LANG_KEY = "mensetsu-lang";
 const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
@@ -147,7 +147,38 @@ function offerProfile() {
     setStage("profile");
     input.focus();
   });
-  b.append(el("br"), btn);
+  const rev = el("button", "inline-btn", T().reverse.button);
+  rev.type = "button";
+  rev.addEventListener("click", () => { rev.disabled = true; makeReverse(); });
+  b.append(el("br"), btn, " ", rev);
+}
+
+// F10: reverse questions from the company summary already in the session (no mail re-sent).
+async function makeReverse() {
+  const wait = bubble("coach typing", T().reverse.wait);
+  try {
+    const { res, data } = await post("/api/reverse", { context: session.company_context, lang });
+    if (!res.ok) return failed(res, data);
+    const t = T().reverse;
+    const b = bubble("coach script reverse", null);
+    b.append(el("p", "title", t.title));
+    data.questions.forEach((q, i) => b.append(el("p", "ja", `${i + 1}. ${q.question_ja}`), el("p", "tr", `${t.intent}: ${q.intent}`)));
+    b.append(el("p", "legend", t.tip));
+    session.reverse = data.questions;
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch {
+    bubble("err", message({ code: "network" }));
+  } finally {
+    wait.remove();
+  }
+}
+
+// F9: one line after each answer with the running count of rule hits in this session.
+function showHabits() {
+  const h = habitCounts(session);
+  if (!h.length) return;
+  const t = T().habits;
+  bubble("coach note", `${t.title({ n: session.attempts.length })}\n${h.map((x) => `${x.label} ${t.times({ c: x.count })}${x.habit ? " ⚠" : ""}`).join(" · ")}`);
 }
 
 async function onProfile(text) {
@@ -218,6 +249,7 @@ async function onAnswer(text) {
   if (attempt.review || attempt.script) {
     session.attempts.push(attempt);
     localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+    showHabits();
   }
   askForPick(true);
 }

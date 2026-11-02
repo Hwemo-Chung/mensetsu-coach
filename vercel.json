@@ -4,6 +4,7 @@
     "api/questions.js": { "maxDuration": 120, "includeFiles": "packs/**" },
     "api/script.js": { "maxDuration": 120, "includeFiles": "packs/**" },
     "api/review.js": { "maxDuration": 120, "includeFiles": "packs/**" },
+    "api/reverse.js": { "maxDuration": 60, "includeFiles": "packs/**" },
     "api/cron/daily.js": { "maxDuration": 300, "includeFiles": "packs/**" }
   },
   "crons": [{ "path": "/api/cron/daily", "schedule": "0 0 * * *" }],

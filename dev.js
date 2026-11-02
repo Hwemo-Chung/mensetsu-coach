@@ -7,14 +7,15 @@ import { POST as questions } from "./api/questions.js";
 import { POST as access } from "./api/access.js";
 import { POST as script } from "./api/script.js";
 import { POST as review } from "./api/review.js";
+import { POST as reverse } from "./api/reverse.js";
 import { POST as subscribe } from "./api/subscribe.js";
 import { GET as unsubscribe } from "./api/unsubscribe.js";
 import { POST as demand } from "./api/demand.js";
-import { fakeClient, scriptFixture, reviewFixture } from "./test/fake-claude.js";
+import { fakeClient, scriptFixture, reviewFixture, reverseFixture } from "./test/fake-claude.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
 const MOCK = !!process.env.MOCK_CLAUDE;
-const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: scriptFixture }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) } };
+const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: scriptFixture }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) }, "/api/reverse": { client: fakeClient({ result: reverseFixture }) } };
 const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
 const securityHeaders = Object.fromEntries(vercel.headers[0].headers.map((h) => [h.key, h.value]));
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".txt": "text/plain; charset=utf-8" };
@@ -24,7 +25,7 @@ createServer(async (req, res) => {
   for (const [k, v] of Object.entries(securityHeaders)) res.setHeader(k, v);
   const url = new URL(req.url, "http://localhost");
   try {
-    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/subscribe": subscribe, "/api/demand": demand }[url.pathname];
+    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/reverse": reverse, "/api/subscribe": subscribe, "/api/demand": demand }[url.pathname];
     if (url.pathname === "/api/unsubscribe") {
       const r = await unsubscribe(new Request(url));
       res.writeHead(r.status, Object.fromEntries(r.headers));

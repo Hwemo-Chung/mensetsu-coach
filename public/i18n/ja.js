@@ -57,6 +57,8 @@ export default {
     soonTag: "準備中",
     soon: (d) => `${d.name}のコーチングは準備中です。\n希望の多いところから公開します。（記録しました。個人情報は残しません）`,
   },
+  habits: { title: (d) => `📊 今日の口ぐせ（回答${d.n}件）`, times: (d) => `${d.c}回`, summary: "口ぐせのまとめ", rule: "表現", count: "回数" },
+  reverse: { button: "逆質問を3つ作る", wait: "この会社への逆質問を作っています…", title: "逆質問", intent: "ねらい", tip: "💡 年収・残業・入社日などの条件はエージェントに確認しましょう。" },
   script: {
     title: "③ 模範スクリプト",
     ja: "日本語",
@@ -91,6 +93,7 @@ export default {
     consent_required: () => "同意にチェックしてください。",
     mail_unavailable: () => "メールサービスを準備中です。後でもう一度お試しください。",
     profile_too_long: (d) => `経歴は${d.max}文字以内で書いてください。`,
+    context_required: () => "先にメールを貼り付けて質問を作ってください。",
     unknown: () => "不明なエラーが発生しました。",
   },
 };

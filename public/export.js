@@ -33,7 +33,29 @@ export function sessionToMarkdown(session, t) {
       out.push(`### ${t.script.title}`, "", `**${t.script.ja}**`, "", s.ja, "", `**${t.script.reading}**`, "", s.reading, "", `_${t.script.legend}_`, "", `**${t.script.translation}**`, "", s.translation, "", `**${t.script.points}**`, "", ...s.points.map((p) => `- ${p}`));
     }
   });
+  if (session.reverse?.length) {
+    out.push("", `## ${t.reverse.title}`, "");
+    session.reverse.forEach((q, i) => out.push(`${i + 1}. ${q.question_ja}`, `   - ${t.reverse.intent}: ${q.intent}`));
+  }
+  const habits = habitCounts(session);
+  if (habits.length) {
+    out.push("", `## ${t.habits.summary}`, "", `| ${t.habits.rule} | ${t.habits.count} |`, "|---|---|");
+    for (const h of habits) out.push(`| ${h.label}${h.habit ? " ⚠" : ""} | ${h.count} |`);
+  }
   return mask(out.join("\n")) + "\n";
+}
+
+// F9: corrections per rule across the session. A rule seen twice or more is a habit.
+export function habitCounts(session) {
+  const m = new Map();
+  for (const a of session.attempts) for (const c of a.review?.corrections ?? []) {
+    const label = String(c.pattern ?? c.rule_id).split(" / ")[0].replace(/（[^）]*）/g, "").trim();
+    const cur = m.get(c.rule_id) ?? { rule_id: c.rule_id, label, count: 0, habit: false };
+    cur.count++;
+    cur.habit = cur.count >= 2;
+    m.set(c.rule_id, cur);
+  }
+  return [...m.values()].sort((x, y) => y.count - x.count);
 }
 
 export const exportFileName = (d) => {

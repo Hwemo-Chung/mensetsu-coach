@@ -57,6 +57,8 @@ export default {
     soonTag: "준비 중",
     soon: (d) => `${d.name} 코칭은 준비 중이에요.\n원하시는 분이 많은 곳부터 열게요. (기록했어요 — 개인정보는 남기지 않아요)`,
   },
+  habits: { title: (d) => `📊 오늘의 말버릇 (답변 ${d.n}개)`, times: (d) => `${d.c}회`, summary: "말버릇 요약", rule: "표현", count: "횟수" },
+  reverse: { button: "역질문 3개 만들기", wait: "이 회사에 할 역질문을 만들고 있어요…", title: "역질문", intent: "의도", tip: "💡 연봉·잔업·입사일 같은 조건은 에이전트에게 물어보세요." },
   script: {
     title: "③ 모범 스크립트",
     ja: "日本語",
@@ -91,6 +93,7 @@ export default {
     consent_required: () => "동의에 체크해 주세요.",
     mail_unavailable: () => "메일 서비스를 준비 중이에요. 나중에 다시 시도해 주세요.",
     profile_too_long: (d) => `경력 한 줄은 ${d.max}자 이하로 써 주세요.`,
+    context_required: () => "먼저 메일을 붙여넣어 질문을 만들어 주세요.",
     unknown: () => "알 수 없는 오류가 났어요.",
   },
 };
