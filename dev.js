@@ -5,10 +5,12 @@ import { extname, normalize, join } from "node:path";
 import { Readable } from "node:stream";
 import { POST as questions } from "./api/questions.js";
 import { POST as access } from "./api/access.js";
-import { fakeClient } from "./test/fake-claude.js";
+import { POST as script } from "./api/script.js";
+import { fakeClient, scriptFixture } from "./test/fake-claude.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
-const deps = process.env.MOCK_CLAUDE ? { client: fakeClient() } : {};
+const MOCK = !!process.env.MOCK_CLAUDE;
+const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: scriptFixture }) } };
 const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
 const securityHeaders = Object.fromEntries(vercel.headers[0].headers.map((h) => [h.key, h.value]));
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".txt": "text/plain; charset=utf-8" };
@@ -18,10 +20,10 @@ createServer(async (req, res) => {
   for (const [k, v] of Object.entries(securityHeaders)) res.setHeader(k, v);
   const url = new URL(req.url, "http://localhost");
   try {
-    const api = { "/api/questions": questions, "/api/access": access }[url.pathname];
+    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script }[url.pathname];
     if (api) {
       if (req.method !== "POST") return res.writeHead(405).end();
-      const r = await api(new Request(url, { method: "POST", headers: req.headers, body: Readable.toWeb(req), duplex: "half" }), deps);
+      const r = await api(new Request(url, { method: "POST", headers: req.headers, body: Readable.toWeb(req), duplex: "half" }), MOCK ? mockDeps[url.pathname] ?? {} : {});
       res.writeHead(r.status, Object.fromEntries(r.headers));
       return res.end(Buffer.from(await r.arrayBuffer()));
     }
@@ -34,4 +36,4 @@ createServer(async (req, res) => {
     console.error(e);
     res.writeHead(500).end();
   }
-}).listen(PORT, () => console.log(`http://localhost:${PORT}${deps.client ? " (MOCK_CLAUDE: 고정 응답, Claude 호출 없음)" : ""}`));
+}).listen(PORT, () => console.log(`http://localhost:${PORT}${MOCK ? " (MOCK_CLAUDE: 고정 응답, Claude 호출 없음)" : ""}`));

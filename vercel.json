@@ -1,6 +1,9 @@
 {
   "outputDirectory": "public",
-  "functions": { "api/questions.js": { "maxDuration": 120, "includeFiles": "packs/**" } },
+  "functions": {
+    "api/questions.js": { "maxDuration": 120, "includeFiles": "packs/**" },
+    "api/script.js": { "maxDuration": 120, "includeFiles": "packs/**" }
+  },
   "headers": [
     {
       "source": "/(.*)",
