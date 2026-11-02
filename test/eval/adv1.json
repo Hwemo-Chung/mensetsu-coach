@@ -1,0 +1,109 @@
+{
+ "items": [
+  {
+   "id": "adv1-1",
+   "pattern": "a",
+   "question": "前職で最も大変だったことは何ですか。",
+   "answer": "前職で最も大変だったことについてお答えします。結論は、海外拠点との要件調整です。基準は手戻りの件数で、3か月で20件から5件に減らしました。今後の進め方として、事前合意と都度確認のどちらを重視すべきでしょうか。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "adv1-2",
+   "pattern": "b",
+   "question": "見積もりがずれたとき、どのように判断しますか。",
+   "answer": "そうですね、結論は、ずれ幅を見て続行か縮小かを決めることです。判断の基準は、残りの工数と残りの効果です。縮小案と継続案のどちらで進めるのが適切でしょうか。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "adv1-3",
+   "pattern": "c",
+   "question": "当社を志望した理由は何ですか。",
+   "answer": "志望理由、ですね。結論は、御社の事業に貢献できると考えたからです。2019年に入社した前職では5名のチームで働きました。ご不明な点があればお知らせください。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": false,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "adv1-4",
+   "pattern": "d",
+   "question": "見積もりがずれたとき、どのように判断しますか。",
+   "answer": "見積もりがずれたときの判断、ですね。結論は、続けるか止めるかを決めることです。判断の軸は残りの費用対効果です。以上です。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "adv1-5",
+   "pattern": "e",
+   "question": "前職で最も大変だったことは何ですか。",
+   "answer": "前職で最も大変だったこと、ですね。結論は、納期と品質の両立です。基準は不具合の再発件数で、半年で8件から2件に減らしました。なぜあの時期が最も大変だったと言い切れるのでしょうか。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "adv1-6",
+   "pattern": "f",
+   "question": "当社を志望した理由は何ですか。",
+   "answer": "志望理由、ですね。結論は、顧客課題に近い立場で提案できるからです。基準は、貴社の顧客が中堅企業中心である点です。入社後の貢献の形として、営業企画と顧客支援の二案をご提示できます。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "adv1-7",
+   "pattern": "b",
+   "question": "見積もりがずれたとき、どのように判断しますか。",
+   "answer": "そうですね、結論は、ずれ幅で対応を分けることです。基準は、残り工数の20%を超えるかどうかです。超える場合は、増員と範囲縮小の二案をご提示できます。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "adv1-8",
+   "pattern": "g",
+   "question": "前職で最も大変だったことは何ですか。",
+   "answer": "前職で最も評価されたことについてお答えします。前職では最も大きな成果として、売上を前年比120%に伸ばしました。基準は目標達成率で、四半期ごとに確認していました。次は成果の詳細からお話ししてよろしいでしょうか。",
+   "answers_question": "no"
+  },
+  {
+   "id": "adv1-9",
+   "pattern": "g",
+   "question": "当社を志望した理由は何ですか。",
+   "answer": "当社を志望した時期についてお答えします。当社を第一志望としており、他社は2社の選考が進行中です。内定が出た場合は1週間以内に回答します。入社時期の希望はございますか。",
+   "answers_question": "no"
+  }
+ ]
+}

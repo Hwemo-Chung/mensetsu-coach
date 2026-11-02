@@ -1,5 +1,5 @@
 // Real-API evals (costs credits): F4 rule recall, F3 structure agreement on a synthetic golden set, F2 specificity
-// on 3 synthetic companies. Usage: ENV_FILE=… node scripts/eval.mjs [--pack path/to/pack.json] [--only f4,f4neg,f3,f2,f5]
+// on 3 synthetic companies. Usage: ENV_FILE=… node scripts/eval.mjs [--pack path/to/pack.json] [--only f4,f4neg,f4base,f3,f3adv,f2,f5]
 // Prints metrics only; inputs are synthetic (test/eval/, samples/).
 import { readFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
@@ -41,6 +41,23 @@ if (only.includes("f4")) {
   });
   const ok = rows.filter((x) => x.hit).length;
   report.f4 = { recall: `${ok}/${rows.length}`, misses: rows.filter((x) => !x.hit) };
+}
+
+// Adversarial golden items (no surface markers): model vs a 3-regex baseline on the same items.
+const regexGrade = (a) => {
+  const ss = a.split(/(?<=[。？！])/).map((x) => x.trim()).filter(Boolean);
+  return { fukusho: /ですね[。、]/.test(ss[0] ?? ""), ketsuron: true, kijun: /基準|[0-9０-９]/.test(a), sentakushi: /(でしょうか|ますか|ませんか)[。？]?$/.test(ss.at(-1) ?? "") };
+};
+if (only.includes("f3adv")) {
+  const gold = ["adv1.json", "adv2.json"].flatMap((f) => JSON.parse(read(`test/eval/${f}`)).items);
+  const rows = await pool(gold, 5, async (g) => ({ g, out: await generateReview(client, pack, { question: g.question, answer: g.answer, lang: "ko" }) }));
+  let m = 0, r = 0, n = 0, aq = 0;
+  for (const { g, out } of rows.filter((x) => x && x.out)) {
+    if ((out.answers_question === "yes") === (g.answers_question === "yes")) aq++;
+    const rg = regexGrade(g.answer);
+    for (const [k, want] of Object.entries(g.steps ?? {})) { n++; if (out.steps[k].present === want) m++; if (rg[k] === want) r++; }
+  }
+  report.f3adv = { items: gold.length, model_steps: `${m}/${n}`, regex_steps: `${r}/${n}`, model_answers_question: `${aq}/${gold.length}`, always_yes: `${gold.filter((g) => g.answers_question === "yes").length}/${gold.length}` };
 }
 
 if (only.includes("f3")) {
@@ -85,6 +102,24 @@ if (only.includes("f4neg")) {
   });
   const fps = rows.filter((r) => r && r.fp);
   report.f4neg = { false_positives: `${fps.length}/${rows.length}`, list: fps.map((r) => `${r.id} → ${r.ids.join(",")}`), errors: rows.filter((r) => r && r.error).length };
+}
+
+// Baseline (YC-01): the same near-miss sentences through a generic "correct this Japanese" prompt with no rule DB.
+// How many clean/near-miss answers does plain Claude still "fix"? (Our gated pipeline: see f4neg.)
+if (only.includes("f4base")) {
+  const items = JSON.parse(read("test/eval/neg.json")).items;
+  const schema = { type: "object", properties: { corrections: { type: "array", items: { type: "object", properties: { before: { type: "string" }, after: { type: "string" }, reason: { type: "string" } }, required: ["before", "after", "reason"], additionalProperties: false } } }, required: ["corrections"], additionalProperties: false };
+  const rows = await pool(items, 5, async (n) => {
+    const msg = await client.messages.create({
+      model: "claude-opus-5-5", max_tokens: 2000, output_config: { effort: "medium", format: { type: "json_schema", schema } },
+      system: "あなたは日本語の面接コーチです。候補者の面接回答のビジネス日本語を添削してください。直す必要がなければ corrections は空にしてください。",
+      messages: [{ role: "user", content: `質問: ${n.question}\n回答: ${n.answer}` }],
+    });
+    const out = JSON.parse(msg.content.filter((b) => b.type === "text").map((b) => b.text).join(""));
+    return { id: n.id, n: out.corrections.length };
+  });
+  const touched = rows.filter((r) => r && r.n > 0);
+  report.f4base = { generic_prompt_touched: `${touched.length}/${rows.length}`, corrections_total: touched.reduce((a, r) => a + r.n, 0), errors: rows.filter((r) => r && r.error).length };
 }
 
 // L4: instructions hidden in pasted material / in the answer must be treated as data.
