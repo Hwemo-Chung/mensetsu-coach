@@ -13,7 +13,7 @@ body { margin: 0; font-family: -apple-system, "Hiragino Sans", "Apple SD Gothic 
 .q:first-of-type { border-top: 0; }
 .tag { display: inline-block; font-size: 11px; background: #e6f9ee; color: #058a3c; border-radius: 6px; padding: 1px 6px; margin-right: 4px; }
 .ja { font-weight: 600; margin: 4px 0 2px; }
-.ko, .basis { color: #555; font-size: 13px; margin: 0; }
+.tr, .basis { color: #555; font-size: 13px; margin: 0; }
 .basis { color: #888; }
 .composer { background: #fff; padding: 8px 10px 6px; border-top: 1px solid #ddd; }
 .row { display: flex; gap: 8px; align-items: flex-end; }
@@ -29,7 +29,9 @@ textarea:focus, button:focus-visible, .attach:focus-within { outline: 2px solid 
 .script { max-width: 92%; white-space: normal; }
 .script .title { font-weight: 700; margin: 0 0 6px; }
 .script .label { font-size: 11px; color: #058a3c; font-weight: 700; margin: 8px 0 2px; }
-.script .ja, .script .ko, .reading { margin: 0; white-space: pre-wrap; }
+.script .ja, .script .tr, .reading { margin: 0; white-space: pre-wrap; }
 .reading { font-size: 15px; letter-spacing: .02em; }
 .legend { font-size: 11px; color: #888; margin: 2px 0 0; }
 .points { margin: 0; padding-left: 18px; font-size: 13px; color: #333; }
+.bar { display: flex; align-items: center; gap: 6px; }
+.lang { margin-left: auto; font: inherit; font-size: 13px; border: 0; border-radius: 8px; padding: 3px 6px; background: rgba(255,255,255,.9); }
