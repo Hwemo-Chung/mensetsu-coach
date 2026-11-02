@@ -15,6 +15,7 @@ export default {
     mailPlaceholder: "メールを貼り付け…",
     waitQuestions: "この会社に合う質問を作っています…（30秒ほどかかります）",
     questionsMade: (d) => `${d.company}・${d.position}\n想定質問を${d.count}個作りました。`,
+    lowSpecificity: (d) => `資料を直接参照した質問は${d.referenced}個です（基準${d.required}個）。一般的な質問が含まれている可能性があります。職務や条件が詳しいメールを入れると改善します。`,
     basis: "根拠",
     askPick: (d) => `練習する質問の番号を入力してください（1〜${d.count}）`,
     askPickAgain: "別の番号を入力すると、続けて練習できます。",

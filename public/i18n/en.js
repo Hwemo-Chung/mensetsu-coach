@@ -15,6 +15,7 @@ export default {
     mailPlaceholder: "Paste the email…",
     waitQuestions: "Creating questions for this company… (about 30 seconds)",
     questionsMade: (d) => `${d.company} · ${d.position}\nI made ${d.count} likely interview questions.`,
+    lowSpecificity: (d) => `Only ${d.referenced} questions refer directly to your material (target: ${d.required}). Some may be generic. A more detailed posting gives better questions.`,
     basis: "Why",
     askPick: (d) => `Enter the number of the question to practice (1–${d.count})`,
     askPickAgain: "Enter another number to keep practicing.",

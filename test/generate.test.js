@@ -4,6 +4,9 @@ import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQ
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { fakeClient, fixture, scriptFixture } from "./fake-claude.js";
+import { readFileSync } from "node:fs";
+
+const MAIL = readFileSync(new URL("../samples/agent-mail-sample.txt", import.meta.url), "utf8");
 
 const pack = loadPack("jp");
 
@@ -153,4 +156,33 @@ test("APIs reject an unknown language with a code, default to ko when omitted", 
   assert.deepEqual(await q.json(), { code: "lang_unsupported" });
   assert.equal((await scriptPOST(req("/api/script", { question: "Q", answer: "A", lang: "en" }), { client: fakeClient({ result: enScript }) })).status, 200);
   assert.equal((await POST(req("/api/questions", { mail: "M" }), { client: fakeClient() })).status, 200);
+});
+
+const generic = { ...fixture, questions: fixture.questions.map((q, i) => (i < 5 ? q : { ...q, refs: ["存在しない語句"] })) };
+
+test("F2 specificity gate: counts only refs found in both the question and the material", async () => {
+  const out = await generateQuestions(fakeClient(), pack, MAIL, []);
+  assert.deepEqual(out.specificity, { referenced: 10, required: 6, passed: true });
+  // a ref the model claims but the material does not contain does not count
+  const lie = { ...fixture, questions: fixture.questions.map((q) => ({ ...q, refs: ["ブロックチェーン"] })) };
+  const c = fakeClient({ responses: [lie, lie] });
+  const low = await generateQuestions(c, pack, MAIL, []);
+  assert.deepEqual(low.specificity, { referenced: 0, required: 6, passed: false });
+  assert.equal(c.calls(), 2, "regenerates once when below 6");
+});
+
+test("F2 specificity gate: 5/10 → regenerate, keep the better attempt", async () => {
+  const c = fakeClient({ responses: [generic, fixture] });
+  const out = await generateQuestions(c, pack, MAIL, []);
+  assert.equal(c.calls(), 2);
+  assert.equal(out.specificity.referenced, 10);
+  const worse = fakeClient({ responses: [generic, { ...fixture, questions: fixture.questions.map((q) => ({ ...q, refs: [] })) }] });
+  assert.equal((await generateQuestions(worse, pack, MAIL, [])).specificity.referenced, 5, "first attempt was better");
+});
+
+test("F2 prompt asks for material phrases in refs", () => {
+  const r = buildQuestionRequest(pack, MAIL, []);
+  assert.ok(r.output_config.format.schema.properties.questions.items.required.includes("refs"));
+  assert.match(r.messages[0].content, /refs/);
+  assert.match(r.messages[0].content, /6/);
 });

@@ -15,6 +15,7 @@ export default {
     mailPlaceholder: "메일 내용을 붙여넣기…",
     waitQuestions: "회사에 맞는 질문을 만들고 있어요… (30초 정도 걸려요)",
     questionsMade: (d) => `${d.company} · ${d.position}\n예상 질문 ${d.count}개를 만들었어요.`,
+    lowSpecificity: (d) => `자료를 직접 참조한 질문이 ${d.referenced}개뿐이에요 (기준 ${d.required}개). 일반적인 질문이 섞여 있을 수 있어요. 직무·조건이 자세한 메일을 넣으면 더 좋아져요.`,
     basis: "근거",
     askPick: (d) => `연습할 질문 번호를 입력하세요 (1~${d.count})`,
     askPickAgain: "다른 질문 번호를 입력하면 이어서 연습할 수 있어요.",

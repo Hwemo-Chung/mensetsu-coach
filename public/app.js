@@ -116,6 +116,7 @@ async function onMail(text) {
     attachment = null;
     $("chip").hidden = true;
     renderQuestions(data);
+    if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
     askForPick(false);
   } finally {
     wait.remove();
