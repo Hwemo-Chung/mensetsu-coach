@@ -274,3 +274,11 @@ test("review API: codes and 200 with fake client; answer masked before Claude", 
   const failed = await reviewPOST(req("c0de", B), { client: fakeClient({ fail: new Error("boom") }) });
   await check(failed, 502, { code: "generation_failed" });
 });
+
+test("generateQuestions: a wrong question count is retried once (seen in a live eval: 2 instead of 10), then fails", async () => {
+  const two = { ...fixture, questions: fixture.questions.slice(0, 2) };
+  const c = fakeClient({ responses: [two, fixture] });
+  assert.equal((await generateQuestions(c, pack, MAIL, [])).questions.length, 10);
+  assert.equal(c.calls(), 2);
+  await assert.rejects(generateQuestions(fakeClient({ responses: [two, two] }), pack, MAIL, []), /expected 10 questions, got 2/);
+});

@@ -108,3 +108,8 @@ OK, exit=0
 ## 7. 실측 범위
 - 문자 수 정의: 새 규칙의 pattern·replacement·reason·example_before·example_after 코드포인트 수(id·type 제외) + 새 노트 + 새 enum. packs/jp.json과의 차이로 셉니다. 유닛 문서의 자체 집계(816·892·923자)는 정의가 달라 비교할 수 없습니다.
 - 쓴 파일은 01_설계문서/research/ 아래 6개뿐입니다. 원 출처는 다시 열지 않았고, 사실 확인은 유닛 검증 결과에 의존합니다.
+
+## 8. 병합 결과 (2026-11-02 메인 세션)
+- 병합: rules 3 + notes 5 (`packs/jp.json`). str-visa-facts는 永住者 오교정 방지를 위해 replacement·reason을 고쳐서 병합.
+- 보류: question_taxonomy 확장 4건. 「各カテゴリを最低1つ」와 겹쳐 재류 질문이 매번 강제되기 때문.
+- 근거: `EVAL-2026-11-02.md` (F4 18/18).

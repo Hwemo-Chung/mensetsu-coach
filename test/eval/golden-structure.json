@@ -1,0 +1,17 @@
+{
+  "note": "Synthetic golden set for F3. Labels are fixed by construction: T1 has all four steps, T2 drops 復唱 and 選択肢, T3 answers a different question. Steps are scored on T1/T2 only (T3 step labels are ambiguous by design).",
+  "items": [
+    { "id": "a1", "question": "前職で最も大変だったことは何ですか。", "answer": "最も大変だったこと、ですね。結論から言うと、海外拠点との要件調整です。基準は手戻りの件数で、3か月で20件から5件に減らしました。同じような調整の場面では、事前に合意する進め方と都度確認する進め方のどちらが御社に合いますでしょうか。", "answers_question": "yes", "steps": { "fukusho": true, "ketsuron": true, "kijun": true, "sentakushi": true } },
+    { "id": "a2", "question": "前職で最も大変だったことは何ですか。", "answer": "海外拠点との要件調整が最も大変でした。手戻りを3か月で20件から5件に減らしました。", "answers_question": "yes", "steps": { "fukusho": false, "ketsuron": true, "kijun": true, "sentakushi": false } },
+    { "id": "a3", "question": "前職で最も大変だったことは何ですか。", "answer": "前職では新しいシステムの導入を担当し、チームと協力して進めました。結果として業務の効率が上がり、評価もいただきました。", "answers_question": "no" },
+    { "id": "b1", "question": "見積もりがずれたとき、どのように判断しますか。", "answer": "見積もりがずれたときの判断、ですね。止める・縮小する・続けるの3つで判断します。基準は、残りのコストと残りのリターンです。事業側には、止める場合の損失も含めて選択肢で出しますが、御社ではどの段階で相談するのがよいでしょうか。", "answers_question": "yes", "steps": { "fukusho": true, "ketsuron": true, "kijun": true, "sentakushi": true } },
+    { "id": "b2", "question": "見積もりがずれたとき、どのように判断しますか。", "answer": "止める・縮小する・続けるの3つで判断します。基準は、残りのコストと残りのリターンです。", "answers_question": "yes", "steps": { "fukusho": false, "ketsuron": true, "kijun": true, "sentakushi": false } },
+    { "id": "b3", "question": "見積もりがずれたとき、どのように判断しますか。", "answer": "前職ではスケジュール管理ツールを導入し、チームの生産性が上がりました。メンバーからも好評でした。", "answers_question": "no" },
+    { "id": "c1", "question": "当社を志望した理由は何ですか。", "answer": "志望理由、ですね。物流の現場データで需要予測を改善できる点に惹かれました。前職で予測誤差を15%下げた経験を活かせるからです。入社後は、既存モデルの見直しと新しいデータの追加のどちらから始めるのがよいか、ご相談させてください。", "answers_question": "yes", "steps": { "fukusho": true, "ketsuron": true, "kijun": true, "sentakushi": true } },
+    { "id": "c2", "question": "当社を志望した理由は何ですか。", "answer": "物流の現場データで需要予測を改善できる点に惹かれました。前職で予測誤差を15%下げた経験を活かせるからです。", "answers_question": "yes", "steps": { "fukusho": false, "ketsuron": true, "kijun": true, "sentakushi": false } },
+    { "id": "c3", "question": "当社を志望した理由は何ですか。", "answer": "大学でプログラミングを学び、その後5年間Web開発をしてきました。チームワークを大切にしています。", "answers_question": "no" },
+    { "id": "d1", "question": "チームで意見が対立したとき、どう対応しましたか。", "answer": "意見が対立したときの対応、ですね。まず双方の目的を分けて整理しました。基準は、リリース日を守れるかどうかの1点です。御社では、こうした場面で目的を先に揃える進め方と、案を並べて決める進め方のどちらが近いでしょうか。", "answers_question": "yes", "steps": { "fukusho": true, "ketsuron": true, "kijun": true, "sentakushi": true } },
+    { "id": "d2", "question": "チームで意見が対立したとき、どう対応しましたか。", "answer": "まず双方の目的を分けて整理しました。リリース日を守れるかどうかを基準にしました。", "answers_question": "yes", "steps": { "fukusho": false, "ketsuron": true, "kijun": true, "sentakushi": false } },
+    { "id": "d3", "question": "チームで意見が対立したとき、どう対応しましたか。", "answer": "私はもともと人と争うのが苦手な性格で、いつも周りに合わせるようにしています。", "answers_question": "no" }
+  ]
+}

@@ -35,7 +35,7 @@ Deadline: **11/8 (일) 20:00 submit, target 17:00** (킥오프 공지, 비공개
 
 - Only code written during the contest period (from 11/2 12:30). No copying code from existing projects, including `im-not-ai/`. The user's own correction know-how may be used **as rule data only**; keep that distinction explicit in README.
 - No code/data without rights. Avoid generic project types (AI resume screening, basic RAG, Streamlit app).
-- Submission needs a **public GitHub repo** (account: tolaria@naver.com) with README covering overview, how to run, and how Claude is used; plus a public 3-min demo video.
+- Submission needs a **public GitHub repo** (account in the private notes) with README covering overview, how to run, and how Claude is used; plus a public 3-min demo video.
 
 ## Planned architecture (from PRD)
 
