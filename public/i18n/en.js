@@ -25,6 +25,10 @@ export default {
     askAnswer: "Answer in English or Japanese.",
     answerPlaceholder: "Your answer…",
     waitReview: "Checking your answer's structure and Japanese…",
+    profileOffer: "(Optional) Tell me your career in one line and I'll tailor the questions. e.g. New to this role, 3 years in backend",
+    profileButton: "Add a career line and regenerate",
+    profilePlaceholder: "e.g. New to this role, 3 years in backend",
+    waitRegenerate: "Regenerating questions for your career…",
     waitScript: "Writing your model script… (about 20 seconds)",
   },
   review: {
@@ -86,6 +90,7 @@ export default {
     email_invalid: () => "Please check the email address.",
     consent_required: () => "Please tick the consent box.",
     mail_unavailable: () => "The mail service is not ready yet. Please try again later.",
+    profile_too_long: (d) => `Please keep your career line within ${d.max} characters.`,
     unknown: () => "An unknown error occurred.",
   },
 };

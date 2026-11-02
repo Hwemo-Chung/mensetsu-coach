@@ -282,3 +282,23 @@ test("generateQuestions: a wrong question count is retried once (seen in a live 
   assert.equal(c.calls(), 2);
   await assert.rejects(generateQuestions(fakeClient({ responses: [two, two] }), pack, MAIL, []), /expected 10 questions, got 2/);
 });
+
+test("questions API: optional one-line profile goes in as candidate material (masked); too long → code", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  let ip = 0;
+  const req = (body) => new Request("http://x/api/questions", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `9.8.7.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const client = fakeClient();
+  const ok = await POST(req({ mail: MAIL, profile: "이 직무는 처음, 백엔드 3년. 연락 me@example.com" }), { client });
+  assert.equal(ok.status, 200);
+  const content = JSON.stringify(client.requests[0].messages[0].content);
+  assert.match(content, /<candidate_material>（次の添付資料）/);
+  assert.match(content, /백엔드 3년/);
+  assert.ok(!content.includes("me@example.com"), "profile masked");
+  const long = await POST(req({ mail: MAIL, profile: "가".repeat(201) }), { client: fakeClient() });
+  assert.equal(long.status, 400);
+  assert.deepEqual(await long.json(), { code: "profile_too_long", max: 200 });
+  const none = fakeClient();
+  await POST(req({ mail: MAIL }), { client: none });
+  // the instruction text always names the tag; only the wrapper "（次の添付資料）" marks a real candidate block
+  assert.ok(!JSON.stringify(none.requests[0].messages[0].content).includes("<candidate_material>（次の添付資料）"), "no profile → no candidate block");
+});

@@ -5,6 +5,7 @@ let attachment = null;
 let stage = "code"; // code → mail → pick ⇄ answer
 let session = null; // { company_context, questions, attempts }
 let current = null; // question being answered
+let lastMail = null, lastAttachment = null; // memory only, for the optional career-line regeneration
 
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName } from "./export.js";
@@ -37,7 +38,7 @@ const PACK_STEPS = [
   { key: "kijun", label: "基準・数字" },
   { key: "sentakushi", label: "選択肢" },
 ];
-const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder" };
+const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder", profile: "profilePlaceholder" };
 function setStage(next) {
   stage = next;
   input.placeholder = T().chat[PLACEHOLDER[stage]];
@@ -136,12 +137,36 @@ async function onCode(text) {
   askForCode();
 }
 
+// Optional career line (offered once per question set): same mail + one line as candidate material.
+function offerProfile() {
+  const b = bubble("coach note", T().chat.profileOffer);
+  const btn = el("button", "inline-btn", T().chat.profileButton);
+  btn.type = "button";
+  btn.addEventListener("click", () => {
+    btn.disabled = true;
+    setStage("profile");
+    input.focus();
+  });
+  b.append(el("br"), btn);
+}
+
+async function onProfile(text) {
+  bubble("me", text);
+  await requestQuestions(lastMail, lastAttachment, text, T().chat.waitRegenerate);
+}
+
 async function onMail(text) {
   bubble("me", text.length > 300 ? `${text.slice(0, 300)}…` : text);
   if (attachment) bubble("me", `📄 ${attachment.name}`);
-  const wait = bubble("coach typing", T().chat.waitQuestions);
+  lastMail = text;
+  lastAttachment = attachment;
+  await requestQuestions(text, attachment, "", T().chat.waitQuestions);
+}
+
+async function requestQuestions(mail, file, profile, waitText) {
+  const wait = bubble("coach typing", waitText);
   try {
-    const { res, data } = await post("/api/questions", { mail: text, attachment, lang });
+    const { res, data } = await post("/api/questions", { mail, attachment: file, lang, ...(profile ? { profile } : {}) });
     if (!res.ok) return failed(res, data);
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
     session = { company_context: data.company_context, questions: data.questions, attempts: [] };
@@ -150,6 +175,7 @@ async function onMail(text) {
     $("chip").hidden = true;
     renderQuestions(data);
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
+    if (!profile) offerProfile();
     askForPick(false);
   } finally {
     wait.remove();
@@ -221,6 +247,7 @@ $("composer").addEventListener("submit", async (ev) => {
     if (stage === "code") await onCode(text);
     else if (stage === "mail") await onMail(text);
     else if (stage === "pick") onPick(text);
+    else if (stage === "profile") await onProfile(text);
     else await onAnswer(text);
   } catch {
     bubble("err", message({ code: "network" }));
@@ -259,6 +286,8 @@ $("end").addEventListener("click", () => {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   session = null;
+  lastMail = null;
+  lastAttachment = null;
   current = null;
   localStorage.removeItem(SESSION_KEY);
   bubble("coach", T().export.saved({ file }));

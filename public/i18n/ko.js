@@ -25,6 +25,10 @@ export default {
     askAnswer: "한국어나 일본어로 답해 보세요.",
     answerPlaceholder: "답변 입력…",
     waitReview: "답변 구조와 일본어를 점검하고 있어요…",
+    profileOffer: "(선택) 경력을 한 줄 알려 주면 질문을 더 맞춰요. 예) 이 직무는 처음, 백엔드 3년",
+    profileButton: "경력 한 줄 입력하고 다시 만들기",
+    profilePlaceholder: "예) 이 직무는 처음, 백엔드 3년",
+    waitRegenerate: "경력을 반영해 질문을 다시 만들고 있어요…",
     waitScript: "모범 스크립트를 만들고 있어요… (20초 정도 걸려요)",
   },
   review: {
@@ -86,6 +90,7 @@ export default {
     email_invalid: () => "이메일 주소를 확인해 주세요.",
     consent_required: () => "동의에 체크해 주세요.",
     mail_unavailable: () => "메일 서비스를 준비 중이에요. 나중에 다시 시도해 주세요.",
+    profile_too_long: (d) => `경력 한 줄은 ${d.max}자 이하로 써 주세요.`,
     unknown: () => "알 수 없는 오류가 났어요.",
   },
 };

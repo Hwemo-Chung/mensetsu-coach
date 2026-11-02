@@ -4,6 +4,7 @@ import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
 const MAX_MAIL_CHARS = 8000;
+const MAX_PROFILE_CHARS = 200;
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 let client;
@@ -25,9 +26,12 @@ export async function POST(request, deps = {}) {
   const mail = typeof body?.mail === "string" ? body.mail.trim() : "";
   if (!mail) return json(400, { code: "mail_required" });
   if (mail.length > MAX_MAIL_CHARS) return json(400, { code: "mail_too_long", max: MAX_MAIL_CHARS });
+  // Optional one-line career summary (after the first questions). Sent as candidate material, never stored.
+  const profile = typeof body?.profile === "string" ? body.profile.trim() : "";
+  if (profile.length > MAX_PROFILE_CHARS) return json(400, { code: "profile_too_long", max: MAX_PROFILE_CHARS });
 
   try {
-    const blocks = await toContentBlocks(body.attachment);
+    const blocks = [...(await toContentBlocks(body.attachment)), ...(profile ? [{ type: "text", text: maskInput(profile) }] : [])];
     const c = deps.client ?? (client ??= new Anthropic());
     return json(200, await generateQuestions(c, loadPack("jp"), maskInput(mail), blocks, lang));
   } catch (e) {

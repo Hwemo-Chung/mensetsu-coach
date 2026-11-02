@@ -25,6 +25,10 @@ export default {
     askAnswer: "日本語で答えてみてください。",
     answerPlaceholder: "回答を入力…",
     waitReview: "回答の構成と日本語をチェックしています…",
+    profileOffer: "（任意）経歴を1行教えていただくと、質問をさらに合わせます。例）この職種は未経験、バックエンド3年",
+    profileButton: "経歴を1行入れて作り直す",
+    profilePlaceholder: "例）この職種は未経験、バックエンド3年",
+    waitRegenerate: "経歴を反映して質問を作り直しています…",
     waitScript: "模範スクリプトを作っています…（20秒ほどかかります）",
   },
   review: {
@@ -86,6 +90,7 @@ export default {
     email_invalid: () => "メールアドレスを確認してください。",
     consent_required: () => "同意にチェックしてください。",
     mail_unavailable: () => "メールサービスを準備中です。後でもう一度お試しください。",
+    profile_too_long: (d) => `経歴は${d.max}文字以内で書いてください。`,
     unknown: () => "不明なエラーが発生しました。",
   },
 };
