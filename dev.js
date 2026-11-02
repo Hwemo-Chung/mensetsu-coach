@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { extname, normalize, join } from "node:path";
 import { Readable } from "node:stream";
 import { POST as questions } from "./api/questions.js";
+import { POST as access } from "./api/access.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
 const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
@@ -15,9 +16,10 @@ createServer(async (req, res) => {
   for (const [k, v] of Object.entries(securityHeaders)) res.setHeader(k, v);
   const url = new URL(req.url, "http://localhost");
   try {
-    if (url.pathname === "/api/questions") {
+    const api = { "/api/questions": questions, "/api/access": access }[url.pathname];
+    if (api) {
       if (req.method !== "POST") return res.writeHead(405).end();
-      const r = await questions(new Request(url, { method: "POST", headers: req.headers, body: Readable.toWeb(req), duplex: "half" }));
+      const r = await api(new Request(url, { method: "POST", headers: req.headers, body: Readable.toWeb(req), duplex: "half" }));
       res.writeHead(r.status, Object.fromEntries(r.headers));
       return res.end(Buffer.from(await r.arrayBuffer()));
     }

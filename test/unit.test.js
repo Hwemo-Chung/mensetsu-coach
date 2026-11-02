@@ -4,6 +4,7 @@ import { loadPack, buildSystemPrompt, buildQuestionRequest, redact } from "../li
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 import { POST } from "../api/questions.js";
+import { POST as checkCode } from "../api/access.js";
 
 const pack = loadPack("jp");
 
@@ -83,4 +84,11 @@ test("API rejects bad access code and empty mail before calling Claude", async (
   assert.equal((await POST(req("bad", { mail: "x" }))).status, 401);
   assert.equal((await POST(req("c0de", { mail: "  " }))).status, 400);
   assert.equal((await POST(req("c0de", { mail: "x".repeat(8001) }))).status, 400);
+});
+
+test("access check: wrong code 401, right code 200, no AI call", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const req = (code) => new Request("http://x/api/access", { method: "POST", headers: { "x-access-code": code, "x-forwarded-for": "8.8.8.8" } });
+  assert.equal((await checkCode(req("bad"))).status, 401);
+  assert.equal((await checkCode(req("c0de"))).status, 200);
 });

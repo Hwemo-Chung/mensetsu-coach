@@ -58,9 +58,23 @@ $("composer").addEventListener("submit", async (ev) => {
   input.value = "";
 
   if (!sessionStorage.getItem("code")) {
-    sessionStorage.setItem("code", text);
     bubble("me", "••••");
-    return askForMail();
+    send.disabled = true;
+    try {
+      const res = await fetch("/api/access", { method: "POST", headers: { "x-access-code": text } });
+      if (res.ok) {
+        sessionStorage.setItem("code", text);
+        return askForMail();
+      }
+      const data = await res.json().catch(() => ({ error: "접근 코드를 확인하지 못했어요." }));
+      bubble("err", data.error);
+      return askForCode();
+    } catch {
+      bubble("err", "네트워크 오류가 났어요. 다시 입력해 주세요.");
+      return askForCode();
+    } finally {
+      send.disabled = false;
+    }
   }
 
   bubble("me", text.length > 300 ? `${text.slice(0, 300)}…` : text);
