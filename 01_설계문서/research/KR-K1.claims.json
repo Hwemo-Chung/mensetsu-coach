@@ -1,0 +1,302 @@
+[
+  {
+    "id": "K1-01",
+    "claim_ko": "고용24 가이드는 지원동기를 '회사와 직무를 이해하고 입사 의지가 확고한지' 확인하는 항목으로 설명하며, 직무 지원동기와 회사 지원동기로 나눠 준비하라고 안내한다.",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리 표시 없음) — work24 가이드 페이지에 공공누리 표시 없음(저작권보호정책만 확인). 사실만 요약",
+    "key_tokens": [
+      "지원동기",
+      "직무",
+      "회사",
+      "입사 의지"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-02",
+    "claim_ko": "고용24 가이드는 직무수행 경험을 '요구 역량 보유 여부, 직무 성과 가능성, 조직 내 기능'을 가늠하는 근거로 쓰이며, 최근 경험 1~2개를 구체적으로 설명하라고 권한다.",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리 표시 없음) — work24 가이드 페이지에 공공누리 표시 없음(저작권보호정책만 확인). 사실만 요약",
+    "key_tokens": [
+      "직무수행 경험",
+      "역량",
+      "성과",
+      "1~2개"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-03",
+    "claim_ko": "고용24 가이드는 입사 후 포부를 경력 비전과 성장 가능성을 보는 항목으로 설명하고, 단기·중기·장기 단계로 실현 가능한 계획을 세우라고 안내한다.",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리 표시 없음) — work24 가이드 페이지에 공공누리 표시 없음(저작권보호정책만 확인). 사실만 요약",
+    "key_tokens": [
+      "입사 후 포부",
+      "단기",
+      "중기",
+      "장기",
+      "실현 가능"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-04",
+    "claim_ko": "고용24 가이드는 경험을 상황(S)·임무(T)·행동(A)·결과(R) 순서로 서술하고 결과는 수치로 제시하라고 권한다.",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리 표시 없음) — work24 가이드 페이지에 공공누리 표시 없음(저작권보호정책만 확인). 사실만 요약",
+    "key_tokens": [
+      "STAR",
+      "상황",
+      "임무",
+      "행동",
+      "결과"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-05",
+    "claim_ko": "고용24 자소서 가이드는 자소서가 면접의 근거 자료가 되므로 서류 내용과 면접 답변이 어긋나지 않아야 하고, 최근에는 정형 질문보다 구체적 질문으로 역량·인재상 부합을 확인하는 추세라고 설명한다.",
+    "source_url": "https://m.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide2.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리 표시 없음) — work24 가이드 페이지에 공공누리 표시 없음(저작권보호정책만 확인). 사실만 요약",
+    "key_tokens": [
+      "면접 근거자료",
+      "구체적인 질문",
+      "인재상"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-06",
+    "claim_ko": "경력직 면접은 흔히 직무(실무) 면접과 임원 면접의 1~2차 구조이며, 회사에 따라 과제 전형이나 3차가 추가된다는 민간 칼럼 설명이 있다.",
+    "source_url": "personal-blog (URL 비공개)",
+    "publisher": "개인 블로그 (brunch)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "경력직",
+      "직무 면접",
+      "임원 면접",
+      "1차",
+      "2차"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-07",
+    "claim_ko": "같은 칼럼은 직무 면접이 전문성을, 임원 면접이 인성과 태도를 주로 본다고 정리한다. 공적 근거는 확인하지 못했다.",
+    "source_url": "personal-blog (URL 비공개)",
+    "publisher": "개인 블로그 (brunch)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "직무 면접",
+      "전문성",
+      "임원 면접",
+      "인성",
+      "태도"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-08",
+    "claim_ko": "같은 칼럼은 경력직 질문을 개방형(핵심 역량·성공 프로젝트), 과거형(공백기 등), 미래형(포부·비전), 부정형(이직 횟수·약점 압박)으로 분류한다.",
+    "source_url": "personal-blog (URL 비공개)",
+    "publisher": "개인 블로그 (brunch)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "개방형",
+      "과거형",
+      "미래형",
+      "부정형"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-09",
+    "claim_ko": "이직 사유는 전 직장 불만보다 성장과 앞으로의 방향을 중심으로 말하라는 조언이 민간 이직 전략 글에 있으며, 연봉만을 이유로 드는 답변은 위험하다고 본다.",
+    "source_url": "검증 불가 (원 URL 404)",
+    "publisher": "개인 블로그 (tistory)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "이직 사유",
+      "성장",
+      "연봉"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-10",
+    "claim_ko": "NCS 기반 면접은 경력·경험 위주의 비구조적 면접에서 벗어나 경험면접, 상황면접, 발표(PT)면접, 토론면접 같은 구조화된 방식으로 직무능력을 평가한다고 보도·교육 자료에서 설명한다.",
+    "source_url": "https://dhnews.co.kr/news/view/179522277807971",
+    "publisher": "대구대 프로그램 보도(대학 뉴스, 민간 매체)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "NCS",
+      "경험면접",
+      "상황면접",
+      "발표면접",
+      "토론면접"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-11",
+    "claim_ko": "경험면접은 과거 직무 관련 경험을 묻고 상황면접은 제시된 업무 상황에서의 대처를 묻는다는 구분이 NCS 설명 기사에 나온다.",
+    "source_url": "https://sgsg.hankyung.com/article/2016041552891",
+    "publisher": "한경 sgsg(언론, 민간)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "경험면접",
+      "상황면접",
+      "구조화"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-12",
+    "claim_ko": "채용절차법 제4조의3은 직무와 무관한 신체조건, 출신지역, 혼인 여부, 재산, 직계존비속·형제자매의 학력·직업·재산을 기초심사자료에 요구하거나 입증자료로 수집하는 것을 금지하며, 위반 시 500만원 이하 과태료(제17조제2항)다. 확인한 본문은 2020.5.26 시행본의 위키문헌 사본이다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 원문 law.go.kr은 직접 조회 실패, 위키문헌 사본(법률 제17326호) 확인",
+    "key_tokens": [
+      "제4조의3",
+      "신체조건",
+      "출신지역",
+      "혼인",
+      "500만원"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-13",
+    "claim_ko": "채용절차법 제4조의2는 채용에 관한 부당한 청탁·압력·강요와 금품·향응 제공·수수를 금지하며 위반 시 3천만원 이하 과태료(제17조제1항)다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 위키문헌 사본(법률 제17326호) 확인",
+    "key_tokens": [
+      "제4조의2",
+      "채용강요",
+      "3천만원"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-14",
+    "claim_ko": "채용절차법 제8조는 채용일정, 심사 지연, 채용과정 변경을 구직자에게 알리도록 하고, 제10조는 채용 여부를 지체 없이 알리도록 한다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 위키문헌 사본 확인",
+    "key_tokens": [
+      "제8조",
+      "제10조",
+      "채용 여부",
+      "고지"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-15",
+    "claim_ko": "채용절차법 제9조는 채용서류 제출 비용 외에 채용심사 비용을 구직자에게 부담시키지 못하게 하며(예외는 고용노동부장관 승인), 제11조는 채용 확정 후 구직자의 반환 청구 시 채용서류를 돌려주고 기한이 지나면 개인정보 보호법에 따라 파기하게 한다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 위키문헌 사본 확인",
+    "key_tokens": [
+      "제9조",
+      "제11조",
+      "채용서류 반환",
+      "파기"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-16",
+    "claim_ko": "채용절차법 제4조는 채용을 가장한 거짓 채용광고를 금지하고, 정당한 사유 없이 채용광고의 내용이나 채용 후 근로조건을 구직자에게 불리하게 바꾸는 것도 금지한다. 처우협의 단계에서 공고 조건과 제안 조건이 다를 때 참고할 수 있다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 위키문헌 사본 확인",
+    "key_tokens": [
+      "제4조",
+      "거짓 채용광고",
+      "근로조건",
+      "불리하게"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-17",
+    "claim_ko": "근로기준법 제17조는 근로계약 체결 시 임금, 소정근로시간, 휴일, 연차휴가 등 근로조건을 명시하도록 한다. 확인한 본문은 2014.7.1 시행본의 위키문헌 사본이라 현행 개정 여부는 미확인이다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EA%B7%BC%EB%A1%9C%EA%B8%B0%EC%A4%80%EB%B2%95",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 2014 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 2014 사본이라 현행 대조 필요",
+    "key_tokens": [
+      "제17조",
+      "근로조건 명시",
+      "임금",
+      "소정근로시간"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-18",
+    "claim_ko": "근로기준법 제35조는 수습 사용 중인 근로자를 해고예고 적용 예외 중 하나로 두지만, 확인한 사본에는 기간 한도가 보이지 않아 수습 3개월 기준은 확인하지 못했다.",
+    "source_url": "https://ko.wikisource.org/wiki/%EA%B7%BC%EB%A1%9C%EA%B8%B0%EC%A4%80%EB%B2%95",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 2014 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (법령은 공공 사실) — 법령은 공공 사실. 2014 사본이라 현행 대조 필요",
+    "key_tokens": [
+      "제35조",
+      "수습",
+      "해고예고"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-19",
+    "claim_ko": "레퍼런스 체크는 후보자 사전 동의 없이 하면 개인정보보호법 위반 소지가 크다는 민간 해설이 다수이나, 동의 없는 평판조회가 위법이 아니라는 취지의 분쟁조정 결정 소개도 있어 공적 해설은 확인하지 못했다.",
+    "source_url": "https://shiftee.io/ko/blog/article/referenceCheckWhenHiring",
+    "publisher": "시프티 블로그(민간 HR 업체)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "레퍼런스 체크",
+      "사전 동의",
+      "개인정보보호법"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-20",
+    "claim_ko": "면접에서 결혼·자녀 계획, 신체조건, 직무와 무관한 장애 질문은 차별 소지가 있다는 보도·법률 해설이 있다. 면접 중 질문 자체는 채용절차법 위반이 아니라는 고용노동부 판단 보도도 있다.",
+    "source_url": "https://view.asiae.co.kr/article/2021101511252364153",
+    "publisher": "아시아경제 외 언론(민간)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "면접 불필요한 질문",
+      "결혼",
+      "신체조건",
+      "차별"
+    ],
+    "confidence": "low"
+  }
+]
