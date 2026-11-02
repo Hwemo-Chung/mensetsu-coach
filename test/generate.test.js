@@ -421,3 +421,10 @@ test("F10 gate vs collected reverse-question cases (D2): good pass; conditions/d
   for (const x of items.filter((i) => i.label === "good")) assert.equal(reverseQuestionOk(x.question_ja), true, x.id);
   for (const x of items.filter((i) => ["conditions", "double", "too_long"].includes(i.bad_type))) assert.equal(reverseQuestionOk(x.question_ja), false, `${x.id} ${x.bad_type}`);
 });
+
+test("readings may carry the script's ［blanks］ verbatim (seen live: Korean reading copied ［ここに実績の数字］)", () => {
+  assert.equal(EXPLAIN_LANGS.ko.isReading("젠쇼쿠데와 ［ここに実績の数字］ 헤라시마시타↘"), true);
+  assert.equal(EXPLAIN_LANGS.en.isReading("zenshoku dewa ［ここに実績の数字］ herashimashita↘"), true);
+  assert.equal(EXPLAIN_LANGS.ja.isReading("ぜんしょくでは ［ここに実績の数字］ へらしました↘"), true);
+  assert.equal(EXPLAIN_LANGS.ko.isReading("젠쇼쿠데와 実績 헤라시마시타"), false, "kanji outside blanks still fails");
+});
