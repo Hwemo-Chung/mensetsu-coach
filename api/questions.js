@@ -36,7 +36,7 @@ export async function POST(request, deps = {}) {
     return json(200, await generateQuestions(c, loadPack("jp"), maskInput(mail), blocks, lang));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });
-    if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });
+    if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("questions failed:", e?.status ?? "", e?.message); // never log the mail or attachment
     return json(502, { code: "generation_failed" });
   }

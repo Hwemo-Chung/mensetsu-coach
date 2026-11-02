@@ -34,7 +34,7 @@ export async function POST(request, deps = {}) {
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
     return json(200, await generateReview(c, loadPack("jp"), { question, answer: maskInput(answer), lang }));
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });
+    if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("review failed:", e?.status ?? "", e?.message); // never log the answer
     return json(502, { code: "generation_failed" });
   }

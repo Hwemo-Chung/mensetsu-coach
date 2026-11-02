@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific } from "../lib/coach.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { POST as reviewPOST } from "../api/review.js";
@@ -389,4 +389,20 @@ test("SEC: wrong access codes also consume the rate limit (no unlimited brute fo
   for (let i = 0; i < 11; i++) codes.push((await POST(new Request("http://x/api/questions", { method: "POST", headers: h, body: "{}" }))).status);
   assert.deepEqual(codes.slice(0, 10), Array(10).fill(401));
   assert.equal(codes[10], 429);
+});
+
+test("EVAL-02: a correction quoting a single character, or with after === before, is dropped", async () => {
+  const weird = { ...reviewFixture, corrections: [
+    { rule_id: "del-chanto", before: "は", after: "が", reason: "1글자 인용" },
+    { rule_id: "del-nanka", before: "前職では", after: "前職では", reason: "변화 없음" },
+    reviewFixture.corrections[0],
+  ] };
+  const out = await generateReview(fakeClient({ result: weird }), pack, B);
+  assert.deepEqual(out.corrections.map((c) => c.rule_id), ["str-ketsuron"]);
+  assert.equal(out.dropped, 2);
+});
+
+test("EVAL-07: generic words do not count as company-specific refs", () => {
+  const qs = [{ question_ja: "これまでの経験とチームでの開発について教えてください。", refs: ["経験", "チーム", "開発"] }, { question_ja: "需要予測の刷新をどう進めますか。", refs: ["需要予測"] }];
+  assert.equal(countSpecific(qs, "経験 チーム 開発 需要予測の刷新"), 1);
 });

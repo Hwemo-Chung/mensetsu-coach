@@ -28,7 +28,7 @@ export async function POST(request, deps = {}) {
     const cl = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
     return json(200, await generateReverse(cl, loadPack("jp"), { context, lang }));
   } catch (e) {
-    if (e instanceof Anthropic.RateLimitError) return json(503, { code: "ai_busy" });
+    if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("reverse failed:", e?.status ?? "", e?.message);
     return json(502, { code: "generation_failed" });
   }

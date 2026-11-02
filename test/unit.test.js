@@ -123,3 +123,18 @@ test("SEC: extracted attachment text is capped at 20,000 characters", async () =
   const out = await toContentBlocks({ name: "cv.txt", type: "text/plain", data: Buffer.from("あ".repeat(30000)).toString("base64") });
   assert.equal(out[0].text.length, 20000);
 });
+
+test("SEC-5: a zip whose central directory LIES about the size is still caught (actual inflate is capped)", async () => {
+  const bomb = zipOne("word/document.xml", "A".repeat(25 * 1024 * 1024));
+  // forge the declared uncompressed size in local + central headers to 100 bytes
+  const eocd = bomb.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  const cd = bomb.readUInt32LE(eocd + 16);
+  bomb.writeUInt32LE(100, cd + 24);
+  bomb.writeUInt32LE(100, 22);
+  await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
+});
+
+test("P2: personal data in an attached text resume is masked", async () => {
+  const out = await toContentBlocks({ name: "cv.txt", type: "text/plain", data: Buffer.from("連絡先 taro@example.com 090-1234-5678").toString("base64") });
+  assert.ok(!out[0].text.includes("taro@example.com") && !out[0].text.includes("090-1234-5678"), out[0].text);
+});
