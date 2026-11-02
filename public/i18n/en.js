@@ -35,6 +35,15 @@ export default {
   },
   steps: { fukusho: "Restate the question", ketsuron: "Conclusion", kijun: "One reason", sentakushi: "Hand it back" },
   export: { title: "Interview practice log", questions: "Likely questions", practice: "Practice", myAnswer: "My answer", saved: (d) => `Saved today's practice.\n📄 ${d.file}\nPaste another email to start again.`, empty: "Nothing to save yet. Paste an email to create questions first." },
+  mail: {
+    title: "Get an interview tip every morning at 9",
+    body: "So today's practice sticks, we send one email every morning at 9:00 (Japan time).\n• One interview question (日本語)\n• A 4-step answer hint\n• One correction rule (before → after)",
+    placeholder: "you@example.com",
+    consent: "I agree that only my email is stored and that I can unsubscribe anytime.",
+    later: "Not now",
+    submit: "Sign me up",
+    done: "You're in. The first email arrives tomorrow at 9:00.",
+  },
   script: {
     title: "③ Model script",
     ja: "日本語",
@@ -65,6 +74,9 @@ export default {
     ai_busy: () => "The AI server is busy. Please try again shortly.",
     generation_failed: () => "Something went wrong. Please try again.",
     network: () => "Network error. Please send it again.",
+    email_invalid: () => "Please check the email address.",
+    consent_required: () => "Please tick the consent box.",
+    mail_unavailable: () => "The mail service is not ready yet. Please try again later.",
     unknown: () => "An unknown error occurred.",
   },
 };

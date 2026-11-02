@@ -44,3 +44,13 @@ textarea:focus, button:focus-visible, .attach:focus-within { outline: 2px solid 
 .review .hint { margin: 0 0 0 16px; font-size: 13px; color: #555; }
 .review .rule { margin: 8px 0 0; font-size: 12px; color: #058a3c; font-weight: 700; }
 .end { font: inherit; font-size: 13px; border: 0; border-radius: 8px; padding: 3px 8px; background: #fff; color: #058a3c; cursor: pointer; }
+.mail { border: 0; border-radius: 16px; padding: 20px; max-width: 420px; width: calc(100% - 32px); }
+.mail::backdrop { background: rgba(0,0,0,.4); }
+.mail h2 { margin: 0 0 8px; font-size: 17px; }
+.mail-body { white-space: pre-wrap; font-size: 14px; line-height: 1.6; margin: 0 0 12px; }
+.mail input[type=email] { width: 100%; box-sizing: border-box; font: inherit; padding: 9px 12px; border: 1px solid #ddd; border-radius: 10px; }
+.consent { display: flex; gap: 6px; align-items: flex-start; font-size: 12px; color: #555; margin: 10px 0 0; }
+.mail-msg { min-height: 1.2em; font-size: 13px; color: #b00020; margin: 6px 0 0; }
+.mail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.mail-actions button { font: inherit; border-radius: 10px; padding: 8px 14px; border: 1px solid #ddd; background: #fff; cursor: pointer; }
+.mail-actions #mailSubmit { background: #06c755; color: #fff; border-color: #06c755; }

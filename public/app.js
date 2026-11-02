@@ -240,6 +240,7 @@ function applyLanguage() {
   document.documentElement.lang = lang;
   document.title = t.ui.title;
   for (const e of document.querySelectorAll("[data-i18n]")) e.textContent = t.ui[e.dataset.i18n];
+  for (const e of document.querySelectorAll("[data-i18n-mail]")) e.textContent = t.mail[e.dataset.i18nMail];
   for (const e of document.querySelectorAll("[data-i18n-label]")) {
     e.setAttribute("aria-label", t.ui[e.dataset.i18nLabel]);
     e.title = t.ui[e.dataset.i18nLabel];
@@ -261,6 +262,37 @@ $("end").addEventListener("click", () => {
   localStorage.removeItem(SESSION_KEY);
   bubble("coach", T().export.saved({ file }));
   if (sessionStorage.getItem("code")) setStage("mail");
+  offerMail();
+});
+
+// Daily-tip signup: offered once after the first save; "not now" is remembered too.
+const MAIL_ASKED = "mensetsu-mail-asked";
+const dialog = $("mail");
+function offerMail() {
+  try { if (localStorage.getItem(MAIL_ASKED)) return; } catch {}
+  $("mailMsg").textContent = "";
+  $("mailEmail").placeholder = T().mail.placeholder;
+  dialog.showModal();
+}
+function closeMail() {
+  try { localStorage.setItem(MAIL_ASKED, "1"); } catch {}
+  dialog.close();
+}
+$("mailLater").addEventListener("click", closeMail);
+$("mailForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const msg = $("mailMsg");
+  $("mailSubmit").disabled = true;
+  try {
+    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang });
+    if (!res.ok) return void (msg.textContent = message(data));
+    closeMail();
+    bubble("coach", T().mail.done);
+  } catch {
+    msg.textContent = message({ code: "network" });
+  } finally {
+    $("mailSubmit").disabled = false;
+  }
 });
 
 const picker = $("lang");

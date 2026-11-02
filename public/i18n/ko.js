@@ -35,6 +35,15 @@ export default {
   },
   steps: { fukusho: "질문 확인", ketsuron: "결론", kijun: "근거 하나", sentakushi: "상대에게 반환" },
   export: { title: "면접 연습 기록", questions: "예상 질문", practice: "연습", myAnswer: "내 답변", saved: (d) => `오늘 연습을 저장했어요.\n📄 ${d.file}\n새로 시작하려면 메일을 붙여넣어 주세요.`, empty: "아직 저장할 연습이 없어요. 먼저 메일을 붙여넣어 질문을 만들어 주세요." },
+  mail: {
+    title: "매일 아침 9시, 면접 팁 받기",
+    body: "오늘 연습한 내용을 잊지 않도록, 매일 아침 9시(일본 시간)에 한 통씩 보내 드려요.\n• 오늘의 면접 질문 1개 (日本語)\n• 4문형 답변 힌트\n• 오늘의 첨삭 규칙 1개 (바꾸기 전→후)",
+    placeholder: "you@example.com",
+    consent: "이메일만 저장하며 언제든 수신 거부할 수 있음에 동의합니다.",
+    later: "다음에",
+    submit: "받아 보기",
+    done: "등록했어요. 내일 아침 9시부터 보내 드릴게요.",
+  },
   script: {
     title: "③ 모범 스크립트",
     ja: "日本語",
@@ -65,6 +74,9 @@ export default {
     ai_busy: () => "AI 서버가 혼잡해요. 잠시 뒤 다시 시도해 주세요.",
     generation_failed: () => "만들지 못했어요. 다시 시도해 주세요.",
     network: () => "네트워크 오류가 났어요. 다시 보내 주세요.",
+    email_invalid: () => "이메일 주소를 확인해 주세요.",
+    consent_required: () => "동의에 체크해 주세요.",
+    mail_unavailable: () => "메일 서비스를 준비 중이에요. 나중에 다시 시도해 주세요.",
     unknown: () => "알 수 없는 오류가 났어요.",
   },
 };

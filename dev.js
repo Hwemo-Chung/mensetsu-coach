@@ -7,6 +7,8 @@ import { POST as questions } from "./api/questions.js";
 import { POST as access } from "./api/access.js";
 import { POST as script } from "./api/script.js";
 import { POST as review } from "./api/review.js";
+import { POST as subscribe } from "./api/subscribe.js";
+import { GET as unsubscribe } from "./api/unsubscribe.js";
 import { fakeClient, scriptFixture, reviewFixture } from "./test/fake-claude.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
@@ -21,7 +23,12 @@ createServer(async (req, res) => {
   for (const [k, v] of Object.entries(securityHeaders)) res.setHeader(k, v);
   const url = new URL(req.url, "http://localhost");
   try {
-    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review }[url.pathname];
+    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/subscribe": subscribe }[url.pathname];
+    if (url.pathname === "/api/unsubscribe") {
+      const r = await unsubscribe(new Request(url));
+      res.writeHead(r.status, Object.fromEntries(r.headers));
+      return res.end(Buffer.from(await r.arrayBuffer()));
+    }
     if (api) {
       if (req.method !== "POST") return res.writeHead(405).end();
       const r = await api(new Request(url, { method: "POST", headers: req.headers, body: Readable.toWeb(req), duplex: "half" }), MOCK ? mockDeps[url.pathname] ?? {} : {});

@@ -23,6 +23,19 @@
       <p class="note" data-i18n="note"></p>
     </form>
   </div>
+  <dialog id="mail" class="mail">
+    <form id="mailForm" method="dialog">
+      <h2 data-i18n-mail="title"></h2>
+      <p class="mail-body" data-i18n-mail="body"></p>
+      <input id="mailEmail" type="email" autocomplete="email" required>
+      <label class="consent"><input id="mailConsent" type="checkbox"> <span data-i18n-mail="consent"></span></label>
+      <p id="mailMsg" class="mail-msg" role="status"></p>
+      <div class="mail-actions">
+        <button type="button" id="mailLater" data-i18n-mail="later"></button>
+        <button type="submit" id="mailSubmit" data-i18n-mail="submit"></button>
+      </div>
+    </form>
+  </dialog>
   <script src="/app.js" type="module"></script>
 </body>
 </html>
