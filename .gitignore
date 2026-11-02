@@ -8,3 +8,4 @@ sessions/
 .env*
 !.env.example
 .playwright-mcp/
+*.raw.json

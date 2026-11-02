@@ -1,0 +1,148 @@
+{
+ "items": [
+  {
+   "id": "D5-1",
+   "question": "自己紹介をお願いします。",
+   "answer": "自己紹介のご依頼と受け止めました。物流の改善提案を軸に、メーカー向けの業務を担当してきた者です。拠り所にしているのは、提案が現場で定着したかどうかです。関心に合わせて、経歴の流れからでも、直近の担当案件からでも続けられます。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "D5-2",
+   "question": "自己紹介をお願いします。",
+   "answer": "そうですね、ええと、営業を長くやってきた者です。評価の拠り所は、既存のお客様から次の相談が来るかどうかだと考えています。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "D5-3",
+   "question": "自己紹介をお願いします。",
+   "answer": "このような場をいただき、ありがとうございます。私は御社の理念に深く共感しており、第一志望として応募しました。入社できれば長く貢献したいと考えています。",
+   "answers_question": "no"
+  },
+  {
+   "id": "D5-4",
+   "question": "自己紹介をお願いします。",
+   "answer": "自己紹介のご依頼と理解しました。入社の経緯から順に、時系列でお話しします。最初の会社では研修期間が長く、その後に配属が変わり、さらに次の会社では別の部署にいました。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": false,
+    "kijun": false,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "D5-6",
+   "question": "転職を考えた理由を教えてください。",
+   "answer": "設計から運用まで一貫して関われる仕事に移りたいからです。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": true,
+    "kijun": false,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "D5-7",
+   "question": "転職を考えた理由を教えてください。",
+   "answer": "いろいろあったんですが、まあ、人間関係とか、評価の付け方とか、あとは残業の多さとか、ですね。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": false,
+    "kijun": false,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "D5-8",
+   "question": "転職を考えた理由を教えてください。",
+   "answer": "転職の理由とは別に、当社を志望した理由をお話しします。御社は成長中の市場で事業を広げており、その勢いの中で働きたいと思いました。",
+   "answers_question": "no"
+  },
+  {
+   "id": "D5-9",
+   "question": "これまでで最も成果を出した仕事は何ですか。",
+   "answer": "最も成果を出した仕事のお尋ね、と受け止めました。在庫管理の見直しで、欠品による出荷停止をなくしたことです。判断の拠り所は、倉庫から停止の連絡が来なくなったかどうかです。背景の課題整理と実施した施策の中身は、関心のある側から深掘りできます。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "D5-10",
+   "question": "これまでで最も成果を出した仕事は何ですか。",
+   "answer": "新規顧客の開拓です。年間の受注額を1.4倍にしました。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "D5-12",
+   "question": "これまでで最も成果を出した仕事は何ですか。",
+   "answer": "前職で最も大変だったのは、仕様変更が重なった時期の関係部署との調整です。毎週の変更に追われ、苦労しました。",
+   "answers_question": "no"
+  },
+  {
+   "id": "D5-13",
+   "question": "最後に、何か質問はありますか。",
+   "answer": "質問の時間をいただいた、と理解しています。入社後の最初の半年に期待される成果を、一点確認したいです。私が重視するのは、配属先のチームが何を達成と見なすかです。お答えは、チームの目標からでも、前任の方の実例からでも構いません。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": true,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "D5-14",
+   "question": "最後に、何か質問はありますか。",
+   "answer": "配属予定のチームの体制を教えてください。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": false,
+    "ketsuron": true,
+    "kijun": false,
+    "sentakushi": false
+   }
+  },
+  {
+   "id": "D5-15",
+   "question": "最後に、何か質問はありますか。",
+   "answer": "質問の機会をいただいた、と受け止めました。一点だけ、配属予定のチームの役割分担を伺います。現在の体制図でも、直近の案件の実例でも、説明しやすい方で結構です。",
+   "answers_question": "yes",
+   "steps": {
+    "fukusho": true,
+    "ketsuron": true,
+    "kijun": false,
+    "sentakushi": true
+   }
+  },
+  {
+   "id": "D5-16",
+   "question": "最後に、何か質問はありますか。",
+   "answer": "質問よりも、最後に私の強みを一つ補足します。粘り強く原因を調べ、再発を防ぐところが私の持ち味です。",
+   "answers_question": "no"
+  }
+ ]
+}

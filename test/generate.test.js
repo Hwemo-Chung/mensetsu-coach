@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk } from "../lib/coach.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { POST as reviewPOST } from "../api/review.js";
@@ -413,4 +413,11 @@ test("EVAL-08: numbers in the model script must come from the answer/question/co
   const grounded = fakeClient({ responses: [invented] });
   assert.ok(await generateScript(grounded, pack, { question: "見積もりは？", answer: "手戻りを3割減らし、５年間リーダーでした" }), "numbers present in the answer (full-width too) pass");
   assert.ok(await generateScript(fakeClient({ result: scriptFixture }), pack, { question: "Q", answer: "A" }), "blank placeholders pass");
+});
+
+test("F10 gate vs collected reverse-question cases (D2): good pass; conditions/double/too_long fail", () => {
+  const raw = JSON.parse(readFileSync(new URL("./eval/reverse-cases.json", import.meta.url), "utf8"));
+  const items = Array.isArray(raw) ? raw : raw.items ?? raw.cases;
+  for (const x of items.filter((i) => i.label === "good")) assert.equal(reverseQuestionOk(x.question_ja), true, x.id);
+  for (const x of items.filter((i) => ["conditions", "double", "too_long"].includes(i.bad_type))) assert.equal(reverseQuestionOk(x.question_ja), false, `${x.id} ${x.bad_type}`);
 });
