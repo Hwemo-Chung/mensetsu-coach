@@ -350,3 +350,10 @@ test("F10 reverse API: codes, masking of context, 200 with fake client", async (
   assert.ok(!JSON.stringify(client.requests).includes("a@b.jp"));
   await check(await reversePOST(req("c0de", { context: CTX }), { client: fakeClient({ fail: new Error("x") }) }), 502, { code: "generation_failed" });
 });
+
+test("F10 gate: one question per item — two questions in one, or over 80 chars, is retried then fails", async () => {
+  const dbl = { questions: [{ question_ja: "最初の半年に期待される成果は何でしょうか。また、課題はどこにあるとお考えでしょうか。", intent: "기대치와 과제를 확인합니다." }, ...reverseFixture.questions.slice(1)] };
+  await assert.rejects(generateReverse(fakeClient({ responses: [dbl, dbl] }), pack, { context: CTX }), /reverse check/);
+  const long = { questions: [{ question_ja: "需".repeat(81) + "ですか。", intent: "길다." }, ...reverseFixture.questions.slice(1)] };
+  await assert.rejects(generateReverse(fakeClient({ responses: [long, long] }), pack, { context: CTX }), /reverse check/);
+});
