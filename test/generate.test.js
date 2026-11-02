@@ -357,3 +357,17 @@ test("F10 gate: one question per item — two questions in one, or over 80 chars
   const long = { questions: [{ question_ja: "需".repeat(81) + "ですか。", intent: "길다." }, ...reverseFixture.questions.slice(1)] };
   await assert.rejects(generateReverse(fakeClient({ responses: [long, long] }), pack, { context: CTX }), /reverse check/);
 });
+
+test("rate limit buckets are per route: a session of access + questions + 8 answers is not blocked", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const ip = "77.77.77.77";
+  const h = { "x-access-code": "c0de", "x-forwarded-for": ip, "content-type": "application/json" };
+  const { POST: access } = await import("../api/access.js");
+  for (let i = 0; i < 3; i++) assert.equal((await access(new Request("http://x/api/access", { method: "POST", headers: h }))).status, 200);
+  assert.equal((await POST(new Request("http://x/api/questions", { method: "POST", headers: h, body: JSON.stringify({ mail: MAIL }) }), { client: fakeClient() })).status, 200);
+  for (let i = 0; i < 8; i++) {
+    const body = JSON.stringify({ question: "前職で最も大変だったことは何ですか。", answer: B.answer });
+    assert.equal((await reviewPOST(new Request("http://x/api/review", { method: "POST", headers: h, body }), { client: fakeClient({ result: reviewFixture }) })).status, 200, `review ${i + 1}`);
+    assert.equal((await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: h, body }), { client: fakeClient({ result: scriptFixture }) })).status, 200, `script ${i + 1}`);
+  }
+});

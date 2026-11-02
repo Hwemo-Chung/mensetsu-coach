@@ -13,7 +13,7 @@ let client;
 export async function POST(request, deps = {}) {
   if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
-  if (!rateLimit(ip)) return json(429, { code: "rate_limited" });
+  if (!rateLimit(`questions:${ip}`, { limit: 10 })) return json(429, { code: "rate_limited" });
 
   let body;
   try {
