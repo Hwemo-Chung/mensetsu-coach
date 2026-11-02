@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node dev.js",
-    "test": "node --test test/unit.test.js test/generate.test.js test/pii-scan.test.js test/i18n.test.js",
+    "test": "node --test test/unit.test.js test/generate.test.js test/pii-scan.test.js test/i18n.test.js test/export.test.js",
     "test:live": "node --test test/live.test.js"
   },
   "dependencies": {

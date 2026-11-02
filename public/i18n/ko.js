@@ -3,6 +3,7 @@ export default {
   ui: {
     title: "일본 면접 코치",
     language: "화면 언어",
+    end: "끝내기·저장",
     send: "보내기",
     attach: "이력서·경력서 첨부 (선택)",
     removeFile: "첨부 취소",
@@ -33,6 +34,7 @@ export default {
     noCorrections: "규칙에 해당하는 표현이 없어요.",
   },
   steps: { fukusho: "질문 확인", ketsuron: "결론", kijun: "근거 하나", sentakushi: "상대에게 반환" },
+  export: { title: "면접 연습 기록", questions: "예상 질문", practice: "연습", myAnswer: "내 답변", saved: (d) => `오늘 연습을 저장했어요.\n📄 ${d.file}\n새로 시작하려면 메일을 붙여넣어 주세요.`, empty: "아직 저장할 연습이 없어요. 먼저 메일을 붙여넣어 질문을 만들어 주세요." },
   script: {
     title: "③ 모범 스크립트",
     ja: "日本語",

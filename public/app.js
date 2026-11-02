@@ -7,6 +7,7 @@ let session = null; // { company_context, questions, attempts }
 let current = null; // question being answered
 
 import { LANGS } from "./i18n/index.js";
+import { sessionToMarkdown, exportFileName } from "./export.js";
 
 const LANG_KEY = "mensetsu-lang";
 const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
@@ -245,6 +246,23 @@ function applyLanguage() {
   }
   input.placeholder = t.chat[PLACEHOLDER[stage]];
 }
+// F6: the session lives only in this browser, so the document is built and downloaded here, then cleared.
+$("end").addEventListener("click", () => {
+  if (!session) return bubble("coach", T().export.empty);
+  const file = exportFileName(new Date());
+  const url = URL.createObjectURL(new Blob([sessionToMarkdown(session, T())], { type: "text/markdown;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: file });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  session = null;
+  current = null;
+  localStorage.removeItem(SESSION_KEY);
+  bubble("coach", T().export.saved({ file }));
+  if (sessionStorage.getItem("code")) setStage("mail");
+});
+
 const picker = $("lang");
 for (const [code, t] of Object.entries(LANGS)) picker.append(new Option(t.label, code, false, code === lang));
 picker.addEventListener("change", () => {

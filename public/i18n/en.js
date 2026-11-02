@@ -3,6 +3,7 @@ export default {
   ui: {
     title: "Japan Interview Coach",
     language: "Language",
+    end: "Finish & save",
     send: "Send",
     attach: "Attach résumé / CV (optional)",
     removeFile: "Remove attachment",
@@ -33,6 +34,7 @@ export default {
     noCorrections: "No expressions matched the rules.",
   },
   steps: { fukusho: "Restate the question", ketsuron: "Conclusion", kijun: "One reason", sentakushi: "Hand it back" },
+  export: { title: "Interview practice log", questions: "Likely questions", practice: "Practice", myAnswer: "My answer", saved: (d) => `Saved today's practice.\n📄 ${d.file}\nPaste another email to start again.`, empty: "Nothing to save yet. Paste an email to create questions first." },
   script: {
     title: "③ Model script",
     ja: "日本語",

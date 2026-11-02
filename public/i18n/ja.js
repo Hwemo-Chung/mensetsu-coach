@@ -3,6 +3,7 @@ export default {
   ui: {
     title: "面接コーチ",
     language: "表示言語",
+    end: "終了・保存",
     send: "送信",
     attach: "履歴書・職務経歴書を添付（任意）",
     removeFile: "添付を取り消す",
@@ -33,6 +34,7 @@ export default {
     noCorrections: "ルールに当てはまる表現はありません。",
   },
   steps: { fukusho: "質問の確認", ketsuron: "結論", kijun: "根拠を1つ", sentakushi: "相手に返す" },
+  export: { title: "面接練習の記録", questions: "想定質問", practice: "練習", myAnswer: "自分の回答", saved: (d) => `今日の練習を保存しました。\n📄 ${d.file}\n新しく始めるにはメールを貼り付けてください。`, empty: "まだ保存する練習がありません。先にメールを貼り付けて質問を作ってください。" },
   script: {
     title: "③ 模範スクリプト",
     ja: "日本語",
