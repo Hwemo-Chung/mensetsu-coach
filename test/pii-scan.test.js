@@ -5,13 +5,11 @@ import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const root = new URL("../", import.meta.url);
-const denyPath = process.env.PII_DENYLIST ?? fileURLToPath(new URL(".pii-denylist.txt", root));
-const targets = [
-  ...(existsSync(new URL("packs/", root)) ? readdirSync(new URL("packs/", root)).map((f) => `packs/${f}`) : []),
-  ...(existsSync(new URL("01_설계문서/research/", root)) ? readdirSync(new URL("01_설계문서/research/", root)).map((f) => `01_설계문서/research/${f}`) : []),
-  ...(existsSync(new URL("01_설계문서/dev-notes/", root)) ? readdirSync(new URL("01_설계문서/dev-notes/", root), { recursive: true }).map((f) => `01_설계문서/dev-notes/${f}`) : []),
-  "README.md",
-].filter((p) => existsSync(new URL(p, root)) && /\.(json|md|js)$/.test(p));
+const denyPath = process.env.PII_DENYLIST ?? fileURLToPath(new URL("../BuiltWithClaude-2026-private/secrets/.pii-denylist.txt", root));
+import { execFileSync } from "node:child_process";
+// Every tracked text file (plus untracked files under research/ that are about to be committed).
+const tracked = (() => { try { return execFileSync("git", ["ls-files", "-co", "--exclude-standard"], { cwd: fileURLToPath(root), encoding: "utf8" }).split("\n"); } catch { return []; } })();
+const targets = tracked.filter((p) => p && /\.(json|md|js|mjs|txt|html|css)$/.test(p) && !p.startsWith("node_modules/") && existsSync(new URL(p, root)));
 
 test("no denylisted personal identifiers in packs/ or research outputs", { skip: !existsSync(denyPath) && ".pii-denylist.txt not present" }, () => {
   const terms = readFileSync(denyPath, "utf8").split("\n").map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
@@ -34,10 +32,11 @@ test("PII detector still catches phone/email but ignores URL document IDs", () =
 
 test("generic PII patterns (phone / email) absent from packs and research", () => {
   const bad = [];
-  for (const p of targets) {
+  // test/ holds deliberate fake contacts for masking tests; the denylist test above still covers it.
+  for (const p of targets.filter((x) => !x.startsWith("test/"))) {
     const text = readFileSync(new URL(p, root), "utf8");
-    const m = piiMatches(text);
-    if (m) bad.push(`${p}: ${[...new Set(m)].join(", ")}`);
+    const m = piiMatches(text)?.filter((x) => !/@(?:[\w-]+\.)*example(?:\.[a-z]+)+$/i.test(x));
+    if (m?.length) bad.push(`${p}: ${[...new Set(m)].join(", ")}`);
   }
   assert.deepEqual(bad, [], bad.join("\n"));
 });

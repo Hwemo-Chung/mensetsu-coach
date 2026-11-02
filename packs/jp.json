@@ -7,7 +7,7 @@
     "name": "4文型",
     "steps": [
       { "key": "fukusho", "label": "復唱", "label_native": "질문 확인", "rule": "最初の1文で、聞かれた質問を短く言い直す。", "example": "見積もりがずれたときの判断、ですね。" },
-      { "key": "ketsuron", "label": "結論", "label_native": "결론", "rule": "最初の1文で結論を言い切る。前置きをしない。", "example": "止める・縮小する・続けるの3つで判断します。" },
+      { "key": "ketsuron", "label": "結論", "label_native": "결론", "rule": "復唱の直後（復唱がなければ最初の1文）で結論を言い切る。前置きをしない。", "example": "止める・縮小する・続けるの3つで判断します。" },
       { "key": "kijun", "label": "基準・数字", "label_native": "근거 하나", "rule": "根拠は基準か数字を1つだけ。複数並べない。", "example": "基準は、残りのコストと、残りのリターンです。" },
       { "key": "sentakushi", "label": "選択肢", "label_native": "상대에게 반환", "rule": "最後に、相手が判断できる選択肢の形で返す。", "example": "事業側には、止める場合の損失も含めて選択肢で出します。" }
     ],
@@ -15,7 +15,7 @@
   },
   "correction_rules": [
     { "id": "del-katachi", "pattern": "〜の形 / 〜という形で", "type": "delete", "replacement": "", "reason": "意味がない。1回も言わない。文が短くなる。", "example_before": "チームで共有する形で進めました。", "example_after": "チームで共有して進めました。" },
-    { "id": "del-chanto", "pattern": "ちゃんと", "type": "delete", "replacement": "確実に / 最後まで / 具体的な動詞（確認する・合意する・止める）", "reason": "幼く聞こえる。", "example_before": "ちゃんと確認しました。", "example_after": "リリース前に全件確認しました。" },
+    { "id": "del-chanto", "pattern": "ちゃんと", "type": "delete", "replacement": "確実に / 最後まで / 具体的な動詞（確認する・合意する・止める）", "reason": "幼く聞こえる。", "example_before": "ちゃんと確認しました。", "example_after": "［いつ・何を］確認しました。" },
     { "id": "del-nanka", "pattern": "なんか", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "なんか、課題が多かったです。", "example_after": "課題が多かったです。" },
     { "id": "del-chotto", "pattern": "ちょっと（形容詞として使う場合以外）", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "ちょっと説明させてください。", "example_after": "説明させてください。" },
     { "id": "del-gyakuni", "pattern": "逆に（逆接でない所）", "type": "delete", "replacement": "", "reason": "逆接でない所で使うと意味が反転して聞こえる。", "example_before": "逆に、私はテストを重視しています。", "example_after": "私はテストを重視しています。" },
@@ -25,12 +25,12 @@
     { "id": "rep-shisan", "pattern": "資産（工数・費用の意味で）", "type": "replace", "replacement": "コスト / 工数 / リソース", "reason": "資産は会計用語。", "example_before": "資産をどこまで使うかを決めます。", "example_after": "工数をどこまで使うかを決めます。" },
     { "id": "rep-jijitsu", "pattern": "〜ことが事実になる", "type": "replace", "replacement": "〜も事実です", "reason": "二重表現。", "example_before": "遅れたことが事実になるんですけど。", "example_after": "遅れたことも事実です。" },
     { "id": "rep-omoimasu", "pattern": "〜と思います（連続使用）", "type": "replace", "replacement": "事実は断定形、未来は「〜と考えています」", "reason": "連続すると自信がない印象になる。", "example_before": "効果があったと思います。改善できると思います。", "example_after": "効果がありました。さらに改善できると考えています。" },
-    { "id": "str-ketsuron", "pattern": "結論が最初の1文にない", "type": "structure", "replacement": "最初の1文で結論を言い切る", "reason": "結論が後ろにあると、面接官は質問が伝わったか分からない。", "example_before": "前職では色々なプロジェクトがあって、その中で…、結果的にAを選びました。", "example_after": "Aを選びます。理由は〜です。" },
+    { "id": "str-ketsuron", "pattern": "結論が冒頭にない", "type": "structure", "replacement": "復唱の直後（なければ最初の1文）で結論を言い切る", "reason": "結論が後ろにあると、面接官は質問が伝わったか分からない。", "example_before": "前職では色々なプロジェクトがあって、その中で…、結果的にAを選びました。", "example_after": "Aを選びます。理由は〜です。" },
     { "id": "str-number", "pattern": "根拠が複数並ぶ / 数字がない", "type": "structure", "replacement": "根拠は数字か基準を1つだけ", "reason": "根拠が多いと、どれが本当の理由か伝わらない。", "example_before": "理由は3つあって、1つ目は…2つ目は…3つ目は…", "example_after": "基準は、残りのコストです。" },
     { "id": "str-rebuttal", "pattern": "反論されたときに対抗する", "type": "structure", "replacement": "相手の正しさを先に認める → 目的を分ける → 使い分けを言う", "reason": "対抗すると論点がずれる。反論しない。目的が違う、で終える。", "example_before": "いえ、スクラムの方が早いです。", "example_after": "おっしゃる通りです。目的が違うので、納期固定ならウォーターフォール、新規事業なら2週間単位で使い分けます。" },
     { "id": "str-answer-first", "pattern": "自分の答えを言う前に「どう思いますか」と返す", "type": "structure", "replacement": "まず自分の考えを言い、質問は後に1つだけ", "reason": "答えが空のまま質問を返すと、考えがない印象になる。", "example_before": "AI活用について、御社はどう思いますか。", "example_after": "まず私の考えを言います。AIはチームの再現性に効かせるべきだと考えています。そのうえで1つ伺いたいです。" },
     {"id": "rep-sasete-itadaku", "pattern": "〜させていただきました／〜させていただきます（相手の許可も恩恵もない自分の行為）", "type": "replace", "replacement": "〜しました／〜いたします", "reason": "許可を受けて恩恵を得る行為以外に使うと冗長になる。経歴は言い切る。", "example_before": "2018年に大学を卒業させていただき、物流会社で在庫管理を担当させていただきました。", "example_after": "2018年に大学を卒業し、物流会社で在庫管理を担当しました。"},
-    {"id": "str-visa-facts", "pattern": "ビザは大丈夫です / ビザは問題ありません", "type": "structure", "replacement": "在留資格名＋（期限がある資格なら）在留期限＋就労できる範囲を事実だけで。転職時の届出は、届出が必要な資格の場合だけ述べる", "reason": "「大丈夫」では就労できるか判断できない。資格によって期限や届出の有無が違うので、自分の資格の事実だけを言う（永住者など就労制限のない資格は「就労制限はありません」）。", "example_before": "ビザは大丈夫です。", "example_after": "在留資格は技術・人文知識・国際業務で、期限は2028年3月です。転職時の届出は14日以内に自分で行います。"},
+    {"id": "str-visa-facts", "pattern": "ビザは大丈夫です / ビザは問題ありません", "type": "structure", "replacement": "在留資格名＋（期限がある資格なら）在留期限＋就労できる範囲を事実だけで。転職時の届出は、届出が必要な資格の場合だけ述べる", "reason": "「大丈夫」では就労できるか判断できない。資格によって期限や届出の有無が違うので、自分の資格の事実だけを言う（永住者など就労制限のない資格は「就労制限はありません」）。", "example_before": "ビザは大丈夫です。", "example_after": "在留資格は［在留資格名］で、期限は［年月］です。［就労できる範囲］で働くことができます。"},
     {"id": "rep-uchi-keishou", "pattern": "勤務先の上司を面接官に対して「〇〇部長」「おっしゃる」などで立てる", "type": "replace", "replacement": "「上司の〇〇」「部長の〇〇」＋普通の動詞（言う・申す）", "reason": "社外の相手に対しては自分側の人物を立てない。名前＋役職はウチ扱いにならない。", "example_before": "現職では、鈴木部長がいつもおっしゃっているとおり、週次で数字を報告しています。", "example_after": "現職では、上司の鈴木がいつも申しているとおり、週次で数字を報告しています。"}
   ],
   "model_answer_format": {

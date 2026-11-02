@@ -406,3 +406,11 @@ test("EVAL-07: generic words do not count as company-specific refs", () => {
   const qs = [{ question_ja: "これまでの経験とチームでの開発について教えてください。", refs: ["経験", "チーム", "開発"] }, { question_ja: "需要予測の刷新をどう進めますか。", refs: ["需要予測"] }];
   assert.equal(countSpecific(qs, "経験 チーム 開発 需要予測の刷新"), 1);
 });
+
+test("EVAL-08: numbers in the model script must come from the answer/question/context (blanks are fine)", async () => {
+  const invented = { ...scriptFixture, ja: "はい、前職で手戻りを3割減らし、5年間リーダーを務めました。御社ではいかがでしょうか。" };
+  await assert.rejects(generateScript(fakeClient({ responses: [invented, invented] }), pack, { question: "見積もりは？", answer: "手戻りを減らしました" }), /language check|number check/);
+  const grounded = fakeClient({ responses: [invented] });
+  assert.ok(await generateScript(grounded, pack, { question: "見積もりは？", answer: "手戻りを3割減らし、５年間リーダーでした" }), "numbers present in the answer (full-width too) pass");
+  assert.ok(await generateScript(fakeClient({ result: scriptFixture }), pack, { question: "Q", answer: "A" }), "blank placeholders pass");
+});
