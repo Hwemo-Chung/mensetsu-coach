@@ -14,8 +14,8 @@
       <div class="controls">
         <select id="dest" class="lang"></select>
         <select id="lang" class="lang" data-i18n-label="language"></select>
-        <button type="button" id="panelToggle" class="end" aria-controls="panel" aria-expanded="false" data-i18n="panel" hidden></button>
-        <button type="button" id="opts" class="end icon" aria-haspopup="dialog" aria-controls="options" data-i18n-label="opts.button">⚙</button>
+        <button type="button" id="panelToggle" class="end" aria-controls="panel" aria-expanded="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#panel"></use></svg><span data-i18n="panel"></span></button>
+        <button type="button" id="opts" class="end ib" aria-haspopup="dialog" aria-controls="options" data-i18n-label="opts.button"><svg class="icon" aria-hidden="true"><use href="/icons.svg#settings"></use></svg></button>
         <button type="button" id="end" class="end" data-i18n="end"></button>
       </div>
     </header>
@@ -30,11 +30,16 @@
           <button type="button" id="tourNext" class="inline-btn"></button>
         </div>
       </div>
-      <div id="chip" class="chip" hidden><span id="chipName"></span><button type="button" id="chipX" data-i18n-label="removeFile">×</button></div>
+      <div id="chip" class="chip" hidden><span id="chipName"></span><button type="button" id="chipX" data-i18n-label="removeFile"><svg class="icon" aria-hidden="true"><use href="/icons.svg#x"></use></svg></button></div>
+      <p id="micStatus" class="mic-status" aria-live="polite" hidden></p>
+      <p id="micNote" class="mic-status" hidden></p>
       <div class="row">
-        <label class="attach" data-i18n-label="attach">📎<input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
+        <label class="attach" data-i18n-label="attach"><svg class="icon" aria-hidden="true"><use href="/icons.svg#attach"></use></svg><input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
         <textarea id="input" rows="2" required></textarea>
-        <button id="send" type="submit" data-i18n="send"></button>
+        <div class="send-col">
+          <button type="button" id="mic" class="mic" aria-pressed="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#mic"></use></svg></button>
+          <button id="send" type="submit" data-i18n="send"></button>
+        </div>
       </div>
       <p class="note"><span data-i18n="note"></span> <a href="/privacy.html" data-i18n="privacy"></a></p>
     </form>
@@ -72,6 +77,15 @@
       <h2 id="optionsTitle" data-i18n="opts.button"></h2>
       <label class="consent switch"><input id="tourTips" type="checkbox" role="switch" aria-describedby="tourTipsHint" checked> <span data-i18n="opts.tourTips"></span></label>
       <p id="tourTipsHint" class="legend" data-i18n="opts.tourTipsHint"></p>
+      <fieldset class="opt-group">
+        <legend data-i18n="opts.voice"></legend>
+        <label class="consent switch"><input type="radio" name="ttsVoice" value="Kore"> <span data-i18n="opts.voiceKore"></span></label>
+        <label class="consent switch"><input type="radio" name="ttsVoice" value="Charon"> <span data-i18n="opts.voiceCharon"></span></label>
+      </fieldset>
+      <div class="consent switch"><label for="ttsSpeed" data-i18n="opts.speed"></label>
+        <select id="ttsSpeed" class="speed" aria-describedby="ttsSpeedHint"><option value="0.8">0.8×</option><option value="1">1.0×</option><option value="1.2">1.2×</option></select>
+      </div>
+      <p id="ttsSpeedHint" class="legend" data-i18n="opts.speedHint"></p>
       <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
     </form>
   </dialog>

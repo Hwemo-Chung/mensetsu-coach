@@ -52,7 +52,8 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
     await review.waitFor();
     await script.waitFor();
     // F3: review.json marks all four steps missing.
-    for (const s of ["復唱", "結論", "基準・数字", "選択肢"]) await review.locator(".step.miss", { hasText: `✗ ${s}` }).waitFor();
+    // Intent unchanged (each missing step is flagged); the ✗ glyph became the x-circle sprite icon (ICON-DUOTONE §4).
+    for (const s of ["復唱", "結論", "基準・数字", "選択肢"]) await review.locator(".step.miss", { hasText: s }).locator('svg.icon > use[href="/icons.svg#x"]').waitFor();
     // F4: the correction quoting the answer stays; the one not in the answer (del-chanto) is dropped by the gate.
     await review.locator(".rule", { hasText: "【str-ketsuron】" }).waitFor();
     assert.equal(await review.locator(".rule", { hasText: "del-chanto" }).count(), 0);
@@ -69,7 +70,8 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
     await page.press("#input", "Meta+Enter");
     const habits = bubbles(page, "coach").filter({ hasText: t.habits.title({ n: 2 }) });
     await habits.waitFor();
-    assert.match(await habits.textContent(), new RegExp(`${t.habits.times({ c: 2 })} ⚠`));
+    // Intent unchanged (the repeated rule is marked as a habit); the ⚠ glyph became the warning sprite icon.
+    await habits.locator(".habit", { hasText: t.habits.times({ c: 2 }) }).locator('svg.icon > use[href="/icons.svg#warning"]').waitFor();
 
     // F10: reverse questions from the offer under the question list.
     await page.getByRole("button", { name: t.reverse.button }).click();

@@ -1,0 +1,1576 @@
+{
+  "id": "jp",
+  "version": 1,
+  "name": "日本 (Japan)",
+  "country": "日本",
+  "language_pair": {
+    "target": "ja"
+  },
+  "answer_structure": {
+    "name": "4文型",
+    "steps": [
+      {
+        "key": "fukusho",
+        "label": "復唱",
+        "label_native": "질문 확인",
+        "rule": "最初の1文で、聞かれた質問を短く言い直す。",
+        "example": "見積もりがずれたときの判断、ですね。"
+      },
+      {
+        "key": "ketsuron",
+        "label": "結論",
+        "label_native": "결론",
+        "rule": "復唱の直後（復唱がなければ最初の1文）で結論を言い切る。前置きをしない。",
+        "example": "止める・縮小する・続けるの3つで判断します。"
+      },
+      {
+        "key": "kijun",
+        "label": "基準・数字",
+        "label_native": "근거 하나",
+        "rule": "根拠は基準か数字を1つだけ。複数並べない。",
+        "example": "基準は、残りのコストと、残りのリターンです。"
+      },
+      {
+        "key": "sentakushi",
+        "label": "選択肢",
+        "label_native": "상대에게 반환",
+        "rule": "最後に、相手が判断できる選択肢の形で返す。",
+        "example": "事業側には、止める場合の損失も含めて選択肢で出します。"
+      }
+    ],
+    "core_principle": "質問されたことに答える。準備した隣の質問に答えない。"
+  },
+  "correction_rules": [
+    {
+      "id": "del-katachi",
+      "pattern": "〜の形 / 〜という形で",
+      "type": "delete",
+      "replacement": "",
+      "reason": "意味がない。1回も言わない。文が短くなる。",
+      "example_before": "チームで共有する形で進めました。",
+      "example_after": "チームで共有して進めました。"
+    },
+    {
+      "id": "del-chanto",
+      "pattern": "ちゃんと",
+      "type": "delete",
+      "replacement": "確実に / 最後まで / 具体的な動詞（確認する・合意する・止める）",
+      "reason": "幼く聞こえる。",
+      "example_before": "ちゃんと確認しました。",
+      "example_after": "［いつ・何を］確認しました。"
+    },
+    {
+      "id": "del-nanka",
+      "pattern": "なんか",
+      "type": "delete",
+      "replacement": "",
+      "reason": "減点だけで、意味を足さない。",
+      "example_before": "なんか、課題が多かったです。",
+      "example_after": "課題が多かったです。"
+    },
+    {
+      "id": "del-chotto",
+      "pattern": "ちょっと（形容詞として使う場合以外）",
+      "type": "delete",
+      "replacement": "",
+      "reason": "減点だけで、意味を足さない。",
+      "example_before": "ちょっと説明させてください。",
+      "example_after": "説明させてください。"
+    },
+    {
+      "id": "del-gyakuni",
+      "pattern": "逆に（逆接でない所）",
+      "type": "delete",
+      "replacement": "",
+      "reason": "逆接でない所で使うと意味が反転して聞こえる。",
+      "example_before": "逆に、私はテストを重視しています。",
+      "example_after": "私はテストを重視しています。"
+    },
+    {
+      "id": "rep-jibunteki",
+      "pattern": "自分的には",
+      "type": "replace",
+      "replacement": "私としては",
+      "reason": "砕けすぎ。",
+      "example_before": "自分的には、この方法が良いと考えます。",
+      "example_after": "私としては、この方法が良いと考えます。"
+    },
+    {
+      "id": "rep-touka",
+      "pattern": "透過",
+      "type": "replace",
+      "replacement": "理解",
+      "reason": "透過は物理現象を表す言葉。",
+      "example_before": "おっしゃる内容を十分透過しております。",
+      "example_after": "おっしゃる内容を十分理解しております。"
+    },
+    {
+      "id": "rep-shuchu",
+      "pattern": "集中いたしました（承知の意味で）",
+      "type": "replace",
+      "replacement": "承知いたしました",
+      "reason": "集中は別の意味。了解の意味なら承知。",
+      "example_before": "集中いたしました。",
+      "example_after": "承知いたしました。"
+    },
+    {
+      "id": "rep-shisan",
+      "pattern": "資産（工数・費用の意味で）",
+      "type": "replace",
+      "replacement": "コスト / 工数 / リソース",
+      "reason": "資産は会計用語。",
+      "example_before": "資産をどこまで使うかを決めます。",
+      "example_after": "工数をどこまで使うかを決めます。"
+    },
+    {
+      "id": "rep-jijitsu",
+      "pattern": "〜ことが事実になる",
+      "type": "replace",
+      "replacement": "〜も事実です",
+      "reason": "二重表現。",
+      "example_before": "遅れたことが事実になるんですけど。",
+      "example_after": "遅れたことも事実です。"
+    },
+    {
+      "id": "rep-omoimasu",
+      "pattern": "〜と思います（連続使用）",
+      "type": "replace",
+      "replacement": "事実は断定形、未来は「〜と考えています」",
+      "reason": "連続すると自信がない印象になる。",
+      "example_before": "効果があったと思います。改善できると思います。",
+      "example_after": "効果がありました。さらに改善できると考えています。"
+    },
+    {
+      "id": "str-ketsuron",
+      "pattern": "結論が冒頭にない",
+      "type": "structure",
+      "replacement": "復唱の直後（なければ最初の1文）で結論を言い切る",
+      "reason": "結論が後ろにあると、面接官は質問が伝わったか分からない。",
+      "example_before": "前職では色々なプロジェクトがあって、その中で…、結果的にAを選びました。",
+      "example_after": "Aを選びます。理由は〜です。"
+    },
+    {
+      "id": "str-number",
+      "pattern": "根拠が複数並ぶ / 数字がない",
+      "type": "structure",
+      "replacement": "根拠は数字か基準を1つだけ",
+      "reason": "根拠が多いと、どれが本当の理由か伝わらない。",
+      "example_before": "理由は3つあって、1つ目は…2つ目は…3つ目は…",
+      "example_after": "基準は、残りのコストです。"
+    },
+    {
+      "id": "str-rebuttal",
+      "pattern": "反論されたときに対抗する",
+      "type": "structure",
+      "replacement": "相手の正しさを先に認める → 目的を分ける → 使い分けを言う",
+      "reason": "対抗すると論点がずれる。反論しない。目的が違う、で終える。",
+      "example_before": "いえ、スクラムの方が早いです。",
+      "example_after": "おっしゃる通りです。目的が違うので、納期固定ならウォーターフォール、新規事業なら2週間単位で使い分けます。"
+    },
+    {
+      "id": "str-answer-first",
+      "pattern": "自分の答えを言う前に「どう思いますか」と返す",
+      "type": "structure",
+      "replacement": "まず自分の考えを言い、質問は後に1つだけ",
+      "reason": "答えが空のまま質問を返すと、考えがない印象になる。",
+      "example_before": "AI活用について、御社はどう思いますか。",
+      "example_after": "まず私の考えを言います。AIはチームの再現性に効かせるべきだと考えています。そのうえで1つ伺いたいです。"
+    },
+    {
+      "id": "rep-sasete-itadaku",
+      "pattern": "〜させていただきました／〜させていただきます（相手の許可も恩恵もない自分の行為）",
+      "type": "replace",
+      "replacement": "〜しました／〜いたします",
+      "reason": "許可を受けて恩恵を得る行為以外に使うと冗長になる。経歴は言い切る。",
+      "example_before": "2018年に大学を卒業させていただき、物流会社で在庫管理を担当させていただきました。",
+      "example_after": "2018年に大学を卒業し、物流会社で在庫管理を担当しました。"
+    },
+    {
+      "id": "str-visa-facts",
+      "pattern": "ビザは大丈夫です / ビザは問題ありません",
+      "type": "structure",
+      "replacement": "在留資格名＋（期限がある資格なら）在留期限＋就労できる範囲を事実だけで。転職時の届出は、届出が必要な資格の場合だけ述べる",
+      "reason": "「大丈夫」では就労できるか判断できない。資格によって期限や届出の有無が違うので、自分の資格の事実だけを言う（永住者など就労制限のない資格は「就労制限はありません」）。",
+      "example_before": "ビザは大丈夫です。",
+      "example_after": "在留資格は［在留資格名］で、期限は［年月］です。［就労できる範囲］で働くことができます。"
+    },
+    {
+      "id": "rep-uchi-keishou",
+      "pattern": "勤務先の上司を面接官に対して「〇〇部長」「おっしゃる」などで立てる",
+      "type": "replace",
+      "replacement": "「上司の〇〇」「部長の〇〇」＋普通の動詞（言う・申す）",
+      "reason": "社外の相手に対しては自分側の人物を立てない。名前＋役職はウチ扱いにならない。",
+      "example_before": "現職では、鈴木部長がいつもおっしゃっているとおり、週次で数字を報告しています。",
+      "example_after": "現職では、上司の鈴木がいつも申しているとおり、週次で数字を報告しています。"
+    },
+    {
+      "id": "rep-ichininsho",
+      "pattern": "一人称の主語に「僕」「俺」「自分」を使う（「自分で判断した」などの再帰の「自分」と、rep-jibunteki の「自分的には」は除く）",
+      "type": "replace",
+      "replacement": "私（わたし／わたくし）",
+      "reason": "面接のような改まった場では、一人称は「私」。「僕」「自分」はくだけて聞こえる。",
+      "example_before": "自分は前職で採用を担当していました。",
+      "example_after": "私は前職で採用を担当していました。",
+      "source_ids": [
+        "s-keigo",
+        "s-jasso-2027",
+        "s-mynavi-t22",
+        "s-internguide"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "rep-niju-keigo",
+      "pattern": "同じ種類の敬語を一語に重ねる（おっしゃられる／ご覧になられる／お越しになられる）。定着した形（お伺いする・お見えになる・お召し上がりになる）と「て」でつないだ形（お待ちしております・ご説明いただく）は除く",
+      "type": "replace",
+      "replacement": "尊敬語を一つにする（おっしゃる／ご覧になる／お越しになる）",
+      "reason": "一語に同じ敬語を重ねると、かえって不自然に聞こえる。",
+      "example_before": "面接官の方がおっしゃられた点から始めます。",
+      "example_after": "面接官の方がおっしゃった点から始めます。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "rep-ryokai",
+      "pattern": "面接官の説明・指示への返事に「了解しました」「了解です」を使う",
+      "type": "replace",
+      "replacement": "承知しました／かしこまりました",
+      "reason": "「了解」は同僚や目下への返事で、面接官には敬意が足りない。",
+      "example_before": "了解しました。結果のご連絡をお待ちしております。",
+      "example_after": "承知しました。結果のご連絡をお待ちしております。",
+      "source_ids": [
+        "s-jasso-2027",
+        "s-mynavi-t22",
+        "s-townwork"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "rep-o-suru-for-other",
+      "pattern": "面接官・企業側の行為に「お(ご)〜する」を使う（ご質問した／お話しした）。自分の行為の「ご説明いたします」「ご連絡します」は除く",
+      "type": "replace",
+      "replacement": "「お(ご)〜になる」「〜される」",
+      "reason": "「お(ご)〜する」は自分の行為に使う形。相手に使うと、自分がしたように聞こえる。",
+      "example_before": "先ほど部長がご質問した件ですが、",
+      "example_after": "先ほど部長がご質問になった件ですが、",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "rep-kenjou1-for-other",
+      "pattern": "面接官の行為に謙譲語を使う（伺ってください／拝見されましたか）。自分が御社に「伺う」「参る」は除く",
+      "type": "replace",
+      "replacement": "尊敬語（お聞きください／ご覧になりましたか）",
+      "reason": "謙譲語は自分側の行為に使う。相手に使うと、相手を低めることになる。",
+      "example_before": "詳しくは担当の方に伺っていただければと思います。",
+      "example_after": "詳しくは担当の方にお聞きいただければと思います。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "str-desumasu-mix",
+      "pattern": "文末に普通体（〜だった／〜と思う／〜っす／〜かもです）が混ざる（引用や文の途中の普通体は除く）",
+      "type": "structure",
+      "replacement": "文末をすべて「です・ます」にそろえる",
+      "reason": "文末が普通体に戻ると、面接官には急にくだけて聞こえる。",
+      "example_before": "最初は反対されました。でも、データを見せたら納得してくれた。",
+      "example_after": "最初は反対されました。ですが、データを見せると納得してもらえました。",
+      "source_ids": [
+        "s-kaminaka-2007",
+        "s-mynavi-t22",
+        "s-internguide",
+        "s-keigo"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "rep-gokurou-otsukare",
+      "pattern": "面接官へのあいさつに「ご苦労様です／でした」「お疲れさまです／でした」を使う",
+      "type": "replace",
+      "replacement": "入室は「本日はよろしくお願いいたします」、退室は「本日はありがとうございました」",
+      "reason": "「ご苦労様」は目上には使わない。面接のあいさつは、お願いと感謝で表す。",
+      "example_before": "本日はご苦労様でした。",
+      "example_after": "本日はありがとうございました。",
+      "source_ids": [
+        "s-keigo",
+        "s-mynavi-t22"
+      ],
+      "confidence": "High（ご苦労様）／Low（お疲れさま）"
+    },
+    {
+      "id": "rep-anata",
+      "pattern": "面接官に「あなた」と呼びかける（逆質問を含む。面接官が応募者に使う「あなた」は対象外）",
+      "type": "replace",
+      "replacement": "主語を省いて尊敬語で尋ねる、または名前＋様",
+      "reason": "「あなた」は目上の相手には冷たく響く。",
+      "example_before": "あなたが入社して一番驚いたことは何ですか。",
+      "example_after": "入社されて一番驚かれたことは何でしょうか。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "str-ask-fact-not-ability",
+      "pattern": "逆質問で面接官の能力・意思・願望を直接聞く（〜がおできになりますか／〜したいですか／〜するおつもりですか）",
+      "type": "structure",
+      "replacement": "事実を聞く形（〜はどのように進めていらっしゃいますか／〜の予定はありますか）",
+      "reason": "敬語の形が正しくても、目上の能力や本心を直接聞くと失礼に響く。",
+      "example_before": "部長は今後、このチームで何をしたいですか。",
+      "example_after": "このチームでは、今後どのような取り組みを予定されていますか。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "rep-family-uchi",
+      "pattern": "自分の家族を「お父さん／お母さん」と呼ぶ、または家族の行為に尊敬語（いらっしゃる・おっしゃる）を使う",
+      "type": "replace",
+      "replacement": "「父／母」＋普通の動詞か「おる・申す」",
+      "reason": "面接では、自分の家族はウチ側。呼び方も動詞も立てない。",
+      "example_before": "転職については、お父さんも賛成だとおっしゃっていました。",
+      "example_after": "転職については、父も賛成しておりました。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "High"
+    },
+    {
+      "id": "rep-watashi-repeat",
+      "pattern": "同じ回答の2文目以降で、主語が自分と分かる「私は」「私が」を繰り返す（最初の1回、名乗り、他の人との対比は除く）",
+      "type": "delete",
+      "replacement": "",
+      "reason": "主語が自分だと分かる文で「私は」を繰り返すと、くどく聞こえる。",
+      "example_before": "私は前職で品質管理を担当していました。私は検査の手順を見直しました。",
+      "example_after": "私は前職で品質管理を担当していました。検査の手順を見直しました。",
+      "source_ids": [
+        "s-jung-2002"
+      ],
+      "confidence": "Medium（学習者の過剰使用は High、削除基準は推論）"
+    },
+    {
+      "id": "str-filler-start",
+      "pattern": "答えの出だしのつなぎ言葉（えーと・あのー・まあ・음・어）、または一文に二回以上のつなぎ言葉（「なんか」は del-nanka が担当）",
+      "type": "structure",
+      "replacement": "出だしは復唱にする（考える時間は復唱で取る）",
+      "reason": "出だしのつなぎ言葉は、自信がない印象になる。",
+      "example_before": "えーと、あのー、一番大変だったのは納期の交渉で…",
+      "example_after": "一番大変だった経験、ですね。納期の交渉です。",
+      "source_ids": [
+        "s-leng-2025",
+        "s-internguide"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "str-yesno-plus1",
+      "pattern": "はい／いいえで答えられる質問に「はい」「できます」だけで答え、事実が一つもない",
+      "type": "structure",
+      "replacement": "「はい／いいえ」＋事実を一つ（数字か具体例）",
+      "reason": "はい・いいえだけでは、面接官に判断の材料が残らない。",
+      "example_before": "はい、できます。",
+      "example_after": "はい、できます。前職でも繁忙期は月［ここに数字］時間ほど残業していました。",
+      "source_ids": [
+        "s-saitama-plus1"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "rep-naruhodo",
+      "pattern": "面接官の説明への相づちに「なるほど」「なるほどですね」「確かに」「参考になります」を使う",
+      "type": "replace",
+      "replacement": "「おっしゃるとおりです」「勉強になります」",
+      "reason": "面接官の話を評価しているように聞こえる。",
+      "example_before": "なるほどですね。そのお話は参考になります。",
+      "example_after": "おっしゃるとおりです。そのお話は勉強になります。",
+      "source_ids": [
+        "s-mynavi-t22",
+        "s-townwork",
+        "s-internguide"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "rep-baito-keigo",
+      "pattern": "比較・方向でない「〜のほう」、変化でない「〜になります」（接客の言い方）",
+      "type": "replace",
+      "replacement": "「のほう」を削る／「〜です」",
+      "reason": "接客の決まり文句で、面接では意味のない言葉になる。",
+      "example_before": "前職では経理のほうを担当していました。担当は月次決算になります。",
+      "example_after": "前職では経理を担当していました。担当は月次決算です。",
+      "source_ids": [
+        "s-bunka-yoron-h14",
+        "s-kaminaka-2007"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "rep-moratte-ii",
+      "pattern": "面接官への依頼を「〜てもらってもいいですか」と許可の形で言う",
+      "type": "replace",
+      "replacement": "「恐れ入りますが、〜ていただけますか」",
+      "reason": "依頼を許可の形にすると回りくどい。誤りではないので軽く直す。",
+      "example_before": "すみません、もう一回質問を言ってもらってもいいですか。",
+      "example_after": "恐れ入りますが、もう一度ご質問をおっしゃっていただけますか。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "Medium"
+    },
+    {
+      "id": "rep-go-sareru",
+      "pattern": "面接官の行為に「ご〜される」を使う（ご説明された／ご検討される）",
+      "type": "replace",
+      "replacement": "「ご〜になる」「〜される」「ご〜いただく」",
+      "reason": "「ご〜する」に「れる」を付けた形は、適切な尊敬語ではないとする見方が有力。",
+      "example_before": "一次面接でご説明された制度について、一点確認させてください。",
+      "example_after": "一次面接でご説明いただいた制度について、一点確認させてください。",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "confidence": "Medium（指針自身が別の解釈も併記。保留）"
+    },
+    {
+      "id": "rep-mitaina",
+      "pattern": "自分の経験を述べる文末の「〜みたいな」「〜って感じ」「そんな感じ」",
+      "type": "replace",
+      "replacement": "言い切る（〜です／〜をしていました）",
+      "reason": "ぼかすと、本当にやったことなのか伝わらない。",
+      "example_before": "リーダーみたいな役割で、まとめ役って感じでした。",
+      "example_after": "チームのまとめ役をしていました。",
+      "source_ids": [
+        "s-townwork"
+      ],
+      "confidence": "Low"
+    }
+  ],
+  "model_answer_format": {
+    "duration_seconds": 60
+  },
+  "question_taxonomy": {
+    "stages": [
+      "一次面接",
+      "最終面接"
+    ],
+    "categories": [
+      "経歴・志望動機",
+      "技術",
+      "マネジメント",
+      "逆質問"
+    ],
+    "optional_categories": [
+      "日本で働く理由・在留"
+    ],
+    "generic_terms": [
+      "経験",
+      "開発",
+      "チーム",
+      "入社",
+      "面接",
+      "仕事",
+      "業務",
+      "会社",
+      "当社",
+      "御社",
+      "弊社",
+      "応募",
+      "志望",
+      "転職",
+      "理由",
+      "成果",
+      "課題",
+      "担当",
+      "役割",
+      "メンバー"
+    ]
+  },
+  "culture_notes": [
+    "前回の面談で分かった前提は、逆質問で確認し直さず、前提として話す。準備の証拠になる。",
+    "エージェント経由の面接では、面接ごとに企業固有の前提（組織・役割・評価・出社条件）を押さえてから答える。",
+    "敬語の正確さより、質問に答えている構造のほうが評価に効く。",
+    "本籍・出生地・家族・住宅・宗教・支持政党・尊敬する人物・愛読書など、適性・能力と関係のない事項は面接質問として生成しない。",
+    "選考段階の在留資格の確認は口頭か書面が適切とされ、在留カードの確認は内定後とされるので、答えは資格名・期限・就労可否を事実で短く述べる。",
+    "期間の定めのない雇用は退職の申し入れから2週間で終わるのが民法の原則だが、就業規則の申し出期間と引き継ぎも踏まえて入社可能日を答える。",
+    "前職の退職後、正当な理由なく就労資格の活動をしない期間が3か月（高度専門職2号は6か月）以上続くと在留資格取消しの事由になり得るため、退職日と現状は事実だけを短く述べ、取消しの可否は判断しない。",
+    "就労資格証明書は本人の申請で任意に取得する書類なので、持っていなくても在留資格名と期限で就労可否を答え、企業に求められれば取得に協力すると述べる。",
+    "出生地・親の職業・家族など適性と関係のない質問や、女性だけに結婚・出産の予定を聞く質問を受けたら、答えは仕事の話に戻して短く終える。必要ならハローワークや雇用環境・均等部（室）に相談できる。",
+    "副業を聞かれたら、就労資格の人は許可外の報酬活動に事前の資格外活動許可が要り、永住者・定住者などは不要なので、副業の有無と許可の有無を事実だけで答え、可否は判断しない。",
+    "質問が聞き取れない・意図が分からないときは推測で答えず、「恐れ入りますが、〜というご質問でしょうか」と確認してから答える。"
+  ],
+  "daily_questions": [
+    "自己紹介をお願いします。",
+    "転職を考えた理由を教えてください。",
+    "当社を志望した理由は何ですか。",
+    "これまでで最も成果を出した仕事は何ですか。",
+    "前職で最も大変だったことは何ですか。",
+    "あなたの強みと弱みを教えてください。",
+    "チームで意見が対立したとき、どう対応しましたか。",
+    "入社後、最初の半年で何に取り組みたいですか。",
+    "5年後、どのようなキャリアを描いていますか。",
+    "最後に、何か質問はありますか。"
+  ],
+  "answer_templates": {
+    "判断・状況": {
+      "pack_categories": [
+        "技術",
+        "マネジメント"
+      ],
+      "daily_questions": [
+        6
+      ],
+      "closing": "options",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "判断・対応を一文で言い切る",
+        "kijun": "判断の基準か数字を一つ",
+        "sentakushi": "〈A〉と〈B〉のどちらから、詳しくお話ししましょうか。"
+      },
+      "example": {
+        "fukusho": "見積もりがずれたときの判断、ですね。",
+        "ketsuron": "止める・縮小する・続けるの三つから、事業側と一緒に選びます。",
+        "kijun": "基準は、ここから先にかかるコストと、ここから先に見込めるリターンの二つです。すでに使った工数は、判断に入れません。前職の管理ツール導入では、ずれが分かった時点でこの二つを表にして、範囲を縮小する案を出しました。その結果、リリースを［ここに期間］早められました。",
+        "sentakushi": "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。"
+      },
+      "ng": [],
+      "source_ids": [
+        "a-consistency",
+        "a-best-practices"
+      ],
+      "confidence": "Medium",
+      "note": "パックの4文型をそのまま使う既定の型。分類できない質問もこの型にする。"
+    },
+    "自己紹介": {
+      "pack_categories": [
+        "経歴・志望動機"
+      ],
+      "daily_questions": [
+        0
+      ],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "［ここに名前］と申します。（復唱の代わりに名乗る）",
+        "ketsuron": "現職・直近の職種と期間を一文",
+        "kijun": "実績を一つ、数字で",
+        "sentakushi": "応募先で活かせる経験＋「本日はよろしくお願いいたします。」"
+      },
+      "example": {
+        "fukusho": "［ここに名前］と申します。",
+        "ketsuron": "現在、物流会社で食品の需要予測を［ここに期間］担当しています。",
+        "kijun": "発注量の予測を、季節ごとの売れ方を見ながら毎月見直しています。直近では、営業と数字を合わせる場を定例にして、欠品率を［ここに数字］ポイント下げました。予測を外したときは、原因を一枚にまとめてチームで共有しています。",
+        "sentakushi": "需要と在庫を一緒に見るこの経験を、御社の需要計画で活かしたいと考えています。本日はよろしくお願いいたします。"
+      },
+      "ng": [
+        "経歴を時系列で全部話す",
+        "転職理由・志望動機を詳しく話す（入れても一文）",
+        "学生時代・性格・趣味の話"
+      ],
+      "source_ids": [
+        "s-doda-001",
+        "s-en-qa276",
+        "s-mynavi-t48",
+        "s-bizreach-self",
+        "s-en-41712",
+        "s-jac-question"
+      ],
+      "confidence": "High（骨格）／Medium（名乗りで復唱を置き換える変形は自作）"
+    },
+    "転職理由": {
+      "pack_categories": [
+        "経歴・志望動機"
+      ],
+      "daily_questions": [
+        1
+      ],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "転職で実現したいことを前向きな目的で一文",
+        "kijun": "きっかけになった事実を一つ",
+        "sentakushi": "応募先で実現できる点"
+      },
+      "example": {
+        "fukusho": "転職を考えた理由、ですね。",
+        "ketsuron": "成果に応じて役割が広がる環境で、新しいお客様への提案に挑戦したいからです。",
+        "kijun": "現職では担当の大半が既存のお客様の契約更新で、新規の提案は年に［ここに数字］件でした。更新の中で課題を聞き取り、追加の提案を出すことは続けてきましたが、新規開拓は別の部署の担当と決まっています。社内で異動の希望も出しましたが、当面は難しいと分かりました。",
+        "sentakushi": "御社の新規開拓チームなら、既存のお客様で磨いた聞き取りを、提案の数で返せると考えています。"
+      },
+      "ng": [
+        "上司・人間関係・待遇への不満を主語にする",
+        "不満を並べる",
+        "「疲れた」「つらい」などの言葉",
+        "事実と違う理由を作る",
+        "応募先でも同じことが起きる理由"
+      ],
+      "source_ids": [
+        "s-mynavi-a1614",
+        "s-doda-003",
+        "s-mynavi-t48",
+        "s-jac-question"
+      ],
+      "confidence": "High",
+      "note": "SUMMARY §6 の str-tenshoku-reason-forward と同じ方向。こちらは型に入れ、ルールは増やさない。"
+    },
+    "志望動機": {
+      "pack_categories": [
+        "経歴・志望動機",
+        "日本で働く理由・在留"
+      ],
+      "daily_questions": [
+        2
+      ],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "応募先を選んだ理由を一文",
+        "kijun": "他社ではなく応募先である根拠を一つ＋自分の経験との接点",
+        "sentakushi": "入社後の貢献・取り組み"
+      },
+      "example": {
+        "fukusho": "志望した理由、ですね。",
+        "ketsuron": "中小の製造業向けに、在庫の最適化に集中している点です。",
+        "kijun": "大手向けの製品は多いですが、中小の現場に合わせて導入を支える会社は多くありません。私は前職で、部品メーカーの在庫の回転日数を［ここに数字］日短くしました。導入した直後は数字が動かず、現場と一緒に発注の手順から見直しました。そのとき、現場の担当者が自分で数字を追える仕組みが一番効くと分かりました。",
+        "sentakushi": "入社後は、導入初期のお客様で、この手順を再現します。"
+      },
+      "ng": [
+        "待遇・勤務地・知名度・安定・「長く働きたい」だけの理由",
+        "他社でもそのまま通じる理由",
+        "他社の否定",
+        "第一志望でないと言う"
+      ],
+      "source_ids": [
+        "s-ragent-20248",
+        "s-jac-motivation",
+        "s-doda-004",
+        "s-mynavi-t48",
+        "s-ragent-9677"
+      ],
+      "confidence": "High"
+    },
+    "強み": {
+      "pack_categories": [
+        "経歴・志望動機"
+      ],
+      "daily_questions": [
+        5
+      ],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "業務上の強みを一つ",
+        "kijun": "裏付けのエピソードを一つ、成果を数字で",
+        "sentakushi": "応募先での活かし方"
+      },
+      "example": {
+        "fukusho": "強み、ですね。",
+        "ketsuron": "部署ごとの利害を、一つの数字にそろえる調整力です。",
+        "kijun": "前職では、営業は早い納期を、物流は確実な納期を求めていて、納期の問い合わせが毎日のように来ていました。そこで両部署と話し、在庫の数字から回答する納期のルールを決めました。ルールには、両部署がふだん見ている在庫の表をそのまま使いました。その結果、問い合わせを［ここに数字］件減らしました。",
+        "sentakushi": "御社でも、部門をまたぐ立ち上げで、この力を活かします。"
+      },
+      "ng": [
+        "性格の長所だけ（明るい・誰とでも仲良くなれる）",
+        "強みを複数並べる"
+      ],
+      "source_ids": [
+        "s-doda-001-1",
+        "s-ragent-21377",
+        "s-mynavi-t05",
+        "s-ragent-9607"
+      ],
+      "confidence": "High"
+    },
+    "弱み": {
+      "pack_categories": [
+        "経歴・志望動機"
+      ],
+      "daily_questions": [
+        5
+      ],
+      "closing": "improvement",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "業務上の弱みを一つ（致命的でないもの）",
+        "kijun": "いま実行している改善策を一つ",
+        "sentakushi": "改善を続けながら応募先で貢献すること"
+      },
+      "example": {
+        "fukusho": "弱み、ですね。",
+        "ketsuron": "仕事を一人で抱え込みがちな点です。",
+        "kijun": "前職で、担当の資料作りが遅れていることを周りに言えず、締め切りの直前に上司に相談したことがありました。それ以来、進み具合を［ここに期間］ごとにチームに共有し、詰まったらその日のうちに相談すると決めています。共有の場では、困っていることを最初に言うようにしています。今は、遅れが小さいうちに手を借りられるようになりました。",
+        "sentakushi": "御社でも、この共有の習慣を続けます。"
+      },
+      "ng": [
+        "「弱みはありません」",
+        "採用リスクになる弱み（時間・ルールを守らない）",
+        "改善策のない弱み"
+      ],
+      "source_ids": [
+        "s-doda-001-1",
+        "s-mynavi-t05",
+        "s-ragent-21377",
+        "s-jac-question"
+      ],
+      "confidence": "High",
+      "note": "強みと弱みを一度に聞かれたら、強み→弱みの順に各型を短く続ける。"
+    },
+    "成功体験": {
+      "pack_categories": [
+        "経歴・志望動機",
+        "技術"
+      ],
+      "daily_questions": [
+        3,
+        4
+      ],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "何を成功とするかを規模の数字と一文",
+        "kijun": "自分が取った工夫・判断を一つ（再現できる過程）",
+        "sentakushi": "学び→入社後の活かし方"
+      },
+      "example": {
+        "fukusho": "成果を出した仕事、ですね。",
+        "ketsuron": "解約率を［ここに期間］で［ここに数字］ポイント下げたことです。",
+        "kijun": "解約したお客様の記録を見直すと、ログインが減る、問い合わせが止まるといった前ぶれがありました。そこで前ぶれを決めておき、当てはまるお客様に、こちらから先に連絡するようにしました。始めたばかりの頃は、連絡した理由をお客様ごとに記録し、前ぶれの決め方を直しました。連絡の手順は表にまとめ、チームの誰でも同じように回せるようにしました。",
+        "sentakushi": "御社のカスタマーサクセスでも、最初にこの手順を回します。"
+      },
+      "ng": [
+        "成果の数字だけで終える",
+        "誰でもやる基本業務",
+        "運や周囲の成果に見える話",
+        "「ありません」"
+      ],
+      "source_ids": [
+        "s-mynavi-a1317",
+        "s-doda-002",
+        "s-jac-english"
+      ],
+      "confidence": "High",
+      "note": "「最も大変だったこと」もこの型（困難→工夫→学び）にする。"
+    },
+    "失敗体験": {
+      "pack_categories": [
+        "経歴・志望動機"
+      ],
+      "daily_questions": [],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "仕事上の失敗を一文",
+        "kijun": "自分側の原因を一つと、取った対処",
+        "sentakushi": "学び・再発防止→入社後の活かし方"
+      },
+      "example": {
+        "fukusho": "失敗した経験、ですね。",
+        "ketsuron": "見積もりの前提を確かめず、納期を［ここに期間］延ばしてしまったことです。",
+        "kijun": "原因は、私が仕様変更の影響範囲を確かめないまま、作業を始めたことでした。お客様には、遅れの原因と新しい納期を、事実だけでお伝えしました。そのうえで優先する機能を決め直し、残りを次の版に回しました。それ以来、着手前に影響範囲を一覧にして、関係者の合意を取っています。",
+        "sentakushi": "御社でも、着手前の影響範囲の確認と合意を、最初に置きます。"
+      },
+      "ng": [
+        "他人や会社のせいにする",
+        "取り返しのつかない失敗（情報漏えい・大きな損失）",
+        "遅刻・忘れ物などマナーの失敗",
+        "「失敗はありません」"
+      ],
+      "source_ids": [
+        "s-ragent-25210",
+        "s-mynavi-t23",
+        "s-doda-002",
+        "s-jac-question"
+      ],
+      "confidence": "High"
+    },
+    "マネジメント": {
+      "pack_categories": [
+        "マネジメント"
+      ],
+      "daily_questions": [],
+      "closing": "contribution",
+      "steps": {
+        "fukusho": "〈質問の要旨〉、ですね。",
+        "ketsuron": "任された役割と責任範囲を一文（肩書でなく）",
+        "kijun": "人数・期間・予算のうち一つと、取った工夫を一つ",
+        "sentakushi": "成果→入社後のマネジメント方針"
+      },
+      "example": {
+        "fukusho": "マネジメントの経験、ですね。",
+        "ketsuron": "［ここに数字］名の開発チームのリーダーとして、採用と評価まで任されていました。",
+        "kijun": "任された当初は、リリースの直前に問題が見つかることが続いていました。そこで定期的に一対一で話す時間を取り、詰まりを先に拾うようにしました。一対一では、進み具合ではなく、困っていることだけを聞きました。その結果、リリースの遅れが目に見えて減りました。",
+        "sentakushi": "御社でも、最初にメンバー全員との一対一から始めます。"
+      },
+      "ng": [
+        "放任型・圧力型の部下対応",
+        "肩書だけで中身がない"
+      ],
+      "source_ids": [
+        "s-ragent-7922",
+        "s-jac-question"
+      ],
+      "confidence": "Medium",
+      "note": "判断を問うマネジメント質問（対立・優先順位）は「判断・状況」の型にする。"
+    },
+    "逆質問": {
+      "pack_categories": [
+        "逆質問"
+      ],
+      "daily_questions": [
+        9
+      ],
+      "closing": "question",
+      "steps": {
+        "fukusho": "（なし）",
+        "ketsuron": "自分の経験を一文（D2の型）",
+        "kijun": "そこからの仮説を一文",
+        "sentakushi": "質問を一つだけ。一次は部署・求める人物像、二次は業務範囲・必要な知識、最終は事業の方向性"
+      },
+      "example": {
+        "fukusho": "",
+        "ketsuron": "前職では、新しいお客様の立ち上げに［ここに期間］かかっていました。",
+        "kijun": "御社では導入の初期にサポートを厚くされていると伺いました。",
+        "sentakushi": "立ち上げを早めるために、チームではどのような工夫をされていますか。"
+      },
+      "ng": [
+        "「特にありません」だけ",
+        "一次と最終で同じ質問",
+        "調べれば分かること",
+        "面接官の能力・本心を直接聞く（str-ask-fact-not-ability）"
+      ],
+      "source_ids": [
+        "s-doda-gyaku",
+        "s-jac-question",
+        "s-en-interview"
+      ],
+      "confidence": "Medium",
+      "note": "本当に質問が残っていないときだけ、お礼＋入社意欲＋面接で解けた点を一文で述べる（doda と JAC の食い違いを折衷した自作の決まり）。"
+    }
+  },
+  "consistency": {
+    "status": "draft（人の承認前。lib/script.js はまだ読まない）",
+    "length": {
+      "target_chars": 250,
+      "band_chars": [
+        200,
+        300
+      ],
+      "gate_seconds": [
+        35,
+        60
+      ],
+      "count": "NFKC、空白を除く、［］は中身ごと1字",
+      "estimator": "public/tts-timing.js estimateSeconds（MORA_PER_SEC=8）",
+      "source_ids": [
+        "s-doda-001",
+        "s-mynavi-a1614",
+        "s-ragent-9607",
+        "s-ragent-20248",
+        "s-jasso-2027"
+      ],
+      "confidence": "Medium（出典は商業4社＋JASSO。秒換算は自前の推定器。N=5 評価で決め直す）",
+      "applies_to": "逆質問以外の全テンプレート（逆質問は D2 の too_long 判定に従う）",
+      "rationale": "上限は出典の『1分≒300字』とパックの約60秒。下限は『30秒で終わる志望動機は要素不足のおそれ』（リクルート）を避ける線。4文型の短い文で300字に届かせると文数が7を超えるため、目標は帯の中央に置く。"
+    },
+    "sentences": {
+      "fukusho": 1,
+      "ketsuron": 1,
+      "kijun": [
+        1,
+        4
+      ],
+      "sentakushi": [
+        1,
+        2
+      ],
+      "total": [
+        4,
+        7
+      ],
+      "split": "。か？で区切る",
+      "note": "根拠は一つ（str-number）。基準・数字の段は、その一つを状況→行動→結果で説明するため複数文を許す。",
+      "source_ids": [
+        "a-consistency"
+      ],
+      "confidence": "Low（数値は N=5 評価で決め直す）"
+    },
+    "points_count": 3,
+    "ending_regex": "(です|ます|ました|ません|でした|ですね|ですか|ますか|ましょうか|でしょうか)[。？]$",
+    "fukusho_form": {
+      "form": "〈質問の要旨〉、ですね。",
+      "max_gist_chars": 20,
+      "except": {
+        "自己紹介": "［ここに名前］と申します。",
+        "逆質問": "（なし）"
+      }
+    },
+    "closing_forms": {
+      "options": {
+        "form": "〈A〉と〈B〉のどちらから、詳しくお話ししましょうか。",
+        "gate": "「どちらから」を含み「ましょうか。」で終わる"
+      },
+      "contribution": {
+        "form": "御社でも、〈場面〉で〈経験・強み〉を活かします。",
+        "gate": "「御社」を含み「ます。」で終わる"
+      },
+      "improvement": {
+        "form": "御社でも、〈改善の取り組み〉を続けます。",
+        "gate": "「御社」を含み「ます。」で終わる"
+      },
+      "question": {
+        "form": "〈経験〉→〈仮説〉→〈質問一つ〉",
+        "gate": "疑問文が一つだけ（D2）"
+      }
+    },
+    "slot_notation": "〈〉は利用者の回答・会社資料から埋める。［ここに〜］は回答にない事実で、空欄のまま残す。",
+    "blank_labels": [
+      "［ここに数字］",
+      "［ここに期間］",
+      "［ここに相手］",
+      "［ここに結果］",
+      "［ここに名前］",
+      "［ここに在留資格名］",
+      "［ここに年月］",
+      "［ここに就労できる範囲］"
+    ],
+    "max_blanks": 3,
+    "model_answer_exclusions": {
+      "items": [
+        "本籍・出生地",
+        "家族（職業・続柄・健康・収入）",
+        "住宅・生活環境",
+        "宗教",
+        "支持政党",
+        "人生観・思想",
+        "尊敬する人物",
+        "購読新聞・愛読書"
+      ],
+      "rule": "利用者の回答に含まれていても模範回答の根拠に使わず、職務経験・数字・意欲で答える。",
+      "source_ids": [
+        "s-mhlw-consider",
+        "s-osaka-futeki",
+        "s-mhlw-basic"
+      ],
+      "confidence": "High"
+    },
+    "session_axis": {
+      "rule": "セッション内で『実現したいこと』一つと『強み』一つを固定し、全カテゴリの模範回答をそこから作る。転職理由の実現したいこと＝志望動機の御社で実現できること、強み＝成功体験で発揮した力。",
+      "source_ids": [
+        "s-doda-003",
+        "s-ragent-20248",
+        "s-ragent-9607",
+        "s-mynavi-a1317",
+        "s-mynavi-t05",
+        "s-jac-overseas"
+      ],
+      "confidence": "High（出典）／Medium（保持方法は自作の設計）"
+    },
+    "enforcement": [
+      {
+        "id": "cc-no-sampling-params",
+        "where": "code（回帰防止）",
+        "source_ids": [
+          "a-sonnet55",
+          "a-opus55-migration",
+          "a-best-practices"
+        ]
+      },
+      {
+        "id": "cc-step-fields",
+        "where": "code（スキーマ）",
+        "source_ids": [
+          "a-structured-outputs",
+          "a-consistency"
+        ]
+      },
+      {
+        "id": "cc-sentence-count",
+        "where": "code（ゲート）＋prompt",
+        "source_ids": [
+          "a-structured-outputs",
+          "a-consistency"
+        ]
+      },
+      {
+        "id": "cc-length",
+        "where": "code（ゲート）＋prompt（字数で指示）",
+        "source_ids": [
+          "a-structured-outputs",
+          "s-doda-001",
+          "s-mynavi-a1614",
+          "s-ragent-9607"
+        ]
+      },
+      {
+        "id": "cc-polite-endings",
+        "where": "code（ゲート）",
+        "source_ids": [
+          "s-keigo",
+          "a-structured-outputs"
+        ]
+      },
+      {
+        "id": "cc-fukusho-template / closing_forms",
+        "where": "code（ゲート）＋prompt（例）",
+        "source_ids": [
+          "a-consistency",
+          "a-best-practices"
+        ]
+      },
+      {
+        "id": "cc-blank-slots",
+        "where": "code（ゲート）＋prompt",
+        "source_ids": [
+          "a-hallucinations"
+        ]
+      },
+      {
+        "id": "cc-fewshot-exemplars",
+        "where": "prompt（answer_templates.example を <examples> に）",
+        "source_ids": [
+          "a-best-practices",
+          "a-sonnet55"
+        ]
+      },
+      {
+        "id": "cc-effort-think-line",
+        "where": "eval で決める",
+        "source_ids": [
+          "a-prompt-sonnet55",
+          "a-effort"
+        ]
+      },
+      {
+        "id": "cc-retry-truncated",
+        "where": "code",
+        "source_ids": [
+          "a-prompt-sonnet55",
+          "a-structured-outputs"
+        ]
+      },
+      {
+        "id": "cc-enum-case",
+        "where": "code",
+        "source_ids": [
+          "a-structured-outputs"
+        ]
+      },
+      {
+        "id": "cc-category-skeleton",
+        "where": "code（api/script.js 入力）",
+        "source_ids": [
+          "a-consistency"
+        ]
+      },
+      {
+        "id": "cc-eval-n5",
+        "where": "eval",
+        "source_ids": [
+          "a-develop-tests",
+          "p-tar"
+        ]
+      }
+    ]
+  },
+  "evidence_map": [
+    {
+      "target": "correction_rules:str-number",
+      "kind": "evidence",
+      "source_ids": [
+        "s-jac-english",
+        "s-mynavi-t05",
+        "s-ragent-9607",
+        "s-jasso-2027"
+      ],
+      "note": "根拠・強みは一つに絞る（cc-one-evidence, cc-60sec-one-point）。"
+    },
+    {
+      "target": "correction_rules:str-ketsuron",
+      "kind": "evidence",
+      "source_ids": [
+        "s-koike-1999"
+      ],
+      "note": "前置きが長いと何が言いたいか分からないという母語話者評価（Low、依頼ロールプレイ）。"
+    },
+    {
+      "target": "correction_rules:del-nanka",
+      "kind": "scope_proposal",
+      "source_ids": [
+        "s-leng-2025"
+      ],
+      "note": "フィラーの「なんか」だけ。「何か（なにか）」と例示の「〜なんか」は除く。"
+    },
+    {
+      "target": "correction_rules:del-chotto",
+      "kind": "scope_proposal",
+      "source_ids": [
+        "s-mynavi-t22"
+      ],
+      "note": "量・程度の「ちょっと」は「少し」に置き換え、ぼかしの「ちょっと」だけ削る。"
+    },
+    {
+      "target": "correction_rules:rep-omoimasu",
+      "kind": "scope_proposal",
+      "source_ids": [
+        "s-komatsu-2022"
+      ],
+      "note": "「と思います」が2回以上続く場合と、過去の事実に付く場合だけ。単発の意見は指摘しない。"
+    },
+    {
+      "target": "correction_rules:rep-sasete-itadaku",
+      "kind": "scope_proposal",
+      "source_ids": [
+        "s-keigo"
+      ],
+      "note": "許可を実際に求める「〜させていただけますか」「〜させていただいてもよろしいでしょうか」は除く（c2-01, c2-02）。"
+    },
+    {
+      "target": "model_answer_format.duration_seconds",
+      "kind": "evidence",
+      "source_ids": [
+        "s-doda-001",
+        "s-mynavi-a1614",
+        "s-ragent-9607",
+        "s-jasso-2027"
+      ],
+      "note": "1分≒300字は上限側の根拠。帯は consistency.length（200〜300字）を参照。"
+    },
+    {
+      "target": "culture_notes[3]",
+      "kind": "evidence",
+      "source_ids": [
+        "s-mhlw-consider",
+        "s-mhlw-basic"
+      ],
+      "note": "回答側の対は consistency.model_answer_exclusions。"
+    },
+    {
+      "target": "answer_structure.steps.fukusho",
+      "kind": "evidence",
+      "source_ids": [
+        "s-jac-english"
+      ],
+      "note": "外部根拠は『意図が分からないときに確認する』という条件付きの1件だけ。復唱は利用者のノウハウとして残す。"
+    },
+    {
+      "target": "culture_notes[8]",
+      "kind": "source",
+      "source_ids": [
+        "s-mhlw-question",
+        "s-mhlw-614",
+        "s-mhlw-kintou-qa"
+      ],
+      "note": "cn-improper-question"
+    },
+    {
+      "target": "culture_notes[9]",
+      "kind": "source",
+      "source_ids": [
+        "s-isa-shikakugai"
+      ],
+      "note": "cn-side-job-permission"
+    },
+    {
+      "target": "culture_notes[10]",
+      "kind": "source",
+      "source_ids": [
+        "s-tokyo-eval",
+        "s-jasso-2027",
+        "s-mynavi-t22",
+        "s-jac-english"
+      ],
+      "note": "cn-kikikaeshi（cn-fukusho-short の確認部分を統合）"
+    }
+  ],
+  "sources": [
+    {
+      "id": "s-keigo",
+      "url": "https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/keigo_tosin.pdf",
+      "publisher": "文化審議会答申「敬語の指針」（文化庁）",
+      "date": "2007-02-02",
+      "kind": "public（文部科学省ウェブサイト利用規約・PDL1.0準拠、c2-18）"
+    },
+    {
+      "id": "s-mhlw-consider",
+      "url": "https://kouseisaiyou.mhlw.go.jp/consider.html",
+      "publisher": "厚生労働省 公正採用選考特設サイト「採用選考時に配慮すべき事項」",
+      "date": "accessed 2026-11-03（令和6年度データ）",
+      "kind": "public"
+    },
+    {
+      "id": "s-mhlw-basic",
+      "url": "https://kouseisaiyou.mhlw.go.jp/basic.html",
+      "publisher": "厚生労働省 公正採用選考特設サイト「公正な採用選考の基本」",
+      "date": "accessed 2026-11-03",
+      "kind": "public"
+    },
+    {
+      "id": "s-mhlw-question",
+      "url": "https://kouseisaiyou.mhlw.go.jp/question.html",
+      "publisher": "厚生労働省 公正採用選考特設サイト「よくある質問」",
+      "date": "accessed 2026-11-03",
+      "kind": "public"
+    },
+    {
+      "id": "s-osaka-futeki",
+      "url": "https://jsite.mhlw.go.jp/osaka-roudoukyoku/hourei_seido_tetsuzuki/shokugyou_shoukai/hourei_seido/kosei/futeki.html",
+      "publisher": "大阪労働局（厚生労働省）",
+      "date": "accessed 2026-11-03",
+      "kind": "public"
+    },
+    {
+      "id": "s-mhlw-614",
+      "url": "https://www.mhlw.go.jp/web/t_doc?dataId=00004320&dataType=0&pageNo=1",
+      "publisher": "厚生労働省告示第614号（性別差別禁止指針）",
+      "date": "2006-10-11（最終改正 2013-12-24）",
+      "kind": "public"
+    },
+    {
+      "id": "s-mhlw-kintou-qa",
+      "url": "https://www.mhlw.go.jp/general/seido/koyou/danjokintou/q-a.html",
+      "publisher": "厚生労働省「均等法Q&A」",
+      "date": "accessed 2026-11-03",
+      "kind": "public"
+    },
+    {
+      "id": "s-isa-shikakugai",
+      "url": "https://www.moj.go.jp/isa/applications/procedures/shikakugai_00001.html",
+      "publisher": "出入国在留管理庁「資格外活動の許可（入管法第19条）」",
+      "date": "accessed 2026-11-03（本文 令和6年1月）",
+      "kind": "public（ライセンス種別未確認）"
+    },
+    {
+      "id": "s-jasso-2027",
+      "url": "https://www.jasso.go.jp/ryugaku/after_study_j/job/__icsFiles/afieldfile/2025/12/12/guide_2027_all.pdf",
+      "publisher": "JASSO『外国人留学生のための就活ガイド2027』",
+      "date": "2025-12-12",
+      "kind": "private（R1T4-23）"
+    },
+    {
+      "id": "s-mynavi-t22",
+      "url": "https://tenshoku.mynavi.jp/knowhow/mensetsu/guide/22/",
+      "publisher": "マイナビ転職",
+      "date": "2023-10-17（更新 2025-03-21）",
+      "kind": "private"
+    },
+    {
+      "id": "s-townwork",
+      "url": "https://townwork.net/magazine/?p=90394",
+      "publisher": "タウンワークマガジン（Indeed）",
+      "date": "2022-07-15（更新 2026-09-24）",
+      "kind": "private"
+    },
+    {
+      "id": "s-internguide",
+      "url": "https://internshipguide.jp/columns/view/mensetsu-hanashikotoba-NG",
+      "publisher": "インターンシップガイド（futurelabo）",
+      "date": "2021-09-14",
+      "kind": "private"
+    },
+    {
+      "id": "s-bunka-yoron-h14",
+      "url": "https://www.bunka.go.jp/tokei_hakusho_shuppan/tokeichosa/kokugo_yoronchosa/h14/",
+      "publisher": "文化庁「国語に関する世論調査」平成14年度",
+      "date": "2003-06",
+      "kind": "public"
+    },
+    {
+      "id": "s-kaminaka-2007",
+      "url": "https://ir.library.osaka-u.ac.jp/repo/ouka/all/49214/21508_Abstract.pdf",
+      "publisher": "上仲淳 大阪大学博士論文要旨",
+      "date": "2007",
+      "kind": "private（学術）"
+    },
+    {
+      "id": "s-leng-2025",
+      "url": "https://ir.library.osaka-u.ac.jp/repo/ouka/all/103174/35292_Dissertation.pdf",
+      "publisher": "冷羽涵 大阪大学博士論文（doi:10.18910/103174）",
+      "date": "2025",
+      "kind": "private（学術）"
+    },
+    {
+      "id": "s-jung-2002",
+      "url": "https://eprints.lib.hokudai.ac.jp/repo/huscap/all/43834/kyoiku.pdf",
+      "publisher": "鄭惠先『日本語教育』114号（日本語教育学会）",
+      "date": "2002",
+      "kind": "private（学術）"
+    },
+    {
+      "id": "s-komatsu-2022",
+      "url": "https://www.earticle.net/Article/A421819",
+      "publisher": "小松奈々『日本言語文化』61（韓国日本言語文化学会）",
+      "date": "2022-12",
+      "kind": "private（学術・英文要旨のみ確認）"
+    },
+    {
+      "id": "s-koike-1999",
+      "url": "https://eprints.lib.hokudai.ac.jp/repo/huscap/all/45580/BISC003_008.pdf",
+      "publisher": "小池真理『北海道大学留学生センター紀要』3",
+      "date": "1999-12",
+      "kind": "private（学術）"
+    },
+    {
+      "id": "s-saitama-plus1",
+      "url": "https://jsite.mhlw.go.jp/saitama-hellowork/content/contents/000503196.pdf",
+      "publisher": "埼玉労働局 ハローワーク",
+      "date": "日付不明",
+      "kind": "public"
+    },
+    {
+      "id": "s-tokyo-eval",
+      "url": "https://www.kyoiku.metro.tokyo.lg.jp/documents/d/kyoiku/04_01_interview_evaluation",
+      "publisher": "東京都教育委員会「面接評価表」",
+      "date": "日付不明",
+      "kind": "public（ライセンス未確認）"
+    },
+    {
+      "id": "s-doda-001",
+      "url": "https://doda.jp/guide/mensetsu/interview/001.html",
+      "publisher": "doda（パーソル）",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-doda-001-1",
+      "url": "https://doda.jp/guide/mensetsu/interview/001_1.html",
+      "publisher": "doda（パーソル）",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-doda-002",
+      "url": "https://doda.jp/guide/mensetsu/interview/002.html",
+      "publisher": "doda（パーソル）",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-doda-003",
+      "url": "https://doda.jp/guide/mensetsu/interview/003.html",
+      "publisher": "doda（パーソル）",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-doda-004",
+      "url": "https://doda.jp/guide/mensetsu/interview/004.html",
+      "publisher": "doda（パーソル）",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-doda-gyaku",
+      "url": "https://doda.jp/guide/mensetsu/gyaku/",
+      "publisher": "doda（パーソル）",
+      "date": "2025-03-27",
+      "kind": "private"
+    },
+    {
+      "id": "s-ragent-9607",
+      "url": "https://www.r-agent.com/guide/?p=9607",
+      "publisher": "リクルートエージェント",
+      "date": "2026-08-11",
+      "kind": "private"
+    },
+    {
+      "id": "s-ragent-20248",
+      "url": "https://www.r-agent.com/guide/?p=20248",
+      "publisher": "リクルートエージェント",
+      "date": "2026-08-13",
+      "kind": "private"
+    },
+    {
+      "id": "s-ragent-25210",
+      "url": "https://www.r-agent.com/guide/?p=25210",
+      "publisher": "リクルートエージェント",
+      "date": "2026-08-11",
+      "kind": "private"
+    },
+    {
+      "id": "s-ragent-9677",
+      "url": "https://www.r-agent.com/guide/motive/9677/",
+      "publisher": "リクルートエージェント",
+      "date": "2026-08-13",
+      "kind": "private"
+    },
+    {
+      "id": "s-ragent-21377",
+      "url": "https://www.r-agent.com/guide/article21377/",
+      "publisher": "リクルートエージェント",
+      "date": "2026-08-13",
+      "kind": "private"
+    },
+    {
+      "id": "s-ragent-7922",
+      "url": "https://www.r-agent.com/guide/appeal/7922/",
+      "publisher": "リクルートエージェント",
+      "date": "2026-08-12",
+      "kind": "private"
+    },
+    {
+      "id": "s-mynavi-t48",
+      "url": "https://tenshoku.mynavi.jp/knowhow/mensetsu/guide/48/",
+      "publisher": "マイナビ転職",
+      "date": "2026-07-07",
+      "kind": "private"
+    },
+    {
+      "id": "s-mynavi-t05",
+      "url": "https://tenshoku.mynavi.jp/knowhow/mensetsu/guide/05/",
+      "publisher": "マイナビ転職",
+      "date": "2025-11-21",
+      "kind": "private"
+    },
+    {
+      "id": "s-mynavi-t23",
+      "url": "https://tenshoku.mynavi.jp/knowhow/mensetsu/guide/23/",
+      "publisher": "マイナビ転職",
+      "date": "2025-03-27",
+      "kind": "private"
+    },
+    {
+      "id": "s-mynavi-a1614",
+      "url": "https://mynavi-agent.jp/knowledge/interview/1614.html",
+      "publisher": "マイナビ転職エージェント",
+      "date": "2026-08-05",
+      "kind": "private"
+    },
+    {
+      "id": "s-mynavi-a1317",
+      "url": "https://mynavi-agent.jp/knowledge/common/1317.html",
+      "publisher": "マイナビ転職エージェント",
+      "date": "2026-01-08",
+      "kind": "private"
+    },
+    {
+      "id": "s-jac-question",
+      "url": "https://www.jac-recruitment.jp/market/knowhow/interview/question/",
+      "publisher": "JAC Recruitment",
+      "date": "2026-10-26",
+      "kind": "private"
+    },
+    {
+      "id": "s-jac-english",
+      "url": "https://www.jac-recruitment.jp/market/knowhow/interview/english-interview/",
+      "publisher": "JAC Recruitment",
+      "date": "2026-06-30",
+      "kind": "private"
+    },
+    {
+      "id": "s-jac-motivation",
+      "url": "https://www.jac-recruitment.jp/market/knowhow/interview/interview-motivation/",
+      "publisher": "JAC Recruitment",
+      "date": "2026-08-24",
+      "kind": "private"
+    },
+    {
+      "id": "s-jac-overseas",
+      "url": "https://www.jac-recruitment.jp/market/global/changing-jobs-from-overseas-to-japan/",
+      "publisher": "JAC Recruitment",
+      "date": "2026-11-02",
+      "kind": "private"
+    },
+    {
+      "id": "s-en-qa276",
+      "url": "https://employment.en-japan.com/qa_276_3040/",
+      "publisher": "エン転職",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-en-41712",
+      "url": "https://employment.en-japan.com/tenshoku-daijiten/41712/",
+      "publisher": "エン転職",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-en-interview",
+      "url": "https://employment.en-japan.com/tenshoku-daijiten/guide/interview/",
+      "publisher": "エン転職",
+      "date": "記載なし",
+      "kind": "private"
+    },
+    {
+      "id": "s-bizreach-self",
+      "url": "https://www.bizreach.jp/column/interview/self/",
+      "publisher": "ビズリーチ",
+      "date": "2021-04-20",
+      "kind": "private"
+    },
+    {
+      "id": "a-structured-outputs",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/structured-outputs",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-effort",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/effort",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-prompt-sonnet55",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-sonnet-5-5",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-sonnet55",
+      "url": "https://platform.claude.com/docs/en/models/sonnet-5-5/overview",
+      "publisher": "Anthropic",
+      "date": "2026-09-28",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-opus55-migration",
+      "url": "https://platform.claude.com/docs/en/models/opus-5-5/migration-guide",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-best-practices",
+      "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-consistency",
+      "url": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/increase-consistency",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-hallucinations",
+      "url": "https://platform.claude.com/docs/en/test-and-evaluate/strengthen-guardrails/reduce-hallucinations",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "a-develop-tests",
+      "url": "https://platform.claude.com/docs/en/test-and-evaluate/develop-tests",
+      "publisher": "Anthropic",
+      "date": "accessed 2026-11-03",
+      "kind": "private（API文書）"
+    },
+    {
+      "id": "p-tar",
+      "url": "https://arxiv.org/abs/2408.04667v5",
+      "publisher": "Atil et al., arXiv 2408.04667",
+      "date": "2025-04-02（v5）",
+      "kind": "private（論文・要旨のみ）"
+    }
+  ]
+}

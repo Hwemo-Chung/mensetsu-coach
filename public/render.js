@@ -34,11 +34,45 @@ export function el(tag, cls, text) {
   if (text != null) e.textContent = text; // textContent only: model output is never parsed as HTML
   return e;
 }
+// Duotone sprite icon (public/icons.svg, Phosphor MIT). Decorative: the text or aria-label beside it carries the meaning.
+const SVG = "http://www.w3.org/2000/svg";
+export function icon(name) {
+  const svg = document.createElementNS(SVG, "svg"), use = document.createElementNS(SVG, "use");
+  svg.setAttribute("class", "icon");
+  svg.setAttribute("aria-hidden", "true");
+  use.setAttribute("href", `/icons.svg#${name}`);
+  svg.append(use);
+  return svg;
+}
+// el() with an icon in front of the text.
+export const iel = (tag, cls, name, text) => { const e = el(tag, cls); e.append(icon(name), text); return e; };
+
 export function bubble(cls, text) {
   const b = el("div", `msg ${cls}`, text);
+  // Role label above the row (CSS ::before, so textContent stays the message). Errors are the app's, not the coach's.
+  const who = cls.split(" ")[0];
+  if (who !== "err") b.dataset.role = who === "me" ? T().ui.roleMe : T().ui.roleCoach;
   if (state.tour && !still()) b.classList.add("appear");
   log.append(b);
   log.scrollTop = log.scrollHeight;
+  return b;
+}
+
+// Waiting bubble: three dots right away; the stage label only after 3 s, so a quick reply never flashes text.
+// fill() swaps the class, so a slot already filled by its card never gets the label.
+export function waiting(label) {
+  const b = bubble("coach typing", null);
+  const dots = el("span", "dots");
+  dots.setAttribute("aria-hidden", "true");
+  dots.append(el("i"), el("i"), el("i"));
+  const text = el("span", "wait-label", label);
+  text.hidden = true;
+  b.append(dots, text);
+  setTimeout(() => {
+    if (!b.classList.contains("typing")) return;
+    text.hidden = false;
+    log.scrollTop = log.scrollHeight; // the label can wrap the bubble onto a second line
+  }, 3000);
   return b;
 }
 
@@ -72,23 +106,25 @@ export function renderQuestions({ company_context: c, questions, specificity }) 
 export function fill(slot, cls) {
   slot.className = `msg ${cls}${slot.classList.contains("appear") ? " appear" : ""}`; // keep the tour's fade-in
   slot.textContent = "";
+  if (cls === "err") delete slot.dataset.role; // a waiting row that failed is the app's error, not the coach
   return slot;
 }
 
+const VERDICT_ICON = { yes: "check", no: "warning", unclear: "question" };
 export function renderReview(r, slot) {
   const t = T().review;
   const b = fill(slot, "coach script review");
   b.append(el("p", "title", t.title));
-  b.append(el("p", `verdict ${r.answers_question}`, t.answers[r.answers_question]), el("p", "tr", r.answers_question_reason));
+  b.append(iel("p", `verdict ${r.answers_question}`, VERDICT_ICON[r.answers_question] ?? "question", t.answers[r.answers_question]), el("p", "tr", r.answers_question_reason));
   for (const step of state.session?.pack?.steps ?? JP_STEPS) {
     const v = r.steps[step.key];
-    b.append(el("p", `step ${v.present ? "ok" : "miss"}`, `${v.present ? "✓" : "✗"} ${step.label} ${T().steps[step.key]}`));
+    b.append(iel("p", `step ${v.present ? "ok" : "miss"}`, v.present ? "check" : "x", `${step.label} ${T().steps[step.key]}`));
     if (!v.present) b.append(el("p", "hint", `→ ${v.note}`));
   }
   b.append(el("p", "title", t.corrections));
   if (!r.corrections.length) b.append(el("p", "tr", t.noCorrections));
   for (const c of r.corrections) {
-    b.append(el("p", "rule", `【${c.rule_id}】`), el("p", "ja", `${c.before} → ${c.after}`), el("p", "tr", c.reason));
+    b.append(el("p", "rule", `【${c.rule_id}】`), el("p", "ja", `${c.before} → ${c.after}`), el("p", "tr why", c.reason)); // .why: margin note in the panel
   }
   // F7: the server drops corrections whose `before` is not in the answer; 0 is shown too, so the gate is visible.
   if (r.dropped != null) b.append(el("p", "legend", t.dropped({ n: r.dropped })));
@@ -97,14 +133,14 @@ export function renderReview(r, slot) {
 
 // Before/after (UIUX-SPEC (e)): first vs latest reviewed attempt at one question, from compareAttempts().
 export function renderCompare(c, slot) {
-  const t = T().compare, mark = { yes: "✓", no: "⚠", unclear: "?" };
+  const t = T().compare;
   const b = fill(slot, "coach compare");
-  const cell = (ok, text) => el("td", ok ? "cmp-ok" : "cmp-miss", text);
+  const cell = (ok, name) => { const td = el("td", ok ? "cmp-ok" : "cmp-miss"); td.append(icon(name)); return td; };
   const row = (label, a, z) => { const r = el("tr"); r.append(el("th", null, label), a, z); return r; };
   const head = el("thead"), body = el("tbody"), table = el("table", "cmp");
   head.append(row("", el("th", null, t.first), el("th", null, t.last)));
-  body.append(row(t.answered, ...c.answered.map((v) => cell(v === "yes", mark[v] ?? "?"))));
-  for (const s of c.steps) body.append(row(`${s.label} ${T().steps[s.key]}`, cell(s.first, s.first ? "✓" : "✗"), cell(s.last, s.last ? "✓" : "✗")));
+  body.append(row(t.answered, ...c.answered.map((v) => cell(v === "yes", VERDICT_ICON[v] ?? "question"))));
+  for (const s of c.steps) body.append(row(`${s.label} ${T().steps[s.key]}`, cell(s.first, s.first ? "check" : "x"), cell(s.last, s.last ? "check" : "x")));
   table.append(head, body);
   const answers = el("div", "cmp-answers");
   c.answers.forEach((a, i) => { const box = el("div", "cmp-answer"); box.append(el("p", "label", i ? t.last : t.first), el("p", "ja", a)); answers.append(box); });
@@ -123,14 +159,20 @@ export function renderScript(s, slot) {
   if (s.translation != null) b.append(el("p", "label", t.translation), el("p", "tr", s.translation));
   const ul = el("ul", "points");
   for (const p of s.points) ul.append(el("li", null, p));
-  b.append(el("p", "label", t.points), ul);
+  b.append(el("p", "label pts", t.points), ul); // .pts + .points: margin note in the panel
   log.scrollTop = log.scrollHeight;
 }
 
-// F9: one line after each answer with the running count of rule hits in this session.
+// F9: one line after each answer with the running count of rule hits in this session. Nodes (icons), or null when empty.
 export function habitsLine() {
   const h = state.session ? habitCounts(state.session) : [];
-  if (!h.length) return "";
+  if (!h.length) return null;
   const t = T().habits;
-  return `${t.title({ n: state.session.attempts.length })}\n${h.map((x) => `${x.label} ${t.times({ c: x.count })}${x.habit ? " ⚠" : ""}`).join(" · ")}`;
+  const out = [icon("habits"), `${t.title({ n: state.session.attempts.length })}\n`];
+  h.forEach((x, i) => {
+    const s = el("span", "habit", `${x.label} ${t.times({ c: x.count })}`);
+    if (x.habit) s.append(icon("warning"));
+    out.push(...(i ? [" · "] : []), s);
+  });
+  return out;
 }

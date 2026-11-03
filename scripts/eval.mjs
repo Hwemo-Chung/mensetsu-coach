@@ -1,9 +1,13 @@
 // Real-API evals (costs credits): F4 rule recall, F3 structure agreement on a synthetic golden set, F2 specificity
 // on 3 synthetic companies. Usage: ENV_FILE=… node scripts/eval.mjs [--pack path/to/pack.json] [--only f4,f4neg,f4base,f3,f3adv,f2,f5]
+// Consistency (same input × N): --only consistency [--n 5] [--label name] [--out file] [--from saved.json] → raw runs + metrics JSON in the private folder.
 // Prints metrics only; inputs are synthetic (test/eval/, samples/).
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateReview, generateQuestions, maskInput } from "../lib/coach.js";
+import { loadPack, generateReview, generateQuestions, generateScript, maskInput } from "../lib/coach.js";
+import { summarizeScripts, summarizeReviews, scriptGates, costOf } from "../lib/consistency-metrics.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
 const arg = (k) => { const i = process.argv.indexOf(k); return i > 0 ? process.argv[i + 1] : undefined; };
@@ -138,6 +142,77 @@ if (only.includes("f5")) {
     review_answers_question: r.answers_question,
     review_all_present: Object.values(r.steps).every((v) => v.present),
   };
+}
+
+// Consistency: each input → generateScript ×N and generateReview ×N with the current code (lang ko). A recording client
+// per run keeps every call's model/usage/stop/raw text attributed to its run (claude_call log lines interleave at
+// concurrency 3). Post-gate outputs always pass the number/language gates, so the signal is calls per run + raw first calls.
+if (only.includes("consistency")) {
+  // --from saved.json: recompute metrics from saved runs (0 calls) after a metric change; rewrites that file unless --out.
+  const from = arg("--from") && JSON.parse(readFileSync(arg("--from"), "utf8"));
+  const N = Number(arg("--n") ?? from?.N ?? 5);
+  const label = arg("--label") ?? `run-${new Date().toISOString().slice(0, 10)}`;
+  const file = arg("--out") ?? arg("--from") ?? fileURLToPath(new URL(`../../BuiltWithClaude-2026-private/internal-docs/eval-raw/consistency-${label}.json`, import.meta.url));
+  const items = JSON.parse(read("test/eval/consistency-inputs.json")).items;
+  const target = pack.language_pair.target;
+  const kindOf = (req) => { const p = req.output_config?.format?.schema?.properties ?? {}; return p.answers_question ? "review" : p[target] ? "script" : "translation"; };
+  const recorder = (calls) => ({ beta: { messages: { stream: (req) => {
+    const s = client.beta.messages.stream(req);
+    return { finalMessage: async () => {
+      const m = await s.finalMessage();
+      const fallback = m.model !== req.model || (m.usage?.iterations ?? []).some((x) => x.type === "fallback_message");
+      calls.push({ kind: kindOf(req), model: m.model, in: m.usage?.input_tokens ?? 0, out: m.usage?.output_tokens ?? 0, stop: m.stop_reason, fallback, raw: m.content.filter((b) => b.type === "text").map((b) => b.text).join("") });
+      return m;
+    } };
+  } } } });
+  const jobs = items.flatMap((it) => Array.from({ length: N }, (_, i) => ["script", "review"].map((kind) => ({ it, i, kind }))).flat());
+  const t0 = Date.now();
+  const runs = from ? from.runs : await pool(jobs, 3, async ({ it, i, kind }) => {
+    const calls = [];
+    const input = { question: it.question, answer: maskInput(it.answer), lang: "ko" }; // same preprocessing as api/*.js
+    try {
+      const output = await (kind === "script" ? generateScript : generateReview)(recorder(calls), pack, input);
+      return { id: it.id, i, kind, output, calls };
+    } catch (e) { return { id: it.id, i, kind, error: e.message, calls }; }
+  });
+  const parse = (t) => { try { return JSON.parse(t); } catch { return null; } };
+  const metrics = items.map((it) => {
+    const source = `${maskInput(it.answer)}\n${it.question}\n`; // what generateScript checks numbers against
+    const mine = (k) => runs.filter((r) => r.id === it.id && r.kind === k);
+    const usable = (rs) => rs.filter((r) => !r.error && !r.calls.some((c) => c.fallback)); // §5.1: fallback rounds excluded
+    const sr = mine("script"), rr = mine("review");
+    const firsts = sr.map((r) => r.calls.find((c) => c.kind === "script")).filter(Boolean).map((c) => scriptGates(parse(c.raw) ?? {}, source, "ko", target));
+    const gateFails = Object.fromEntries(["textOk", "readingOk", "pointsOk", "translationOk", "grounded"].map((g) => [g, firsts.filter((x) => !x[g]).length]));
+    const rv = summarizeReviews(usable(rr).map((r) => r.output), N);
+    return {
+      id: it.id, category: it.category,
+      script: {
+        ...summarizeScripts(usable(sr).map((r) => r.output.text), source, N),
+        first_call_pass: `${firsts.filter((x) => x.all).length}/${firsts.length}`,
+        first_call_gate_fails: gateFails,
+        calls_per_run: sr.map((r) => r.calls.map((c) => c.kind[0]).join("")), // s=script, t=translation-only
+        errors: sr.filter((r) => r.error).map((r) => r.error),
+        fallback_runs: sr.filter((r) => r.calls.some((c) => c.fallback)).length,
+      },
+      review: { ...rv, expect: it.expect.answers_question, expect_hit: rv.answers_question.mode === it.expect.answers_question, dropped: usable(rr).reduce((a, r) => a + r.output.dropped, 0), errors: rr.filter((r) => r.error).map((r) => r.error), fallback_runs: rr.filter((r) => r.calls.some((c) => c.fallback)).length, retried_runs: rr.filter((r) => r.calls.length > 1).length },
+    };
+  });
+  const cost = costOf(runs.flatMap((r) => r.calls));
+  mkdirSync(dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify({ ...from, label: from?.label ?? label, date: from?.date ?? new Date().toISOString(), N, lang: "ko", pack: pack.id, seconds: from?.seconds ?? Math.round((Date.now() - t0) / 1000), cost, metrics, runs }, null, 1));
+  const pct = (x) => `${Math.round(100 * x)}%`;
+  console.table(metrics.map((m) => ({
+    id: m.id, ok: m.script.ok, "1st pass": m.script.first_call_pass, calls: m.script.calls_per_run.join(" "),
+    pattern: `${m.script.pattern.mode} ${pct(m.script.pattern.share)}`, frame: m.script.frame_ok,
+    sent: `${m.script.sentences.min}-${m.script.sentences.max}`, chars: `${Math.round(m.script.chars.mean)} cv${pct(m.script.chars.cv)}`,
+    ending: m.script.ending_ok, blanks: `${m.script.blank_runs} runs`, ungrounded: m.script.ungrounded,
+  })));
+  console.table(metrics.map((m) => ({
+    id: m.id, ok: m.review.ok, aq: `${m.review.answers_question.mode} ${pct(m.review.answers_question.share)}${m.review.expect_hit ? "" : " ≠expect"}`,
+    steps: Object.entries(m.review.steps).map(([k, v]) => `${k.slice(0, 3)}${pct(v.share)}`).join(" "),
+    jaccard: m.review.rule_jaccard?.toFixed(2), empty: m.review.empty_runs, dropped: m.review.dropped, retried: m.review.retried_runs,
+  })));
+  report.consistency = { file, cost: `$${cost.usd.toFixed(2)} (${cost.calls} calls, in ${cost.in} / out ${cost.out}${cost.unknown_models.length ? `, unpriced: ${cost.unknown_models}` : ""})`, seconds: Math.round((Date.now() - t0) / 1000) };
 }
 
 console.log(JSON.stringify(report, null, 1));

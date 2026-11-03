@@ -37,7 +37,10 @@ function fakeFetch(statuses = [200], mime) {
 const bytesOf = async (r) => Buffer.from(await r.arrayBuffer());
 let textSeq = 0;
 const uniq = () => `${++textSeq}件の改善を担当しました。`; // distinct text per test so the instance cache never leaks between tests
-const deps = (f) => ({ fetch: f, apiKey: "k" });
+// One monotonic fake clock for the whole file; by default every read jumps past the 60 s primary cooldown,
+// so a 429 in one test never makes the next test skip the primary model.
+let clock = 1e12;
+const deps = (f, now = () => (clock += 61_000)) => ({ fetch: f, apiKey: "k", now });
 
 test("rate limit is checked before the access code (429 before 401)", async () => {
   const ip = "10.8.0.1";
@@ -64,10 +67,14 @@ test("bad JSON, voice, pack, empty text → 400 with a code", async () => {
   assert.equal(f.calls.length, 0);
 });
 
-test("text over 300 chars → 400 text_too_long with max", async () => {
-  const r = await POST(call({ text: "あ".repeat(301), voice: "Kore", pack: "jp" }), deps(fakeFetch()));
+test("a whole script up to 600 chars is one request; over 600 → 400 text_too_long with max", async () => {
+  const f = fakeFetch();
+  const ok = await POST(call({ text: `${++textSeq}${"あ".repeat(599 - String(textSeq).length)}`, voice: "Kore", pack: "jp" }), deps(f));
+  assert.equal(ok.status, 200);
+  assert.equal(f.calls.length, 1);
+  const r = await POST(call({ text: "あ".repeat(601), voice: "Kore", pack: "jp" }), deps(f));
   assert.equal(r.status, 400);
-  assert.deepEqual(await r.json(), { code: "text_too_long", max: 300 });
+  assert.deepEqual(await r.json(), { code: "text_too_long", max: 600 });
 });
 
 test("text not in the pack's target language → 400", async () => {
@@ -134,6 +141,30 @@ test("429 on the primary model falls back to the second model", async () => {
   assert.ok(f.calls[1].url.includes(`/models/${FALLBACK_MODEL}:streamGenerateContent?alt=sse`));
 });
 
+test("free-tier quota: after a 429 the primary is skipped for 60 s, then tried again", async () => {
+  clock += 61_000; // past any cooldown an earlier test started
+  const now = () => clock;
+  const f = fakeFetch([429, 200, 200, 200]);
+  assert.equal((await POST(call({ text: uniq(), voice: "Kore", pack: "jp" }), deps(f, now))).status, 200);
+  clock += 59_000;
+  assert.equal((await POST(call({ text: uniq(), voice: "Kore", pack: "jp" }), deps(f, now))).status, 200);
+  assert.equal(f.calls.length, 3, "inside the cooldown: one request, straight to the fallback");
+  assert.ok(f.calls[2].url.includes(`/models/${FALLBACK_MODEL}:`));
+  clock += 2_000;
+  assert.equal((await POST(call({ text: uniq(), voice: "Kore", pack: "jp" }), deps(f, now))).status, 200);
+  assert.equal(f.calls.length, 4);
+  assert.ok(f.calls[3].url.includes(`/models/${PRIMARY_MODEL}:`), "cooldown over: primary again");
+});
+
+test("a 5xx on the primary does not start the cooldown", async () => {
+  clock += 61_000; // past any cooldown an earlier test started
+  const now = () => clock;
+  const f = fakeFetch([503, 200, 200]);
+  await POST(call({ text: uniq(), voice: "Kore", pack: "jp" }), deps(f, now));
+  await POST(call({ text: uniq(), voice: "Kore", pack: "jp" }), deps(f, now));
+  assert.ok(f.calls[2].url.includes(`/models/${PRIMARY_MODEL}:`));
+});
+
 test("both models busy (429/5xx) → 503 tts_busy", async () => {
   const r = await POST(call({ text: uniq(), voice: "Kore", pack: "jp" }), deps(fakeFetch([503, 429])));
   assert.equal(r.status, 503);
@@ -162,7 +193,7 @@ test("no API key → 503 tts_unavailable (fail closed), no fetch", async () => {
   }
 });
 
-test("a completed sentence is cached (even after a fallback) and replayed whole with its length", async () => {
+test("a completed script is cached (even after a fallback) and replayed whole with its length", async () => {
   const text = uniq();
   const f = fakeFetch([429, 200]);
   const a = await bytesOf(await POST(call({ text, voice: "Kore", pack: "jp" }), deps(f)));

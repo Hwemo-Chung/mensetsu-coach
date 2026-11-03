@@ -17,7 +17,7 @@ test("every UI language has exactly the keys of ko (no missing, no extra)", () =
 
 // Loops over every pack (jp, kr): a kr session shows kr stages/categories with the same UI labels.
 test("every pack stage, category and every API error code has a label in every language", () => {
-  const codes = ["pack_unsupported", "access_denied", "rate_limited", "bad_request", "lang_unsupported", "mail_required", "mail_too_long", "answer_required", "answer_too_long", "question_required", "question_too_long", "attachment_empty", "attachment_too_large", "attachment_not_pdf", "attachment_not_docx", "attachment_docx_empty", "attachment_unsupported", "ai_busy", "generation_failed", "network", "unknown", "email_invalid", "consent_required", "mail_unavailable", "profile_too_long", "context_required"];
+  const codes = ["pack_unsupported", "access_denied", "rate_limited", "bad_request", "lang_unsupported", "mail_required", "mail_too_long", "answer_required", "answer_too_long", "question_required", "question_too_long", "attachment_empty", "attachment_too_large", "attachment_not_pdf", "attachment_not_docx", "attachment_docx_empty", "attachment_unsupported", "ai_busy", "generation_failed", "network", "unknown", "email_invalid", "consent_required", "mail_unavailable", "profile_too_long", "context_required", "tts_busy", "tts_unavailable", "text_too_long", "stt_busy", "stt_unavailable", "audio_too_large", "audio_unsupported"];
   for (const [code, L] of Object.entries(LANGS)) for (const id of PACKS) {
     const pack = loadPack(id), t = pack.question_taxonomy;
     for (const s of t.stages) assert.ok(L.stages[s], `${code} ${id} stage ${s}`);

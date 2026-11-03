@@ -1,9 +1,10 @@
 import { loadPack, PACKS, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
-import { transcribe, SttError, AUDIO_TYPES } from "../lib/stt.js";
+import { transcribe, SttError, AUDIO_TYPES, speechQuality, wavDurationMs } from "../lib/stt.js";
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024; // 90 s of opus/aac is ~1 MB; under Vercel's 4.5 MB request body limit
 const MAX_TEXT_CHARS = 2000; // same as the answer limit in /api/script
+const MAX_DURATION_MS = 90_000; // the UI stops recording at 90 s
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
 // Reads at most max bytes; null when the body is larger (content-length may lie or be absent).
@@ -25,7 +26,9 @@ async function readCapped(body, max) {
   return Buffer.concat(chunks);
 }
 
-// One recorded answer (raw audio body, e.g. MediaRecorder webm/opus or mp4/aac) → { text } for the answer box. Not auto-sent.
+// One recorded answer (raw audio body, e.g. MediaRecorder webm/opus or mp4/aac) → { text, quality, reason?, kana?, verbatim? }.
+// quality "low" → the UI asks to speak again instead of filling the answer box (never auto-sent). ?kana=1 (jp only) adds the
+// hiragana of what was heard for the read-aloud check, in the same single request. The expected script is never sent.
 // Same gate order as /api/script: rate limit → access → validation → provider. pack/lang come from the query or x-pack/x-lang.
 // Audio goes to Gemini unmasked (like PDF/image resumes); only the transcript is masked.
 export async function POST(request, deps = {}) {
@@ -47,9 +50,17 @@ export async function POST(request, deps = {}) {
   if (!audio) return json(413, { code: "audio_too_large" });
   if (!audio.length) return json(400, { code: "bad_request" });
 
+  const target = loadPack(pack).language_pair.target;
+  const header = Number(request.headers.get("x-duration-ms") || NaN); // webm/mp4: the browser's recording time
+  const durationMs = (mime === "audio/wav" && wavDurationMs(audio)) || (Number.isFinite(header) ? Math.min(Math.max(header, 0), MAX_DURATION_MS) : undefined);
+  const kana = target === "ja" && q.get("kana") === "1";
   try {
-    const { text } = await transcribe({ audio, mime, target: loadPack(pack).language_pair.target, lang, fetch: deps.fetch, apiKey });
-    return json(200, { text: maskInput(text).slice(0, MAX_TEXT_CHARS) });
+    const r = await transcribe({ audio, mime, target, lang, kana, fetch: deps.fetch, apiKey });
+    const text = maskInput(r.text).slice(0, MAX_TEXT_CHARS);
+    const body = { text, ...speechQuality(text, durationMs, (r.language ?? target).split("-")[0].toLowerCase()) };
+    if (r.kana !== undefined) body.kana = maskInput(r.kana).slice(0, MAX_TEXT_CHARS);
+    if (!r.verbatim) body.verbatim = false;
+    return json(200, body);
   } catch (e) {
     if (e instanceof SttError) return json(e.status, { code: e.code });
     console.error("stt error:", e?.name); // never log the transcript

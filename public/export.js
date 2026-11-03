@@ -25,7 +25,8 @@ export function sessionToMarkdown(session, t) {
     out.push("", `## ${t.export.practice} ${i + 1}: Q${q ? q.id.slice(1) : "?"}`, "", `> ${q?.question ?? ""}`, "", `**${t.export.myAnswer}**`, "", a.answer, "");
     if (a.review) {
       const r = a.review;
-      out.push(`### ${t.review.title}`, "", `- ${t.review.answers[r.answers_question]} — ${r.answers_question_reason}`);
+      // The screen shows icons; the Markdown file keeps text marks (the i18n sentence itself has none).
+      out.push(`### ${t.review.title}`, "", `- ${{ yes: "✓", no: "⚠" }[r.answers_question] ?? "?"} ${t.review.answers[r.answers_question]} — ${r.answers_question_reason}`);
       for (const { key, label } of session.pack?.steps ?? JP_STEPS) {
         const v = r.steps[key];
         out.push(`- ${v.present ? "✓" : "✗"} ${label} ${t.steps[key]}${v.present ? "" : ` → ${v.note}`}`);

@@ -49,8 +49,9 @@ test("F7 lines, before/after compare after two answers to one question, notes sa
   assert.equal(await page.locator("#log > .msg.review").count(), 2, "compare is not a review bubble");
   const [a, b] = await Promise.all([0, 1].map((i) => cmp.locator(".cmp-answer").nth(i).boundingBox()));
   assert.ok(b.x > a.x && Math.abs(a.y - b.y) < 2, "desktop: answers side by side");
-  // Panel (auto-opened on the first review): the compare table sits above the latest review.
-  await page.locator("#reviewBox > .compare:first-child").waitFor();
+  // Panel (open by default on desktop). Intent changed (layout B, 11/03): the pane is one document ① ② ③ ④, so the
+  // compare section is now the last one (④) instead of sitting above the review.
+  await page.locator("#reviewBox > .compare:last-child").waitFor();
   assert.ok(await noHorizontalOverflow(page));
   await shot(page, "desktop-10-compare", cmp);
 

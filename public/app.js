@@ -1,9 +1,10 @@
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName, compareAttempts } from "./export.js";
 import { loadSession, clearSession, SESSION_KEY } from "./session.js";
-import { $, el, state, T, message, LS, persist, bubble, fill, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
-import { panel, wide, closePanel, showReview, renderNotes, resetPanel } from "./panel.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
+import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS } from "./demo.js";
+import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts } from "./voice.js";
 
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
 let attachment = null;
@@ -26,12 +27,13 @@ state.lang = LANGS[stored] ? stored : LANGS[browser] ? browser : "ko";
 const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder", profile: "profilePlaceholder" };
 function setStage(next) {
   stage = next;
+  showMic(next === "answer");
   input.placeholder = T().chat[PLACEHOLDER[stage]];
 }
 function askForCode() {
   setStage("code");
   const b = bubble("coach", T().chat.askCode);
-  const demoBtn = el("button", "inline-btn", T().demo.button);
+  const demoBtn = iel("button", "inline-btn", "play", T().demo.button);
   demoBtn.type = "button";
   demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(askForCode); });
   b.append(el("br"), demoBtn);
@@ -127,15 +129,16 @@ function restore(saved) {
   b.append(el("br"), again);
   if (packOf() === "jp") b.append(" ", reverseButton());
   renderQuestions(state.session);
+  openByDefault();
   const last = state.session.attempts.findLast((a) => a.review);
-  if (last) showReview(last.review, compareAttempts(state.session, last.question_id), false);
+  if (last) showReview(last.review, compareAttempts(state.session, last.question_id), last.script);
   renderNotes();
   askForPick(true);
 }
 
 // F10: reverse questions from the company summary already in the session (no mail re-sent).
 async function makeReverse() {
-  const wait = bubble("coach typing", T().reverse.wait);
+  const wait = waiting(T().reverse.wait);
   const my = state.epoch;
   try {
     const { res, data } = await post("/api/reverse", { context: state.session.company_context, lang: state.lang, pack: packOf() });
@@ -145,7 +148,7 @@ async function makeReverse() {
     const b = bubble("coach script reverse", null);
     b.append(el("p", "title", t.title));
     data.questions.forEach((q, i) => b.append(el("p", "ja", `${i + 1}. ${q.question}`), el("p", "tr", `${t.intent}: ${q.intent}`)));
-    b.append(el("p", "legend", t.tip));
+    b.append(iel("p", "legend", "tip", t.tip));
     state.session.reverse = data.questions;
     persist();
   } catch {
@@ -157,7 +160,7 @@ async function makeReverse() {
 
 function showHabits() {
   const line = habitsLine();
-  if (line) bubble("coach note", line);
+  if (line) bubble("coach note", null).append(...line);
 }
 
 async function onProfile(text) {
@@ -167,14 +170,14 @@ async function onProfile(text) {
 
 async function onMail(text) {
   bubble("me", text.length > 300 ? `${text.slice(0, 300)}…` : text);
-  if (attachment) bubble("me", `📄 ${attachment.name}`);
+  if (attachment) bubble("me", null).append(icon("file"), attachment.name);
   lastMail = text;
   lastAttachment = attachment;
   await requestQuestions(text, attachment, "", T().chat.waitQuestions);
 }
 
 async function requestQuestions(mail, file, profile, waitText) {
-  const wait = bubble("coach typing", waitText);
+  const wait = waiting(waitText);
   const my = state.epoch;
   try {
     const { res, data } = await post("/api/questions", { mail, attachment: file, lang: state.lang, pack: destPack, ...(profile ? { profile } : {}) });
@@ -189,6 +192,7 @@ async function requestQuestions(mail, file, profile, waitText) {
     attachment = null;
     $("chip").hidden = true;
     renderQuestions(data);
+    openByDefault();
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
     if (!profile) offerProfile();
     askForPick(false);
@@ -210,10 +214,11 @@ function onPick(text) {
 
 // Review (①②) and script (③) run at the same time; a failed review does not block the script.
 async function onAnswer(text) {
+  stopTts(); // the previous script card is no longer the one being practised
   bubble("me", text);
   const q = state.current;
-  const reviewSlot = bubble("coach typing", T().chat.waitReview[targetOf()]);
-  const scriptSlot = bubble("coach typing", T().chat.waitScript);
+  const reviewSlot = waiting(T().chat.waitReview[targetOf()]);
+  const scriptSlot = waiting(T().chat.waitScript);
   const attempt = { question_id: q.id, answer: text, review: null, script: null };
   const my = state.epoch;
   let denied = null;
@@ -229,7 +234,7 @@ async function onAnswer(text) {
   };
   await Promise.all([
     run("/api/review", { question: q.question, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
-    run("/api/script", { question: q.question, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, renderScript, "script", scriptSlot),
+    run("/api/script", { question: q.question, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text); addReadAloud(slot, d); }, "script", scriptSlot),
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);
@@ -240,7 +245,7 @@ async function onAnswer(text) {
   }
   const cmp = attempt.review ? compareAttempts(state.session, q.id) : null;
   if (cmp) renderCompare(cmp, bubble("coach", ""));
-  if (attempt.review) showReview(attempt.review, cmp);
+  if (attempt.review) showReview(attempt.review, cmp, attempt.script);
   askForPick(true);
 }
 
@@ -252,7 +257,7 @@ fileInput.addEventListener("change", () => {
   const reader = new FileReader();
   reader.onload = () => {
     attachment = { name: f.name, type: f.type, data: String(reader.result).split(",")[1] };
-    $("chipName").textContent = `📄 ${f.name}`;
+    $("chipName").replaceChildren(icon("file"), f.name);
     $("chip").hidden = false;
   };
   reader.readAsDataURL(f);
@@ -264,6 +269,7 @@ $("composer").addEventListener("submit", async (ev) => {
   if (state.tour) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled)
   const text = input.value.trim();
   if (!text) return;
+  voiceSent();
   input.value = "";
   send.disabled = true;
   try {
@@ -322,7 +328,9 @@ function finish() {
   clearSession(LS);
   resetPanel();
   renderNotes();
-  bubble("coach", T().export.saved({ file }));
+  // The file name sits on its own line of the sentence; the file icon goes in front of it.
+  const [pre, post] = T().export.saved({ file }).split(file);
+  bubble("coach", null).append(pre, icon("file"), file, post);
   if (code) setStage("mail");
   offerMail();
 }
@@ -414,6 +422,7 @@ async function switchTo(kind, select, revert, apply) {
 }
 function resetChat() {
   state.epoch++;
+  stopVoice();
   state.demoActive = false;
   endTour();
   log.replaceChildren();
@@ -438,5 +447,6 @@ $("options").addEventListener("close", () => $("opts").focus());
 
 // Clear any unverified code left by an earlier page version; the chat always asks for the code on load.
 keepCode(null);
+initVoice({ code: () => code, pack: packOf });
 applyLanguage();
 askForCode();

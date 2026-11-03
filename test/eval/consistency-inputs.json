@@ -1,0 +1,26 @@
+{
+  "_note": "Synthetic inputs for scripts/eval.mjs --only consistency (same input x N runs). No real company or person. c-judge reuses the public demo's off-target answer and question (public/demo/demo-ko.json) so runs compare with the recorded n=3.",
+  "items": [
+    {
+      "id": "c-judge-offtarget",
+      "category": "判断・状況",
+      "question": "プロジェクトの見積もりがずれたとき、どのように判断しましたか。具体的な事例を教えてください。",
+      "answer": "はい、前職ではチームで新しい管理ツールを導入しまして、メンバーとも協力して、プロジェクトは無事に成功しました。社内でも評価をいただきました。",
+      "expect": { "answers_question": "no" }
+    },
+    {
+      "id": "c-reason-decent-ja",
+      "category": "転職理由",
+      "question": "現職を辞めて転職を考えた理由を教えてください。",
+      "answer": "転職理由ですね。より大きな規模のサービスで、設計から運用まで責任を持ちたいからです。現職では3年間、社内向けの在庫システムを担当し、障害の件数を半分に減らしました。ただ、利用者が社内の約200人に限られていて、これ以上の改善の機会が少ないと感じています。御社では、これまでの運用改善の経験を活かして貢献したいと思っています。",
+      "expect": { "answers_question": "yes" }
+    },
+    {
+      "id": "c-intro-korean",
+      "category": "自己紹介",
+      "question": "簡単に自己紹介をお願いします。",
+      "answer": "안녕하세요. 저는 한국에서 7년 동안 웹 서비스의 백엔드 개발을 해 왔습니다. 최근 3년은 결제 시스템 팀에서 리더로 5명의 팀원을 이끌었습니다. 일본에서 더 많은 사용자가 쓰는 서비스를 만들고 싶어서 지원했습니다.",
+      "expect": { "answers_question": "yes" }
+    }
+  ]
+}

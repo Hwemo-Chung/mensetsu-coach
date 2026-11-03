@@ -1,6 +1,6 @@
 // No-code demo and tutorial: replays a real recorded run (public/demo/demo-<lang>.json). No API, no session, no storage.
-import { $, el, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
-import { showReview, resetPanel } from "./panel.js";
+import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
+import { showReview, resetPanel, openByDefault } from "./panel.js";
 import { compareAttempts } from "./export.js";
 
 const log = $("log"), input = $("input"), send = $("send");
@@ -33,6 +33,7 @@ export async function startDemo(onTry) {
     await scenes[i++]();
     if (my !== state.epoch || i >= scenes.length) return;
     const btn = el("button", "inline-btn next-btn", t.next);
+    btn.append(icon("play"));
     btn.type = "button";
     btn.addEventListener("click", () => { btn.remove(); next(); });
     log.append(btn);
@@ -48,10 +49,10 @@ function demoScenes(d, me, onTry) {
   const cmp = compareAttempts({ attempts: d.steps.map((x) => ({ question_id: q.id, ...x })) }, q.id);
   const reviewed = (r) => { const b = bubble("coach", ""); renderReview(r, b); return b; };
   return [
-    async () => (await me(d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail, false)) && renderQuestions(d),
+    async () => { if (!(await me(d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail, false))) return; const b = renderQuestions(d); openByDefault(); return b; },
     async () => { if (!(await me(String(d.pick + 1), true))) return; bubble("coach", `Q${d.pick + 1}. ${withTr(q)}`); return input; },
     async () => { if (!(await me(d.steps[0].answer, true))) return; const b = reviewed(d.steps[0].review); showReview(d.steps[0].review); return b; },
-    async () => { const b = bubble("coach", ""); renderScript(d.steps[0].script, b); return b; },
+    async () => { const b = bubble("coach", ""); renderScript(d.steps[0].script, b); showReview(d.steps[0].review, null, d.steps[0].script); return b; },
     async () => {
       if (!(await me(d.steps[1].answer, true))) return;
       reviewed(d.steps[1].review);
@@ -125,7 +126,7 @@ function showTip(n) {
   $("tourSkip").textContent = t.skip;
   $("tourSkip").hidden = last;
   $("tourPrev").textContent = t.prev;
-  next.textContent = last ? t.close : T().demo.next;
+  next.replaceChildren(...(last ? [t.close] : [T().demo.next, icon("play")]));
   next.classList.toggle("next-btn", !last);
   tourBox.focus();
 }

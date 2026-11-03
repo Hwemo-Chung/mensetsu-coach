@@ -1,6 +1,6 @@
 // Side panel (첨삭 | 노트) re-draws the latest review; chat bubbles stay the source. Desktop: beside the chat.
 // Mobile: full-screen overlay, opened only by the button, with the chat behind it inert.
-import { $, el, state, T, persist, renderReview, renderCompare, habitsLine } from "./render.js";
+import { $, el, state, T, persist, renderReview, renderCompare, renderScript, habitsLine } from "./render.js";
 
 export const panel = $("panel");
 const toggle = $("panelToggle");
@@ -11,16 +11,22 @@ function syncInert() {
   for (const e of [document.querySelector(".bar"), $("log"), $("composer")]) e.inert = cover;
 }
 wide.addEventListener("change", syncInert);
+// Open/closed shows as an icon swap (panel ↔ x), never as a background fill.
+function expanded(on) {
+  toggle.setAttribute("aria-expanded", String(on));
+  toggle.querySelector("use").setAttribute("href", `/icons.svg#${on ? "x" : "panel"}`);
+}
 function openPanel() {
   panel.hidden = false;
-  toggle.setAttribute("aria-expanded", "true");
+  expanded(true);
   syncInert();
   if (!wide.matches) panel.querySelector('[role=tab][aria-selected="true"]').focus();
 }
 export function closePanel() {
-  try { localStorage.setItem(PANEL_CLOSED, "1"); } catch {}
+  // Only a desktop close counts: closing the phone overlay is just the way back to the chat.
+  if (wide.matches) try { localStorage.setItem(PANEL_CLOSED, "1"); } catch {}
   panel.hidden = true;
-  toggle.setAttribute("aria-expanded", "false");
+  expanded(false);
   syncInert();
   toggle.focus();
 }
@@ -39,21 +45,31 @@ for (const x of tabs) {
   x.addEventListener("click", () => selectTab(x));
   x.addEventListener("keydown", (e) => { if (e.key === "ArrowLeft" || e.key === "ArrowRight") selectTab(tabs[1 - tabs.indexOf(x)]); });
 }
-// 첨삭 tab: the before/after table first (same question answered twice), then the latest review.
-// auto=false (restored session) fills the tab without opening the panel.
-export function showReview(r, cmp, auto = true) {
-  const rv = el("div");
-  renderReview(r, rv);
-  rv.className = "script review"; // same content as the chat card, without bubble styling
-  const habits = habitsLine();
-  if (habits) rv.append(el("p", "tr", habits));
-  const top = cmp ? [renderCompare(cmp, el("div"))] : [];
-  for (const c of top) c.className = "compare";
-  $("reviewBox").replaceChildren(...top, rv);
-  $("reviewEmpty").hidden = true;
+// Layout B: on desktop the panel is open by default once a session has questions (empty state until the first
+// review), unless the user closed it once. Called right after renderQuestions(); a phone never opens it by itself.
+export function openByDefault() {
   let closedByUser = false;
   try { closedByUser = localStorage.getItem(PANEL_CLOSED) === "1"; } catch {}
-  if (auto && wide.matches && panel.hidden && !closedByUser) openPanel();
+  if (wide.matches && panel.hidden && !closedByUser) openPanel();
+}
+// 첨삭 tab = one document of the latest attempt: ①② review, ③ model script (when there is one), ④ first ↔ latest.
+// Copies of the chat cards without bubble styling and without the listen button (voice.js drives the chat card).
+export function showReview(r, cmp, script) {
+  const rv = el("div");
+  renderReview(r, rv);
+  rv.className = "script review";
+  const habits = habitsLine();
+  if (habits) { const p = el("p", "tr"); p.append(...habits); rv.append(p); }
+  const parts = [rv];
+  if (script) { const s = el("div"); renderScript(script, s); s.className = "script"; parts.push(s); }
+  if (cmp) {
+    const c = renderCompare(cmp, el("div"));
+    c.className = "compare";
+    c.firstChild.prepend("④ "); // ①②③ are in the i18n titles; the chat compare card keeps its plain title
+    parts.push(c);
+  }
+  $("reviewBox").replaceChildren(...parts);
+  $("reviewEmpty").hidden = true;
 }
 
 // 노트 tab: a free memo per question (the one being practiced, else the last one answered). Kept in the session,
@@ -84,6 +100,6 @@ export function resetPanel() {
   $("reviewBox").replaceChildren();
   $("reviewEmpty").hidden = false;
   panel.hidden = toggle.hidden = true;
-  toggle.setAttribute("aria-expanded", "false");
+  expanded(false);
   syncInert();
 }

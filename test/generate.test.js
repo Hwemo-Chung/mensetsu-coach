@@ -1,13 +1,16 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, READINGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, READINGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk, buildTranslationRequest } from "../lib/coach.js";
+import { kanaToHangul } from "../lib/kana.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { POST as reviewPOST } from "../api/review.js";
 import { POST as reversePOST } from "../api/reverse.js";
-import { fakeClient, fixture, scriptFixture, reviewFixture, reverseFixture, asModelScript } from "./fake-claude.js";
+import { fakeClient, fixture, scriptFixture, reviewFixture, reverseFixture, asModelScript, scriptKana } from "./fake-claude.js";
 import { readFileSync } from "node:fs";
 
+// V4: the script response also carries the model's raw hiragana reading as `kana` (read-aloud check compares on it).
+const scriptOut = { ...scriptFixture, kana: scriptKana };
 const MAIL = readFileSync(new URL("../samples/agent-mail-sample.txt", import.meta.url), "utf8");
 
 const pack = loadPack("jp");
@@ -88,15 +91,17 @@ test("buildScriptRequest: question/answer wrapped as data, structure + rules + n
   // The model-facing key stays the target language code: with a neutral "text" key the live model wrote the
   // reading/translation/points in Japanese too (11/03, 3/3). The app still receives `text` from generateScript.
   assert.equal(r.output_config.format.schema.required.join(), "ja,reading,translation,points");
-  assert.match(r.system, /（ja だけが日本語）/);
+  // Intent changed (11/03): the reading is now hiragana, so only translation/points must be in the native language.
+  assert.match(r.system, /translation・points は[^\n]*（ja と reading だけが日本語）/);
+  assert.doesNotMatch(r.system, /reading・translation・points/);
   assert.ok(!buildScriptRequest(pack, { question: "Q", answer: "A" }).messages[0].content.includes("company_material"));
 });
 
 test("generateScript: valid script passes; wrong language retried once, then fails", async () => {
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(scriptFixture) }), pack, { question: "Q", answer: "A" }), scriptFixture);
+  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(scriptFixture) }), pack, { question: "Q", answer: "A" }), scriptOut);
   const bad = asModelScript({ ...scriptFixture, text: "견적이 어긋나면" });
   const retry = fakeClient({ responses: [bad, asModelScript(scriptFixture)] });
-  assert.deepEqual(await generateScript(retry, pack, { question: "Q", answer: "A" }), scriptFixture);
+  assert.deepEqual(await generateScript(retry, pack, { question: "Q", answer: "A" }), scriptOut);
   assert.equal(retry.calls(), 2);
   await assert.rejects(generateScript(fakeClient({ responses: [bad, bad] }), pack, { question: "Q", answer: "A" }), /language check/);
 });
@@ -111,7 +116,7 @@ test("script API: codes for access, validation and failure; 200 with fake client
   await check(await scriptPOST(req("c0de", { ...ok, answer: " " })), 400, { code: "answer_required" });
   await check(await scriptPOST(req("c0de", { ...ok, answer: "가".repeat(2001) })), 400, { code: "answer_too_long", max: 2000 });
   await check(await scriptPOST(req("c0de", { ...ok, question: "" })), 400, { code: "question_required" });
-  await check(await scriptPOST(req("c0de", ok), { client: fakeClient({ result: scriptFixture }) }), 200, scriptFixture);
+  await check(await scriptPOST(req("c0de", ok), { client: fakeClient({ result: asModelScript(scriptFixture) }) }), 200, scriptOut);
   const failed = await scriptPOST(req("c0de", { ...ok, answer: "秘密の回答" }), { client: fakeClient({ fail: new Error("boom") }) });
   const text = await failed.text();
   assert.equal(failed.status, 502);
@@ -119,7 +124,10 @@ test("script API: codes for access, validation and failure; 200 with fake client
   assert.ok(!text.includes("秘密の回答"));
 });
 
-const enScript = { text: scriptFixture.text, reading: "hai, /mitsumori ga 《zureta》 baai wa↘", translation: "Yes, when an estimate slips, I first check the impact.", points: ["Lower the end of the first sentence.", "Stress the numbers."] };
+// The model sends the reading in hiragana (enKana); the API returns it as romaji (lib/kana.js).
+const enKana = "はい、 /みつもりが 《ずれた》 ばあいわ↘";
+const enScript = { text: scriptFixture.text, reading: "hai, /mitsumoriga 《zureta》 baaiwa↘", translation: "Yes, when an estimate slips, I first check the impact.", points: ["Lower the end of the first sentence.", "Stress the numbers."] };
+const enModel = asModelScript({ ...enScript, reading: enKana });
 // Japan + Japanese screen is the same language: no reading/translation (2-axis rule, 11/03). The kana-only
 // reading check now applies to a Korean script for a Japanese speaker (katakana), so it moved to that pack.
 const jaScript = { text: scriptFixture.text, points: ["最初の文は語尾を下げる。", "数字ははっきり言う。"] };
@@ -134,7 +142,8 @@ test("explain languages: ko, en, ja are registered; prompts name the language an
     const R = READINGS.ja[lang];
     const s = buildScriptRequest(pack, { question: "Q", answer: "A", lang });
     assert.ok(s.system.includes(L.name), `${lang} script system names ${L.name}`);
-    if (R) assert.ok(s.system.includes(R.name), `${lang} script system names reading ${R.name}`);
+    // jp readings are asked for in hiragana (converted afterwards), so the prompt names the asked script.
+    if (R) assert.ok(s.system.includes((R.ask ?? R).name), `${lang} script system names reading ${(R.ask ?? R).name}`);
     else assert.doesNotMatch(s.system, /reading/, `${lang}: same language, no reading asked`);
     const q = buildQuestionRequest(pack, "M", [], lang);
     assert.ok(q.system.includes(L.name) || q.messages[0].content.includes(L.name), `${lang} question request names ${L.name}`);
@@ -143,7 +152,7 @@ test("explain languages: ko, en, ja are registered; prompts name the language an
 });
 
 test("generateScript gate follows the language: en needs romaji/English, ja needs kana/Japanese", async () => {
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(enScript) }), pack, { question: "Q", answer: "A", lang: "en" }), enScript);
+  assert.deepEqual(await generateScript(fakeClient({ result: enModel }), pack, { question: "Q", answer: "A", lang: "en" }), { ...enScript, kana: enKana });
   assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(jaScript) }), pack, { question: "Q", answer: "A", lang: "ja" }), jaScript);
   // Korean output when English was asked → retried, then rejected
   await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(scriptFixture), asModelScript(scriptFixture)] }), pack, { question: "Q", answer: "A", lang: "en" }), /language check/);
@@ -169,7 +178,7 @@ test("APIs reject an unknown language with a code, default to ko when omitted", 
   const q = await POST(req("/api/questions", { mail: "M", lang: "xx" }));
   assert.equal(q.status, 400);
   assert.deepEqual(await q.json(), { code: "lang_unsupported" });
-  assert.equal((await scriptPOST(req("/api/script", { question: "Q", answer: "A", lang: "en" }), { client: fakeClient({ result: enScript }) })).status, 200);
+  assert.equal((await scriptPOST(req("/api/script", { question: "Q", answer: "A", lang: "en" }), { client: fakeClient({ result: enModel }) })).status, 200);
   assert.equal((await POST(req("/api/questions", { mail: "M" }), { client: fakeClient() })).status, 200);
 });
 
@@ -223,7 +232,7 @@ test("L9 questions API: personal data is masked BEFORE it reaches Claude", async
 
 test("L9 script API: personal data in the answer is masked before Claude", async () => {
   process.env.ACCESS_CODE = "c0de";
-  const client = fakeClient({ result: scriptFixture });
+  const client = fakeClient({ result: asModelScript(scriptFixture) });
   const req = new Request("http://x/api/script", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": "4.4.4.5", "content-type": "application/json" },
     body: JSON.stringify({ question: "Q", answer: "제 메일은 me@example.com, 전화 010-1234-5678입니다" }) });
   assert.equal((await scriptPOST(req, { client })).status, 200);
@@ -381,7 +390,7 @@ test("rate limit buckets are per route: a session of access + questions + 8 answ
   for (let i = 0; i < 8; i++) {
     const body = JSON.stringify({ question: "前職で最も大変だったことは何ですか。", answer: B.answer });
     assert.equal((await reviewPOST(new Request("http://x/api/review", { method: "POST", headers: h, body }), { client: fakeClient({ result: reviewFixture }) })).status, 200, `review ${i + 1}`);
-    assert.equal((await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: h, body }), { client: fakeClient({ result: scriptFixture }) })).status, 200, `script ${i + 1}`);
+    assert.equal((await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: h, body }), { client: fakeClient({ result: asModelScript(scriptFixture) }) })).status, 200, `script ${i + 1}`);
   }
 });
 
@@ -442,4 +451,70 @@ test("readings may carry the script's ［blanks］ verbatim (seen live: Korean r
   assert.equal(READINGS.ja.en.is("zenshoku dewa ［ここに実績の数字］ herashimashita↘"), true);
   assert.equal(READINGS.ko.ja.is("チョンジクエソヌン ［여기에 실적 숫자］ チュルヨッスムニダ↘"), true);
   assert.equal(READINGS.ja.ko.is("젠쇼쿠데와 実績 헤라시마시타"), false, "kanji outside blanks still fails");
+});
+
+// Live 11/03 (ko screen, n=6): 3/6 scripts failed because the "Hangul" reading came back in kana/kanji. The model now
+// writes hiragana only and lib/kana.js converts it, so the API still returns Hangul (ko) / romaji (en).
+test("jp reading: hiragana from the model → Hangul for ko, romaji for en", async () => {
+  assert.equal(kanaToHangul(scriptKana), scriptFixture.reading, "script.json reading is the converter output of scriptKana");
+  const model = { ja: scriptFixture.text, reading: "ぜんしょくで 《もっとも》↗ かんりつーるを", translation: scriptFixture.translation, points: scriptFixture.points };
+  assert.equal((await generateScript(fakeClient({ result: model }), pack, { question: "Q", answer: "A", lang: "ko" })).reading, "젠쇼쿠데 《못토모》↗ 칸리츠우루오");
+  const en = { ...model, translation: enScript.translation, points: enScript.points };
+  assert.equal((await generateScript(fakeClient({ result: en }), pack, { question: "Q", answer: "A", lang: "en" })).reading, "zenshokude 《mottomo》↗ kanritsuuruo");
+  const s = buildScriptRequest(pack, { question: "Q", answer: "A", lang: "ko" });
+  assert.match(s.output_config.format.schema.properties.reading.description, /ひらがなだけで書く/);
+  assert.match(s.system, /reading: ja をひらがなで発音表記する（カタカナ語や数字もひらがなで書き/);
+});
+
+test("V4: kana = the model's raw hiragana reading (marks kept) for jp + ko/en; none when no reading is asked", async () => {
+  const ko = await generateScript(fakeClient({ result: asModelScript(scriptFixture) }), pack, { question: "Q", answer: "A", lang: "ko" });
+  assert.equal(ko.kana, scriptKana);
+  assert.equal(ko.reading, kanaToHangul(scriptKana), "reading is still the converted Hangul");
+  assert.equal((await generateScript(fakeClient({ result: enModel }), pack, { question: "Q", answer: "A", lang: "en" })).kana, enKana);
+  assert.equal("kana" in (await generateScript(fakeClient({ result: asModelScript(jaScript) }), pack, { question: "Q", answer: "A", lang: "ja" })), false);
+  assert.equal("kana" in (await generateScript(fakeClient({ result: asModelScript(krJaScript, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" })), false);
+  // Additive output only: the request (prompt + schema) does not change.
+  assert.equal(JSON.stringify(buildScriptRequest(pack, { question: "Q", answer: "A", lang: "ko" })).includes("kana"), false);
+});
+
+test("hiragana gate: kanji, 々, Hangul, Latin or digits in the model's reading are rejected (retried, then fail)", async () => {
+  const gate = READINGS.ja.ko.ask;
+  assert.equal(gate, READINGS.ja.en.ask);
+  for (const ok of ["もっとも↗ /《かんり》", "コーヒーを ［ここに実績の数字］ へらしました↘。", "るーる、 [期限]"]) assert.equal(gate.is(ok), true, ok);
+  for (const bad of ["前職で もっとも", "ひとびと 時々", "々", "젠쇼쿠데", "zenshoku", "にじゅう 20", "にじゅう ２０", "", "↗ /《》", "［ここに］"]) assert.equal(gate.is(bad), false, bad);
+  for (const lang of ["ko", "en"]) {
+    for (const reading of ["ぜんしょくで 最も", "젠쇼쿠데 못토모", "zenshoku de"]) {
+      const bad = { ja: scriptFixture.text, reading, translation: lang === "ko" ? scriptFixture.translation : enScript.translation, points: lang === "ko" ? scriptFixture.points : enScript.points };
+      const client = fakeClient({ responses: [bad, bad] });
+      await assert.rejects(generateScript(client, pack, { question: "Q", answer: "A", lang }), /language check/, `${lang}: ${reading}`);
+      assert.equal(client.calls(), 2);
+    }
+  }
+});
+
+test("translation-only retry: one small call for the translation, never more than 2 calls in total", async () => {
+  const jpTr = "見積もりがずれた場合は、まず影響範囲を確認します。";
+  const badTr = asModelScript({ ...scriptFixture, translation: jpTr });
+  // 1st call: everything but the translation passes → 2nd call asks only for the translation, keeps the rest.
+  const fixed = fakeClient({ responses: [badTr, { translation: scriptFixture.translation }] });
+  assert.deepEqual(await generateScript(fixed, pack, { question: "Q", answer: "A", lang: "ko" }), scriptOut);
+  assert.equal(fixed.calls(), 2);
+  const tr = fixed.requests[1];
+  assert.deepEqual(tr.output_config.format.schema.required, ["translation"]);
+  assert.ok(tr.messages[0].content.includes(`<text>\n${scriptFixture.text}\n</text>`) && tr.system.includes("韓国語"));
+  assert.deepEqual(tr, buildTranslationRequest(pack, scriptFixture.text, "ko"));
+  // The translation-only call fails too → error, no 3rd call.
+  const still = fakeClient({ responses: [badTr, { translation: jpTr }, asModelScript(scriptFixture)] });
+  await assert.rejects(generateScript(still, pack, { question: "Q", answer: "A", lang: "ko" }), /language check/);
+  assert.equal(still.calls(), 2);
+  // 1st call fails on the text → full retry; 2nd call fails only on the translation → error, no 3rd call.
+  const badText = asModelScript({ ...scriptFixture, text: "견적이 어긋나면" });
+  const late = fakeClient({ responses: [badText, badTr, { translation: scriptFixture.translation }] });
+  await assert.rejects(generateScript(late, pack, { question: "Q", answer: "A", lang: "ko" }), /language check/);
+  assert.equal(late.calls(), 2);
+  // An invented number on the 1st call → full retry (a new translation would not fix the text).
+  const invented = asModelScript({ ...scriptFixture, translation: jpTr, text: "はい、手戻りを3割減らしました。御社ではいかがでしょうか。" });
+  const full = fakeClient({ responses: [invented, asModelScript(scriptFixture)] });
+  assert.deepEqual(await generateScript(full, pack, { question: "Q", answer: "A", lang: "ko" }), scriptOut);
+  assert.equal(full.requests[1].output_config.format.schema.required.join(), "ja,reading,translation,points");
 });

@@ -6,6 +6,7 @@ import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { chromium } from "playwright-core";
+import { LANGS } from "../../public/i18n/index.js";
 
 export const ROOT = fileURLToPath(new URL("../..", import.meta.url));
 export const CODE = "ui-test-code";
@@ -66,3 +67,62 @@ export async function send(page, text) {
   await page.click("#send");
 }
 export const noHorizontalOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
+// Shared by voice.test.js and readaloud.test.js (stage helpers in ko; browser stubs for the mic and device voices).
+const ko = LANGS.ko;
+export const scriptCard = (page) => page.locator("#log > .msg.script:not(.review):not(.reverse)");
+export async function toAnswer(page) {
+  await send(page, CODE);
+  await bubbles(page, "coach").filter({ hasText: ko.chat.askMail.split("\n")[0] }).waitFor();
+  await send(page, MAIL);
+  await bubbles(page, "coach").filter({ hasText: ko.chat.askPick({ count: 10 }) }).waitFor();
+  await send(page, "1");
+  await page.locator("#mic").waitFor();
+}
+export async function toScript(page) {
+  await toAnswer(page);
+  await page.fill("#input", ANSWER);
+  await page.press("#input", "Control+Enter");
+  await scriptCard(page).getByRole("button", { name: ko.tts.play }).waitFor();
+}
+export const ttsRequests = (page) => {
+  const list = [];
+  page.on("request", (r) => { if (r.url().includes("/api/tts")) list.push(r); });
+  return list;
+};
+// speechSynthesis stub: records each utterance; fires one boundary and the end.
+export const speechStub = (names) => {
+  window.__spoken = [];
+  const voices = names.map((name) => ({ name, lang: "ja-JP" }));
+  window.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+  Object.defineProperty(window, "speechSynthesis", { configurable: true, value: {
+    getVoices: () => voices, addEventListener() {}, removeEventListener() {}, cancel() { window.__cancelled = true; },
+    speak(u) {
+      window.__spoken.push({ text: u.text, voice: u.voice?.name, rate: u.rate, lang: u.lang });
+      setTimeout(() => u.onboundary?.({ charIndex: 1, charLength: 2 }), 30);
+      setTimeout(() => u.onend?.(), 300);
+    },
+  } });
+};
+
+export const micStub = ({ denied = false, unsupported = false } = {}) => {
+  window.__mic = { stopped: 0 };
+  if (unsupported) { delete window.MediaRecorder; window.MediaRecorder = undefined; return; }
+  const md = navigator.mediaDevices ?? {};
+  md.getUserMedia = async () => {
+    if (denied) throw new DOMException("denied", "NotAllowedError");
+    return { getTracks: () => [{ stop: () => window.__mic.stopped++ }] };
+  };
+  if (!navigator.mediaDevices) Object.defineProperty(navigator, "mediaDevices", { value: md });
+  window.MediaRecorder = class {
+    static isTypeSupported(t) { return t.startsWith("audio/webm"); }
+    constructor(stream, o) { this.mimeType = o?.mimeType ?? "audio/webm"; this.state = "inactive"; }
+    start() { this.state = "recording"; }
+    stop() {
+      this.state = "inactive";
+      this.ondataavailable?.({ data: new Blob([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 1, 2, 3])], { type: this.mimeType }) });
+      this.onstop?.();
+    }
+  };
+};
+
