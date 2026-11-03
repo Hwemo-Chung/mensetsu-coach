@@ -46,3 +46,11 @@ test("script/answer labels exist for every pack target; reading names the native
   assert.match(LANGS.ko.chat.askAnswer.ko, /^한국어로/);
   assert.equal(LANGS.ja.script.translation, "日本語訳");
 });
+
+// Decision 11/03 (PRD §16-16): who the coach is for comes from the (destination, screen language) pair — e.g. Japanese
+// screen + Japan = a Japanese candidate at home — so destination labels never name an audience.
+test("destination labels name the country only, never an audience (外国人向け / 日本人向け / 외국인용 / for non-…)", () => {
+  for (const [code, t] of Object.entries(LANGS)) for (const d of ["jp", "kr", "anglo", "other"]) {
+    assert.doesNotMatch(t.dest[d], /向け|외국인|내국인|용\)|for non|foreign/i, `${code}.dest.${d}: ${t.dest[d]}`);
+  }
+});

@@ -60,8 +60,8 @@ export default {
   },
   dest: {
     label: "Destination",
-    jp: "Jobs in Japan (for non-Japanese)",
-    kr: "Jobs in Korea (日本人向け)",
+    jp: "Jobs in Japan",
+    kr: "Jobs in Korea",
     anglo: "Jobs in the US / UK",
     other: "Somewhere else",
     soonTag: "coming soon",

@@ -60,8 +60,8 @@ export default {
   },
   dest: {
     label: "목적지",
-    jp: "일본 취업 (외국인용)",
-    kr: "한국 취업 (日本人向け)",
+    jp: "일본 취업",
+    kr: "한국 취업",
     anglo: "영미권 취업",
     other: "그 외",
     soonTag: "준비 중",

@@ -690,3 +690,18 @@ test("C5: a length-only issue is reported without a retry", async () => {
   const out = await generateScript(c, pack, q);
   assert.deepEqual([out.issues, c.calls()], [["length"], 1]);
 });
+
+// PRD §16-16: the audience follows (destination, screen language). Same language = a candidate at home, not a foreigner;
+// other screen languages keep the prompt byte-identical (snapshots jp-ko / jp-en unchanged).
+test("prompts call the user a foreign job seeker only when the screen language differs from the destination's", () => {
+  for (const [lang, foreign] of [["ko", true], ["en", true], ["ja", false]]) {
+    const q = buildQuestionRequest(pack, "MAIL", [], lang).system;
+    const s = buildScriptRequest(pack, { question: "Q", answer: "A", lang }).system;
+    for (const sys of [q, s]) {
+      assert.equal(sys.includes("外国人求職者"), foreign, `${lang}: ${sys.slice(0, 40)}`);
+      assert.ok(sys.includes("求職者のための"), lang);
+    }
+  }
+  assert.ok(!buildScriptRequest(kr, { question: "Q", answer: "A", lang: "ko" }).system.includes("外国人"), "kr pack + Korean screen");
+  assert.ok(buildScriptRequest(kr, { question: "Q", answer: "A", lang: "ja" }).system.includes("外国人求職者"), "kr pack + Japanese screen");
+});
