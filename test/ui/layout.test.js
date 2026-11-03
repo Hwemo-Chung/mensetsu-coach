@@ -362,3 +362,27 @@ test("panel close lasts the tab; ko keep-all except Japanese lines; Send-ready r
   assert.equal(await page.locator("#send").evaluate((e) => getComputedStyle(e).outlineColor), "rgb(4, 122, 53)");
   await context.close();
 });
+
+// UI fix 11/03 (sample approved): select chevron off the edge; the input fills the column (%), Send is bigger and sits at
+// the right edge of the composer row, on desktop and phone.
+test("composer: input grows with the column, Send 56px tall at the right edge; header chevrons have a right margin", async () => {
+  for (const [vp, minW] of [["desktop", 112], ["mobile", 88]]) {
+    const { context, page } = await openApp(browser, server.url, VIEWPORTS[vp]);
+    const m = await page.evaluate(() => {
+      const r = (s) => document.querySelector(s).getBoundingClientRect();
+      const comp = document.querySelector("#composer"), pad = parseFloat(getComputedStyle(comp).paddingRight);
+      const after = getComputedStyle(document.querySelector(".picker"), "::after");
+      return { row: r(".composer .row"), input: r("#input"), send: r("#send"), compRight: r("#composer").right - pad,
+        chevronRight: parseFloat(after.right), appearance: getComputedStyle(document.querySelector("#dest")).appearance };
+    });
+    assert.ok(Math.abs(m.row.right - m.compRight) <= 1, `${vp}: row spans the composer (${m.row.right} vs ${m.compRight})`);
+    assert.ok(Math.abs(m.send.right - m.row.right) <= 1, `${vp}: Send at the right edge`);
+    assert.ok(m.send.height >= 56 && m.send.width >= minW, `${vp}: Send ${m.send.width}x${m.send.height}`);
+    if (vp === "mobile") assert.ok(m.send.width <= 100, `phone Send stays narrow so the input keeps its width (${m.send.width})`);
+    assert.ok(m.input.height >= 80, `${vp}: input ${m.input.height}px tall`);
+    if (vp === "desktop") assert.ok(m.input.width / m.row.width >= 0.7, `input ${m.input.width}/${m.row.width}`);
+    assert.equal(m.appearance, "none");
+    assert.ok(m.chevronRight >= 12, `chevron right ${m.chevronRight}`);
+    await context.close();
+  }
+});

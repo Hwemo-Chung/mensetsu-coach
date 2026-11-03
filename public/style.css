@@ -22,8 +22,10 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; margin-left: auto; min-width: 0; max-width: 100%; }
 .controls > * { min-height: 44px; }
 .lang { font-size: 14px; border: 1px solid #c8c8c8; border-radius: 4px; padding: 0 6px; background: #fff; min-width: 0; max-width: 42vw; text-overflow: ellipsis; }
-.picker { display: inline-flex; align-items: center; gap: 4px; min-width: 0; color: var(--muted); }
-.picker > select { align-self: stretch; }
+.picker { position: relative; display: inline-flex; align-items: center; gap: 4px; min-width: 0; color: var(--muted); }
+/* Own chevron with a 14px right margin: the native arrow sat on the border (UI fix 11/03). */
+.picker > select { align-self: stretch; -webkit-appearance: none; appearance: none; padding: 0 36px 0 12px; }
+.picker::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; }
 .end { font-size: 14px; border: 1px solid #c8c8c8; border-radius: 4px; padding: 0 12px; background: #fff; cursor: pointer; white-space: nowrap; }
 /* Icon-only header button: no box; the icon sits straight on the bar. */
 .end.ib { min-width: 44px; font-size: 22px; padding: 0; border: 0; background: none; color: var(--green-ink); }
@@ -138,10 +140,11 @@ button, select, textarea, input { font: inherit; color: inherit; }
 @keyframes appear { from { opacity: 0; } }
 
 .composer { grid-column: 1; grid-row: 3; background: #fff; padding: 8px var(--gutter) 6px; border-top: 1px solid var(--line); }
-.composer > * { max-width: 46em; }
-.row { display: flex; gap: 8px; align-items: flex-end; }
-textarea { flex: 1; min-width: 0; resize: none; border: 1px solid #c8c8c8; border-radius: 4px; padding: 9px 12px; font-size: 16px; max-height: 40vh; }
-#send { min-height: 44px; background: var(--green-ink); color: #fff; border: 0; border-radius: 4px; padding: 10px 16px; font-weight: 700; font-size: 16px; cursor: pointer; }
+/* The input fills the chat column (%), Send sits at its right edge (UI fix 11/03). */
+.row { display: flex; gap: 8px; align-items: flex-end; width: 100%; }
+textarea { flex: 1 1 auto; min-width: 0; resize: none; border: 1px solid #c8c8c8; border-radius: 4px; padding: 9px 12px; font-size: 16px; min-height: 5.5em; max-height: 40vh; field-sizing: content; }
+#send { min-height: 56px; min-width: 112px; background: var(--green-ink); color: #fff; border: 0; border-radius: 4px; padding: 10px 16px; font-weight: 700; font-size: 17px; cursor: pointer; }
+@media (max-width: 1023px) { #send { min-width: 88px; } } /* after the base rule: a phone keeps the input wide */
 #send:disabled { opacity: .45; cursor: wait; }
 #send.ready { outline: 3px solid var(--green-ink); outline-offset: 1px; }
 .send-col { display: flex; flex-direction: column; gap: 6px; }
