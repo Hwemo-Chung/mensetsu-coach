@@ -8,7 +8,7 @@ import { LANGS } from "../../public/i18n/index.js";
 import { compareReading } from "../../public/readcheck.js";
 import { scriptKana, scriptFixture } from "../fake-claude.js";
 import { loadPack } from "../../lib/coach.js";
-import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS, ROOT, scriptCard, toAnswer, toScript, ttsRequests, speechStub, micStub } from "./harness.js";
+import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS, ROOT, scriptCard, toAnswer, toScript, ttsRequests, speechStub, micStub, TOUR, tourTo } from "./harness.js";
 
 const ko = LANGS.ko;
 let server, browser;
@@ -200,7 +200,7 @@ test("V4 hidden: same-language screen (jp + ja), KR pack, demo/tutorial replay",
     const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop);
     await page.evaluate(() => localStorage.setItem("mensetsu-tour-tips", "1"));
     await page.getByRole("button", { name: ko.demo.button }).click();
-    for (let i = 0; i < 3; i++) await page.locator(".next-btn").click();
+    await tourTo(page, TOUR.script); // 9-step tour (11/03)
     await scriptCard(page).waitFor();
     assert.equal(await page.locator(".readaloud").count(), 0);
     assert.deepEqual(errors, []);

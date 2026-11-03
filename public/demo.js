@@ -1,6 +1,7 @@
 // No-code demo and tutorial: replays a real recorded run (public/demo/demo-<lang>.json). No API, no session, no storage.
 import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
-import { showReview, resetPanel, openByDefault } from "./panel.js";
+import { showReview, resetPanel, openByDefault, wide } from "./panel.js";
+import { addListen } from "./voice.js";
 import { compareAttempts } from "./export.js";
 
 const log = $("log"), input = $("input"), send = $("send");
@@ -42,8 +43,8 @@ export async function startDemo(onTry) {
   next();
 }
 
-// The six demo steps. `me(text, typed)` shows the user's input and resolves false if the demo was left meanwhile.
-// Each step returns the element the tour spotlights.
+// The six steps of the plain replay (tutorial tips off). `me(text)` shows the user's input and resolves false if the
+// demo was left meanwhile. The last step ("try it with your code") is shared with the tour.
 function demoScenes(d, me, onTry) {
   const t = T().demo, q = d.questions[d.pick];
   const cmp = compareAttempts({ attempts: d.steps.map((x) => ({ question_id: q.id, ...x })) }, q.id);
@@ -71,39 +72,79 @@ function demoScenes(d, me, onTry) {
   ];
 }
 
-// Tutorial (UIUX-SPEC (k), option A): popup n/6 above the composer, spotlight on the step's element, typing in the
-// composer, fading cards. prefers-reduced-motion: no typing, no fade (the spotlight is not motion and stays).
-const tourBox = $("tour");
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-function unspot() { for (const e of document.querySelectorAll(".spot")) e.classList.remove("spot"); }
-function spot(e) {
+// Tutorial (UIUX-SPEC (k), rework 11/03): popup n/9 above the composer and a page-wide dimmer. Each step spotlights the
+// user's action first (composer row with 📎, then Send), then its result; on desktop the readable panel copy is the
+// result. prefers-reduced-motion: no typing, no pauses, no fade (the spotlight is not motion and stays).
+const tourBox = $("tour"), dim = $("tourDim"), row = document.querySelector(".composer .row");
+const sleep = (ms) => new Promise((r) => setTimeout(r, still() ? 0 : ms));
+function unspot() { for (const e of document.querySelectorAll(".spot")) e.classList.remove("spot", "spot-head"); }
+function spot(target) {
   unspot();
-  if (!e) return;
-  e.classList.add("spot");
-  e.scrollIntoView({ block: "start" }); // "center" pushes the top of a tall card (the key line) off a phone screen
+  const list = [target].flat().filter(Boolean);
+  for (const e of list) {
+    e.classList.add("spot");
+    if (e.getBoundingClientRect().height > innerHeight * 0.7) e.classList.add("spot-head"); // head only, fits the screen
+  }
+  list[0]?.scrollIntoView({ block: "start" }); // "center" pushes the top of a tall card (the key line) off a phone screen
+}
+const panelOpen = () => wide.matches && !$("panel").hidden;
+function tourScenes(d, say, onTry) {
+  const q = d.questions[d.pick];
+  const cmp = compareAttempts({ attempts: d.steps.map((x) => ({ question_id: q.id, ...x })) }, q.id);
+  const reviewed = (r) => { const b = bubble("coach", ""); renderReview(r, b); return b; };
+  const inPanel = (sel, chat) => (panelOpen() ? $("reviewBox").querySelector(sel) ?? chat : chat);
+  const last = demoScenes(d, null, onTry).at(-1); // the "try it with your code" step is shared with the plain replay
+  return [
+    async () => (await say(d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail)) && send,
+    async () => { const b = renderQuestions(d); openByDefault(); return b; },
+    async () => { if (!(await say(String(d.pick + 1)))) return; return bubble("coach", `Q${d.pick + 1}. ${withTr(q)}`); },
+    async () => say(d.steps[0].answer),
+    async () => { const b = reviewed(d.steps[0].review); showReview(d.steps[0].review); return inPanel(":scope > .review", b); },
+    async () => {
+      const b = bubble("coach", "");
+      renderScript(d.steps[0].script, b);
+      addListen(b, d.steps[0].script.text); // device voice in the tour (voice.js), 0 AI calls
+      showReview(d.steps[0].review, null, d.steps[0].script);
+      return inPanel(":scope > .script:not(.review)", b);
+    },
+    async () => {
+      if (!(await say(d.steps[1].answer))) return;
+      reviewed(d.steps[1].review);
+      const c = renderCompare(cmp, bubble("coach", ""));
+      showReview(d.steps[1].review, cmp);
+      return inPanel(":scope > .compare", c);
+    },
+    async () => [panelOpen() ? $("tabNotes") : $("panelToggle"), $("end")],
+    last,
+  ];
 }
 function startTour(d, my, onTry) {
   const tr = { i: 0, marks: [], panels: [], targets: [] };
-  const me = async (text, typed) => {
-    if (typed && !still()) {
-      spot(input);
-      // At most 60 characters × 25ms = 1.5s; a longer answer lands in one go after that.
+  // The user's turn: spotlight the composer row (input + 📎), type, spotlight Send, then the sent bubble.
+  // Resolves to the bubble, or null if the tour was left meanwhile.
+  const say = async (text) => {
+    const left = () => state.tour !== tr || my !== state.epoch;
+    spot(row);
+    if (!still()) {
+      // At most 60 characters × 25ms = 1.5s; a longer text lands in one go after that.
       for (let k = 1; k <= Math.min(text.length, 60); k++) {
         input.value = text.slice(0, k);
         await sleep(25);
-        if (state.tour !== tr) return false;
+        if (left()) return null;
       }
-      input.value = "";
     }
-    if (state.tour !== tr || my !== state.epoch) return false;
-    bubble("me", text);
-    return true;
+    spot(send);
+    await sleep(600);
+    input.value = "";
+    if (left()) return null;
+    return bubble("me", text);
   };
-  tr.scenes = demoScenes(d, me, onTry);
+  tr.scenes = tourScenes(d, say, onTry);
   state.tour = tr;
   input.readOnly = true;
   send.disabled = true;
   tourBox.hidden = false;
+  dim.hidden = false;
   play(0);
 }
 async function play(n) {
@@ -139,6 +180,7 @@ export function endTour() {
   if (!state.tour) return;
   state.tour = null;
   tourBox.hidden = true;
+  dim.hidden = true;
   unspot();
   input.readOnly = false;
   send.disabled = false;

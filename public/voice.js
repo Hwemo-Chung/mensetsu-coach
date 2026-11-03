@@ -28,9 +28,9 @@ function setListen(btn, on) {
   btn.replaceChildren(icon(on ? "stop" : "speaker"));
 }
 
-// Live model scripts only: the demo/tutorial replay stays at 0 AI calls.
+// Live scripts read with Gemini; in the demo/tutorial the same button reads with the device voice (0 AI calls).
 export function addListen(card, text) {
-  if (state.demoActive || !text) return;
+  if (!text) return;
   const btn = el("button", "listen");
   btn.type = "button";
   setListen(btn, false);
@@ -95,7 +95,7 @@ function play(btn, card, text) {
   current = me;
   setListen(btn, true);
   card.querySelector(".tts-note")?.remove();
-  playCloud(me, hl, text, cleanups).catch(() => { if (!me.stopped) return playDevice(me, hl, card, text, cleanups); }).catch(() => me.stop());
+  (state.demoActive ? Promise.reject(new Error("demo: device voice")) : playCloud(me, hl, text, cleanups)).catch(() => { if (!me.stopped) return playDevice(me, hl, card, text, cleanups); }).catch(() => me.stop());
 }
 
 // Web Audio playbackRate changes pitch with speed (0.8× lower, 1.2× higher). Chosen over <audio>+preservesPitch, which

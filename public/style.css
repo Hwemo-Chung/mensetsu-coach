@@ -134,8 +134,12 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .tour-actions { display: flex; gap: 8px; align-items: center; }
 .tour .inline-btn { margin-top: 0; }
 #tourSkip { margin-right: auto; }
-/* The tour's dimmer (a page-wide shadow around the spotlit element), not a card shadow. */
-.spot { position: relative; z-index: 5; box-shadow: 0 0 0 100vmax rgba(0,0,0,.45); }
+/* The tour's dimmer: one fixed layer over the whole page (header and panel too); spotlit elements and the popup sit
+   above it. A box-shadow dimmer was clipped by the scrolling chat column (rework 11/03). */
+.tour-dim { position: fixed; inset: 0; z-index: 4; background: rgba(0,0,0,.45); pointer-events: none; } /* dims only: the panel stays usable during the tour */
+body .spot { position: relative; z-index: 5; background: #fff; } /* body: beats later control rules (.tab: background none); #send keeps its green */
+/* A spotlit card taller than the screen shows its head only (the point of the step), fading out at the bottom. */
+.spot.spot-head { flex-shrink: 0; max-height: 60vh; overflow: hidden; -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); }
 .appear { animation: appear .2s ease-out both; }
 @keyframes appear { from { opacity: 0; } }
 
@@ -146,6 +150,7 @@ textarea { flex: 1 1 auto; min-width: 0; resize: none; border: 1px solid #c8c8c8
 #send { min-height: 56px; min-width: 112px; background: var(--green-ink); color: #fff; border: 0; border-radius: 4px; padding: 10px 16px; font-weight: 700; font-size: 17px; cursor: pointer; }
 @media (max-width: 1023px) { #send { min-width: 88px; } } /* after the base rule: a phone keeps the input wide */
 #send:disabled { opacity: .45; cursor: wait; }
+#send.spot:disabled { opacity: 1; } /* the tour disables Send to block input, but shows it as the button to press */
 #send.ready { outline: 3px solid var(--green-ink); outline-offset: 1px; }
 .send-col { display: flex; flex-direction: column; gap: 6px; }
 /* Recording = stop icon in red (icon swap + colour, no box). */

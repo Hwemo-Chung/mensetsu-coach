@@ -3,7 +3,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { LANGS } from "../../public/i18n/index.js";
-import { startServer, launch, openApp, bubbles, send, shot, CODE, MAIL, ANSWER, VIEWPORTS } from "./harness.js";
+import { startServer, launch, openApp, bubbles, send, shot, CODE, MAIL, ANSWER, VIEWPORTS, TOUR, tourTo } from "./harness.js";
 
 const ko = LANGS.ko;
 let server, browser;
@@ -74,7 +74,7 @@ for (const lang of ["ko", "en", "ja"]) {
     await iconsResolve(page);
     assert.deepEqual(await chromeGlyphs(page), []);
     await page.getByRole("button", { name: t.demo.button }).click();
-    for (let i = 0; i < 5; i++) await page.locator(".next-btn").click();
+    await tourTo(page, TOUR.try); // 9-step tour (11/03)
     await bubbles(page, "coach").filter({ hasText: t.demo.done }).waitFor();
     const reviews = page.locator("#log > .msg.review");
     // Steps: x-circle on a missing step, check-circle on a present one; the verdict carries its own icon.

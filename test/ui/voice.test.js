@@ -5,7 +5,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { LANGS } from "../../public/i18n/index.js";
-import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS, ROOT, scriptCard, toAnswer, toScript, ttsRequests, speechStub, micStub } from "./harness.js";
+import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS, ROOT, scriptCard, toAnswer, toScript, ttsRequests, speechStub, micStub, TOUR, tourTo } from "./harness.js";
 
 const ko = LANGS.ko;
 // The STT fixture now mirrors the primary model (flash-lite): JSON {text, kana} inside parts[0].text.
@@ -135,14 +135,16 @@ test("cloud TTS busy → device voice from the allow-list only (Kyoko), one line
   }
 });
 
-test("demo replay shows no 🔊 (0 AI calls there)", async () => {
+// Intent changed 11/03 (user decision): the tutorial shows 🔊 too, reading with the device voice — still 0 AI calls.
+test("tutorial 🔊 reads with the device voice: no /api/tts request", async () => {
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop);
   const reqs = ttsRequests(page);
-  await page.evaluate(() => localStorage.setItem("mensetsu-tour-tips", "0"));
   await page.getByRole("button", { name: ko.demo.button }).click();
-  for (let i = 0; i < 3; i++) await page.locator(".next-btn").click();
+  await tourTo(page, TOUR.script);
   await scriptCard(page).waitFor();
-  assert.equal(await page.locator(".listen").count(), 0);
+  const listen = page.locator(".spot .listen");
+  await listen.click();
+  await page.waitForTimeout(500);
   assert.equal(reqs.length, 0);
   assert.deepEqual(errors, []);
   await context.close();

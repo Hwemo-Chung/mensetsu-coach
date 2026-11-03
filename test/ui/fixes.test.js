@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { LANGS } from "../../public/i18n/index.js";
-import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, VIEWPORTS, ROOT } from "./harness.js";
+import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, VIEWPORTS, ROOT, TOUR, tourTo } from "./harness.js";
 
 const ko = LANGS.ko;
 let server, browser;
@@ -18,7 +18,8 @@ async function open(viewport, lang = "ko") {
   o.page.on("request", (r) => { if (new URL(r.url()).pathname.startsWith("/api/")) o.api.push(r.url()); });
   return o;
 }
-const stepIs = (page, n) => page.locator("#tourStep", { hasText: `${n}/6` }).waitFor();
+// Steps renumbered for the 9-step tour (11/03): review 3→5, compare 5→7; each test keeps its intent.
+const stepIs = (page, n) => page.locator("#tourStep", { hasText: `${n}/${ko.tour.steps.length}` }).waitFor();
 const next = (page) => page.locator(".next-btn").click();
 const panelEmpty = async (page) => (await page.locator("#reviewBox > *").count()) === 0 && (await page.locator("#reviewEmpty").isVisible() || await page.locator("#panel").isHidden());
 async function tipsOff(page) {
@@ -33,14 +34,13 @@ test("M1: during the tour, [Send] and Ctrl+Enter do not submit the typed demo te
   await page.getByRole("button", { name: ko.demo.button }).click();
   await stepIs(page, 1);
   assert.equal(await page.isDisabled("#send"), true, "send is off while the tour plays");
+  await tourTo(page, TOUR.pick);
   await next(page);
-  await stepIs(page, 2);
-  await next(page);
-  await stepIs(page, 3);
+  await stepIs(page, TOUR.answer);
   await page.waitForFunction(() => document.querySelector("#input").value.length > 0); // mid-typing
   await page.locator("#send").dispatchEvent("click");
   await page.locator("#input").press("Control+Enter");
-  await page.locator("#log > .msg.review").waitFor();
+  await page.locator("#log > .msg.me.spot").waitFor(); // the tour sent it, not the user
   assert.equal(await bubbles(page, "me").filter({ hasText: "••••" }).count(), 0);
   assert.equal(await bubbles(page, "err").count(), 0);
   await page.keyboard.press("Escape");
@@ -54,11 +54,7 @@ test("M1: during the tour, [Send] and Ctrl+Enter do not submit the typed demo te
 test("M2: the demo's review leaves the panel after Skip, after [Try it] and after the plain replay", async () => {
   const { context, page, errors } = await open(VIEWPORTS.desktop);
   await page.getByRole("button", { name: ko.demo.button }).click();
-  await stepIs(page, 1);
-  await next(page);
-  await stepIs(page, 2);
-  await next(page);
-  await stepIs(page, 3);
+  await tourTo(page, TOUR.review);
   await page.locator("#reviewBox .review").waitFor();
   await page.click("#tourSkip");
   await page.locator("#tour").waitFor({ state: "hidden" });
@@ -128,25 +124,17 @@ test("m3: tour [Back] rolls the side panel back to the step it returns to", asyn
   const { context, page, errors } = await open(VIEWPORTS.desktop);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.getByRole("button", { name: ko.demo.button }).click();
-  await stepIs(page, 1);
-  await next(page);
-  await next(page);
-  await stepIs(page, 3);
+  await tourTo(page, TOUR.review);
   await page.locator("#reviewBox .review").waitFor();
   await page.click("#tourPrev");
-  await stepIs(page, 2);
-  assert.equal(await page.locator("#reviewBox > *").count(), 0, "step 2 had no review");
+  await stepIs(page, TOUR.answer);
+  assert.equal(await page.locator("#reviewBox > *").count(), 0, "the step before the review had no review");
   assert.equal(await page.locator("#panelToggle").isVisible(), true, "questions are still there, so the toggle stays");
-  await next(page);
-  await stepIs(page, 3);
-  await next(page);
-  await stepIs(page, 4);
-  await next(page);
-  await stepIs(page, 5);
+  await tourTo(page, TOUR.compare);
   await page.locator("#reviewBox .compare").waitFor();
   await page.click("#tourPrev");
-  await stepIs(page, 4);
-  assert.equal(await page.locator("#reviewBox .compare").count(), 0, "step 4 had no compare");
+  await stepIs(page, TOUR.script);
+  assert.equal(await page.locator("#reviewBox .compare").count(), 0, "the step before compare had no compare");
   assert.equal(await page.locator("#reviewBox .review").count(), 1);
   assert.deepEqual(errors, []);
   await context.close();
@@ -156,9 +144,7 @@ test("m4: mobile step 3 spotlight shows the top of the review card", async () =>
   const { context, page, errors } = await open(VIEWPORTS.mobile);
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.getByRole("button", { name: ko.demo.button }).click();
-  await stepIs(page, 1);
-  await next(page);
-  await next(page);
+  await tourTo(page, TOUR.review);
   await page.locator("#log > .msg.review.spot").waitFor();
   const [card, log] = await Promise.all([page.locator("#log > .msg.review.spot").boundingBox(), page.locator("#log").boundingBox()]);
   assert.ok(card.y >= log.y - 1, `card top ${card.y} visible under log top ${log.y}`);

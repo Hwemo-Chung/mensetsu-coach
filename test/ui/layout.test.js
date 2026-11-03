@@ -2,7 +2,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { LANGS } from "../../public/i18n/index.js";
-import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS } from "./harness.js";
+import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS, TOUR, tourTo } from "./harness.js";
 
 const ko = LANGS.ko, en = LANGS.en;
 let server, browser;
@@ -24,6 +24,7 @@ test("desktop: side panel beside the chat, open by default once questions exist,
   const toggle = page.locator("#panelToggle"), panel = page.locator("#panel");
   assert.equal(await toggle.isHidden(), true, "toggle hidden until questions exist");
   await page.getByRole("button", { name: ko.demo.button }).click();
+  await tourTo(page, TOUR.questions);
   await page.locator("#log .q").first().waitFor();
   await toggle.waitFor();
   // Intent changed (layout B, 11/03): was "closed until the first review auto-opens it". Now the desktop panel is
@@ -34,9 +35,8 @@ test("desktop: side panel beside the chat, open by default once questions exist,
   assert.equal(await page.locator("#reviewEmpty").isVisible(), true, "empty state before any review");
   await shot(page, "desktop-07-panel-empty");
 
-  // Step 3 is the first review: it lands in the already open panel.
-  await page.locator(".next-btn").click();
-  await page.locator(".next-btn").click();
+  // The first review (tour step 5 since 11/03) lands in the already open panel.
+  await tourTo(page, TOUR.review);
   await panel.locator(".step.miss").first().waitFor();
   assert.equal(await toggle.getAttribute("aria-expanded"), "true");
   assert.equal(await page.locator("#reviewEmpty").isHidden(), true);
@@ -64,8 +64,7 @@ test("desktop: side panel beside the chat, open by default once questions exist,
   const closed = await page.locator("#log").boundingBox();
   // Intent changed (layout B): closed = the chat takes the whole width (was: back to one centred 560px column).
   assert.ok(closed.width >= 0.9 * VIEWPORTS.desktop.width, `chat spans the width when the panel is closed (${closed.width})`);
-  await page.locator(".next-btn").click();
-  await page.locator(".next-btn").click();
+  await tourTo(page, TOUR.compare);
   await page.locator("#log > .msg.review").nth(1).waitFor();
   assert.equal(await panel.isHidden(), true, "closed by the user: not reopened automatically");
   await toggle.click();
@@ -80,8 +79,7 @@ test("mobile: panel opens only by button as a full-screen overlay; Esc and Close
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.mobile);
   const toggle = page.locator("#panelToggle"), panel = page.locator("#panel");
   await page.getByRole("button", { name: ko.demo.button }).click();
-  await page.locator(".next-btn").click();
-  await page.locator(".next-btn").click();
+  await tourTo(page, TOUR.review);
   await page.locator("#log > .msg.review").first().waitFor();
   assert.equal(await panel.isHidden(), true, "mobile never auto-opens");
   assert.ok(await noHorizontalOverflow(page), "390px header with the new buttons fits");
@@ -198,7 +196,7 @@ test("language change during the demo restarts the demo in the new language", as
   await bubbles(page, "demo-banner").filter({ hasText: en.demo.banner }).waitFor();
   assert.equal(await bubbles(page, "demo-banner").count(), 1, "replay starts over, old run cleared");
   assert.equal(await page.locator("#log").textContent().then((x) => x.includes(ko.demo.banner)), false);
-  for (let i = 0; i < 5; i++) await page.locator(".next-btn").click();
+  await tourTo(page, TOUR.try);
   await bubbles(page, "coach").filter({ hasText: en.demo.done }).waitFor();
   assert.deepEqual(api, [], "demo must not call the API");
   assert.deepEqual(errors, []);
@@ -298,6 +296,7 @@ test("layout B: white header is one row at 1024/1440/1920 (ko, en, ja) with ever
   for (const lang of ["ko", "en", "ja"]) for (const width of [1024, 1440, 1920]) {
     const { context, page, errors } = await openApp(browser, server.url, { width, height: 800 }, lang);
     await page.getByRole("button", { name: LANGS[lang].demo.button }).click();
+    await tourTo(page, TOUR.questions); // the toggle appears with the questions (step 2 since 11/03)
     await page.locator("#panelToggle").waitFor(); // the fullest header: destination, language, panel, options, end
     const bar = await page.locator(".bar").evaluate((b) => {
       const parts = [b.querySelector(".brand"), ...b.querySelectorAll(".controls > *")].filter((e) => e.getClientRects().length).map((e) => e.getBoundingClientRect());

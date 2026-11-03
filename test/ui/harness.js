@@ -127,3 +127,18 @@ export const micStub = ({ denied = false, unsupported = false } = {}) => {
   };
 };
 
+
+// Tutorial steps by name (9-step tour, 11/03). tourTo presses Next until that step is shown and has finished playing,
+// so tests name the step instead of counting clicks.
+export const TOUR = { mail: 1, questions: 2, pick: 3, answer: 4, review: 5, script: 6, compare: 7, notes: 8, try: 9 };
+export async function tourTo(page, step) {
+  const done = () => page.waitForFunction(() => !document.querySelector("#tourNext").disabled, null, { timeout: 15000 });
+  await page.locator("#tourStep", { hasText: "/" }).waitFor();
+  for (;;) {
+    await done();
+    const cur = Number((await page.textContent("#tourStep")).split("/")[0]);
+    if (cur >= step) return;
+    await page.click("#tourNext");
+    await page.locator("#tourStep", { hasText: new RegExp(`^${cur + 1}/`) }).waitFor();
+  }
+}

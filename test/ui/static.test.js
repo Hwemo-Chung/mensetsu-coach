@@ -2,7 +2,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { LANGS } from "../../public/i18n/index.js";
-import { startServer, launch, openApp, bubbles, shot, noHorizontalOverflow, VIEWPORTS } from "./harness.js";
+import { startServer, launch, openApp, bubbles, shot, noHorizontalOverflow, VIEWPORTS, TOUR, tourTo } from "./harness.js";
 
 let server, browser;
 before(async () => { server = await startServer(); browser = await launch(); });
@@ -38,8 +38,8 @@ for (const [lang, vp] of [["ko", "mobile"], ["ko", "desktop"], ["ja", "desktop"]
     page.on("request", (r) => { if (new URL(r.url()).pathname.startsWith("/api/")) api.push(r.url()); });
     await page.getByRole("button", { name: t.button }).click();
     await bubbles(page, "demo-banner").filter({ hasText: t.banner }).waitFor();
+    await tourTo(page, TOUR.try); // 9-step tour (11/03): the questions arrive at step 2, so they are counted at the end
     assert.equal(await page.locator("#log .q").count(), 10);
-    for (let i = 0; i < 5; i++) await page.locator(".next-btn").click();
     await bubbles(page, "coach").filter({ hasText: t.done }).waitFor();
     assert.equal(await page.locator(".next-btn").count(), 0);
     // Scene: off-target answer gets ✗ steps, the revised answer (after the script) gets all ✓.
