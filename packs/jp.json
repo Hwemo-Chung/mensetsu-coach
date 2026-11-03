@@ -14,10 +14,10 @@
     ],
     "core_principle": "質問されたことに答える。準備した隣の質問に答えない。",
     "closings": {
-      "options": { "label": "選択肢", "rule": "判断・状況の質問なので、最後は相手が判断できる選択肢の形で返す。", "example": "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。" },
-      "contribution": { "label": "貢献", "rule": "経験・志望の質問なので、最後は応募先でどう活かすか（入社後の貢献）で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。" },
-      "improvement": { "label": "改善", "rule": "弱みの質問なので、最後は改善の取り組みを続けて応募先で貢献することで締める。", "example": "御社でも、確認の手順を続けながら、早めに共有します。" },
-      "question": { "label": "質問", "rule": "逆質問なので、自分の経験と考えを一言添えて、質問を一つだけ聞く。", "example": "前職では導入初期の定着に苦労しました。御社では、導入後の定着をどのように支えていますか。" }
+      "options": { "label": "選択肢", "rule": "判断・状況の質問なので、最後は相手が判断できる選択肢の形で返す。", "example": "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。", "must": "どちらから.*ましょうか。$" },
+      "contribution": { "label": "貢献", "rule": "経験・志望の質問なので、最後は応募先でどう活かすか（入社後の貢献）で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。", "must": "(御社|入社後).*ます。$" },
+      "improvement": { "label": "改善", "rule": "弱みの質問なので、最後は改善の取り組みを続けて応募先で貢献することで締める。", "example": "御社でも、確認の手順を続けながら、早めに共有します。", "must": "御社.*ます。$" },
+      "question": { "label": "質問", "rule": "逆質問なので、自分の経験と考えを一言添えて、質問を一つだけ聞く。", "example": "前職では導入初期の定着に苦労しました。御社では、導入後の定着をどのように支えていますか。", "must": "(か。|？)$" }
     },
     "closing_rules": [
       { "category": "逆質問", "closing": "question" },
@@ -26,6 +26,17 @@
       { "match": "弱み|短所|苦手", "closing": "improvement" },
       { "closing": "contribution" }
     ]
+  },
+  "consistency": {
+    "note": "C5 soft gate for model scripts (lib/script.js scriptIssues). Thresholds [Low] from the 11/03 baseline (15 scripts: 172–250 chars, 5–9 sentences); re-decide after the N=5 re-measure.",
+    "sentences": { "fukusho": [1, 1], "ketsuron": [1, 2], "kijun": [1, 4], "sentakushi": [1, 2] },
+    "ending": "(です|ます|ました|ません|でした|ですね|ですか|ますか|ましょうか|でしょうか)[。？?]$",
+    "fukusho_must": "ですね。$",
+    "fukusho_form": "〈質問の要旨〉、ですね。",
+    "blank": "^［ここに[^］]+］$",
+    "max_blanks": 3,
+    "chars_target": [200, 300],
+    "chars_gate": [150, 330]
   },
   "correction_rules": [
     { "id": "del-katachi", "pattern": "〜の形 / 〜という形で", "type": "delete", "replacement": "", "reason": "意味がない。1回も言わない。文が短くなる。", "example_before": "チームで共有する形で進めました。", "example_after": "チームで共有して進めました。" },

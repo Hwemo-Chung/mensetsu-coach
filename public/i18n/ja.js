@@ -37,7 +37,7 @@ export default {
     profileButton: "経歴を1行入れて作り直す",
     profilePlaceholder: "例）この職種は未経験、バックエンド3年",
     waitRegenerate: "経歴を反映して質問を作り直しています…",
-    waitScript: "模範スクリプトを作っています…（20秒ほどかかります）",
+    waitScript: "模範スクリプトを作っています…（20〜40秒かかります）",
   },
   review: {
     title: "① 構成チェック",

@@ -77,6 +77,10 @@ test("scriptGates names the failing gate on a raw first call", () => {
   assert.equal(scriptGates({ ...good, reading: "判断について" }, "").readingOk, false);
   assert.equal(scriptGates({ ...good, translation: "判断についてですね。" }, "").translationOk, false);
   assert.equal(scriptGates({ ...good, points: ["語尾を下げる"] }, "").pointsOk, false);
+  // C3 (11/03): the raw script is one string per step; the gates read the joined text.
+  const parts = { ...good, ja: { fukusho: "判断についてですね。", ketsuron: "", kijun: "基準は30%です。", sentakushi: "" } };
+  assert.equal(scriptGates(parts, "質問").textOk, true);
+  assert.equal(scriptGates(parts, "質問").grounded, false);
 });
 
 test("summaries carry ok/N and flag empty correction runs", () => {

@@ -37,7 +37,7 @@ export default {
     profileButton: "Add a career line and regenerate",
     profilePlaceholder: "e.g. New to this role, 3 years in backend",
     waitRegenerate: "Regenerating questions for your career…",
-    waitScript: "Writing your model script… (about 20 seconds)",
+    waitScript: "Writing your model script… (20–40 seconds)",
   },
   review: {
     title: "① Structure check",

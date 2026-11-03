@@ -191,6 +191,7 @@ if (only.includes("consistency")) {
         first_call_pass: `${firsts.filter((x) => x.all).length}/${firsts.length}`,
         first_call_gate_fails: gateFails,
         calls_per_run: sr.map((r) => r.calls.map((c) => c.kind[0]).join("")), // s=script, t=translation-only
+        soft_issues: usable(sr).map((r) => r.output.issues ?? []), // C5 gate result of the returned script ([] = clean)
         errors: sr.filter((r) => r.error).map((r) => r.error),
         fallback_runs: sr.filter((r) => r.calls.some((c) => c.fallback)).length,
       },

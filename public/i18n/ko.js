@@ -37,7 +37,7 @@ export default {
     profileButton: "경력 한 줄 입력하고 다시 만들기",
     profilePlaceholder: "예) 이 직무는 처음, 백엔드 3년",
     waitRegenerate: "경력을 반영해 질문을 다시 만들고 있어요…",
-    waitScript: "모범 스크립트를 만들고 있어요… (20초 정도 걸려요)",
+    waitScript: "모범 스크립트를 만들고 있어요… (20~40초 걸려요)",
   },
   review: {
     title: "① 구조 점검",

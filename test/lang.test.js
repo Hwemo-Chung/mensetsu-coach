@@ -14,6 +14,8 @@ import { fakeClient, fixture, scriptFixture, reviewFixture, reverseFixture, asMo
 // Expected reading scripts, written independently of the registry: [target][native] → pattern for its name.
 const EXPECTED_READING = { ja: { ko: /ハングル/, en: /ヘボン/ }, ko: { ja: /カタカナ/, en: /Revised Romanization/ }, en: { ko: /IPA/, ja: /IPA/ } };
 
+// C3·C5 (11/03) add parts/closing/issues to every script result; whole-output comparisons check the earlier fields only.
+const core = ({ parts, closing, issues, ...x }) => x;
 test("registries: packs jp/kr, target languages ja/ko/en, reading table follows the rule", () => {
   assert.deepEqual(PACKS, ["jp", "kr"]);
   assert.deepEqual(Object.keys(TARGET_LANGS).sort(), ["en", "ja", "ko"]);
@@ -103,7 +105,7 @@ test("kr gates: Korean question passes, Japanese question is retried then fails;
 
 test("kr/ja script gate: katakana reading; a Japanese explanation may quote Korean (은/는)", async () => {
   const ok = { text: "네, 일정이 밀렸을 때는 먼저 영향 범위를 확인합니다.", reading: "ネ、/イルジョンイ 《ミルリョッスル》 テヌン↘", translation: "はい、日程が遅れたときは、まず影響範囲を確認します。", points: ["「은/는」ではなく「이/가」で新しい情報を示す。", "最後は下げて言い切る。"] };
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(ok, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" }), ok);
+  assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(ok, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" })), ok);
   const hangulReading = { ...ok, reading: "네, 일정이" };
   await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(hangulReading, "ko"), asModelScript(hangulReading, "ko")] }), kr, { question: "Q", answer: "A", lang: "ja" }), /language check/);
   // The quote tolerance is for a Korean target only: on the jp pack a Japanese explanation still may not contain Hangul.
@@ -115,9 +117,9 @@ test("kr/ja script gate: katakana reading; a Japanese explanation may quote Kore
 
 test("same language (kr/ko, jp/ja): script is text + points only and passes the gate", async () => {
   const krSame = { text: "네, 먼저 영향 범위를 확인합니다.", points: ["결론을 먼저 말합니다.", "끝을 내려 말합니다."] };
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(krSame, "ko") }), kr, { question: "Q", answer: "A", lang: "ko" }), krSame);
+  assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(krSame, "ko") }), kr, { question: "Q", answer: "A", lang: "ko" })), krSame);
   const jpSame = { text: scriptFixture.text, points: ["最初の文は語尾を下げる。", "数字ははっきり言う。"] };
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(jpSame) }), loadPack("jp"), { question: "Q", answer: "A", lang: "ja" }), jpSame);
+  assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(jpSame) }), loadPack("jp"), { question: "Q", answer: "A", lang: "ja" })), jpSame);
 });
 
 test("kr review gate: a correction whose 'after' is not Korean is dropped; notes in Japanese may quote Korean", async () => {

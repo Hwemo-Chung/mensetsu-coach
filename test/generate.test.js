@@ -11,6 +11,8 @@ import { readFileSync } from "node:fs";
 
 // V4: the script response also carries the model's raw hiragana reading as `kana` (read-aloud check compares on it).
 const scriptOut = { ...scriptFixture, kana: scriptKana };
+// C3·C5 (11/03) add parts/closing/issues to every script result; whole-output comparisons check the earlier fields only.
+const core = ({ parts, closing, issues, ...x }) => x;
 const MAIL = readFileSync(new URL("../samples/agent-mail-sample.txt", import.meta.url), "utf8");
 
 const pack = loadPack("jp");
@@ -98,10 +100,10 @@ test("buildScriptRequest: question/answer wrapped as data, structure + rules + n
 });
 
 test("generateScript: valid script passes; wrong language retried once, then fails", async () => {
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(scriptFixture) }), pack, { question: "Q", answer: "A" }), scriptOut);
+  assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(scriptFixture) }), pack, { question: "Q", answer: "A" })), scriptOut);
   const bad = asModelScript({ ...scriptFixture, text: "견적이 어긋나면" });
   const retry = fakeClient({ responses: [bad, asModelScript(scriptFixture)] });
-  assert.deepEqual(await generateScript(retry, pack, { question: "Q", answer: "A" }), scriptOut);
+  assert.deepEqual(core(await generateScript(retry, pack, { question: "Q", answer: "A" })), scriptOut);
   assert.equal(retry.calls(), 2);
   await assert.rejects(generateScript(fakeClient({ responses: [bad, bad] }), pack, { question: "Q", answer: "A" }), /language check/);
 });
@@ -116,7 +118,9 @@ test("script API: codes for access, validation and failure; 200 with fake client
   await check(await scriptPOST(req("c0de", { ...ok, answer: " " })), 400, { code: "answer_required" });
   await check(await scriptPOST(req("c0de", { ...ok, answer: "가".repeat(2001) })), 400, { code: "answer_too_long", max: 2000 });
   await check(await scriptPOST(req("c0de", { ...ok, question: "" })), 400, { code: "question_required" });
-  await check(await scriptPOST(req("c0de", ok), { client: fakeClient({ result: asModelScript(scriptFixture) }) }), 200, scriptOut);
+  const res200 = await scriptPOST(req("c0de", ok), { client: fakeClient({ result: asModelScript(scriptFixture) }) });
+  assert.equal(res200.status, 200);
+  assert.deepEqual(core(await res200.json()), scriptOut);
   const failed = await scriptPOST(req("c0de", { ...ok, answer: "秘密の回答" }), { client: fakeClient({ fail: new Error("boom") }) });
   const text = await failed.text();
   assert.equal(failed.status, 502);
@@ -152,12 +156,12 @@ test("explain languages: ko, en, ja are registered; prompts name the language an
 });
 
 test("generateScript gate follows the language: en needs romaji/English, ja needs kana/Japanese", async () => {
-  assert.deepEqual(await generateScript(fakeClient({ result: enModel }), pack, { question: "Q", answer: "A", lang: "en" }), { ...enScript, kana: enKana });
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(jaScript) }), pack, { question: "Q", answer: "A", lang: "ja" }), jaScript);
+  assert.deepEqual(core(await generateScript(fakeClient({ result: enModel }), pack, { question: "Q", answer: "A", lang: "en" })), { ...enScript, kana: enKana });
+  assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(jaScript) }), pack, { question: "Q", answer: "A", lang: "ja" })), jaScript);
   // Korean output when English was asked → retried, then rejected
   await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(scriptFixture), asModelScript(scriptFixture)] }), pack, { question: "Q", answer: "A", lang: "en" }), /language check/);
   // kanji left in a kana reading → rejected (kana reading = Korean script for a Japanese speaker, see jaScript note)
-  assert.deepEqual(await generateScript(fakeClient({ result: asModelScript(krJaScript, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" }), krJaScript);
+  assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(krJaScript, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" })), krJaScript);
   const kanji = { ...krJaScript, reading: "日程が 《ミルリョッスル》" };
   await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(kanji, "ko"), asModelScript(kanji, "ko")] }), kr, { question: "Q", answer: "A", lang: "ja" }), /language check/);
 });
@@ -497,7 +501,7 @@ test("translation-only retry: one small call for the translation, never more tha
   const badTr = asModelScript({ ...scriptFixture, translation: jpTr });
   // 1st call: everything but the translation passes → 2nd call asks only for the translation, keeps the rest.
   const fixed = fakeClient({ responses: [badTr, { translation: scriptFixture.translation }] });
-  assert.deepEqual(await generateScript(fixed, pack, { question: "Q", answer: "A", lang: "ko" }), scriptOut);
+  assert.deepEqual(core(await generateScript(fixed, pack, { question: "Q", answer: "A", lang: "ko" })), scriptOut);
   assert.equal(fixed.calls(), 2);
   const tr = fixed.requests[1];
   assert.deepEqual(tr.output_config.format.schema.required, ["translation"]);
@@ -515,7 +519,7 @@ test("translation-only retry: one small call for the translation, never more tha
   // An invented number on the 1st call → full retry (a new translation would not fix the text).
   const invented = asModelScript({ ...scriptFixture, translation: jpTr, text: "はい、手戻りを3割減らしました。御社ではいかがでしょうか。" });
   const full = fakeClient({ responses: [invented, asModelScript(scriptFixture)] });
-  assert.deepEqual(await generateScript(full, pack, { question: "Q", answer: "A", lang: "ko" }), scriptOut);
+  assert.deepEqual(core(await generateScript(full, pack, { question: "Q", answer: "A", lang: "ko" })), scriptOut);
   assert.equal(full.requests[1].output_config.format.schema.required.join(), "ja,reading,translation,points");
 });
 
@@ -625,4 +629,64 @@ test("C6: review rule ids and verdict are lower-cased; corrections follow their 
   assert.equal(out.answers_question, "yes");
   assert.deepEqual(out.corrections.map((c) => c.rule_id), ["del-nanka", "del-chanto"]);
   assert.equal(out.corrections[1].pattern, "ちゃんと");
+});
+
+// C3 (CONSISTENCY-PLAN): one string per step in the schema, joined by code in pack order.
+test("C3: script schema has one required string per step under the target key; text is joined in pack order", async () => {
+  const { scriptSchema } = await import("../lib/script.js");
+  const r = buildScriptRequest(pack, { question: "見積もりがずれたらどうしますか。", answer: "A" });
+  const ja = r.output_config.format.schema.properties.ja;
+  const keys = pack.answer_structure.steps.map((s) => s.key);
+  assert.deepEqual(ja.required, keys);
+  assert.equal(ja.additionalProperties, false);
+  assert.ok(ja.properties.sentakushi.description.includes(pack.answer_structure.closings.options.rule));
+  assert.equal(typeof scriptSchema, "function");
+  const p = { sentakushi: "どちらから、お話ししましょうか。", kijun: "基準は、残りのコストです。", fukusho: "判断、ですね。", ketsuron: "三つから選びます。" };
+  const out = await generateScript(fakeClient({ result: { ...asModelScript(scriptFixture), ja: p } }), pack, { question: "見積もりがずれたらどうしますか。", answer: "A" });
+  assert.equal(out.text, "判断、ですね。三つから選びます。基準は、残りのコストです。どちらから、お話ししましょうか。");
+  assert.deepEqual(Object.keys(out.parts), keys);
+  assert.equal(out.closing, "options");
+});
+
+// C5: deterministic soft gate (pack.consistency), thresholds from the 11/03 baseline (15 scripts: 172–250 chars) [Low].
+const P = (o = {}) => ({ fukusho: "見積もりがずれたときの判断、ですね。", ketsuron: "止める・縮小する・続けるの三つから、事業側と一緒に選びます。", kijun: "基準は、ここから先にかかるコストと、ここから先に見込めるリターンの二つです。すでに使った工数は、判断に入れません。前職の管理ツール導入では、ずれが分かった時点でこの二つを表にして、範囲を縮小する案を出しました。その結果、リリースを［ここに期間］早められました。", sentakushi: "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。", ...o });
+test("C5: a clean options script has no issues; each broken rule is named", async () => {
+  const { scriptIssues } = await import("../lib/script.js");
+  assert.deepEqual(scriptIssues(pack, "options", P()), []);
+  assert.deepEqual(scriptIssues(pack, "options", P({ fukusho: "見積もりについてお答えします。" })), ["fukusho"]);
+  assert.deepEqual(scriptIssues(pack, "options", P({ ketsuron: "三つから選ぶ。" })), ["ending"]);
+  assert.deepEqual(scriptIssues(pack, "options", P({ sentakushi: "以上です。" })), ["closing"]);
+  assert.deepEqual(scriptIssues(pack, "contribution", P()), ["closing"]);
+  assert.deepEqual(scriptIssues(pack, "contribution", P({ sentakushi: "御社でも、この手順を活かします。" })), []);
+  assert.deepEqual(scriptIssues(pack, "options", P({ kijun: P().kijun.replace("［ここに期間］", "［期限］") })), ["blank"]);
+  assert.deepEqual(scriptIssues(pack, "options", P({ kijun: P().kijun.replace("［ここに期間］", "［ここに期間］［ここに数字］［ここに数字］［ここに数字］") })), ["blank"]);
+  assert.deepEqual(scriptIssues(pack, "options", P({ kijun: `${P().kijun}以上が基準です。` })), ["sentences:kijun"]);
+  assert.deepEqual(scriptIssues(pack, "options", P({ kijun: "基準は、コストです。" })), ["length"]);
+  assert.deepEqual(scriptIssues(pack, "question", { fukusho: "", ketsuron: "前職では導入初期の定着に苦労しました。", kijun: "定着には現場の担当者が数字を追える仕組みが一番効くと考えています。", sentakushi: "御社では、導入後の定着をどのように支えていますか。" }), [], "逆質問: no 復唱, no length gate");
+  assert.deepEqual(scriptIssues(kr, "options", { fukusho: "x" }), [], "a pack without consistency data: no-op");
+});
+
+test("C5: soft retry inside the 2-call budget — better 2nd call wins, otherwise the 1st comes back with its issues", async () => {
+  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断しました" };
+  const mk = (ja) => ({ ...asModelScript(scriptFixture), ja });
+  const clean = mk(P()), issueful = mk(P({ fukusho: "見積もりについてお答えします。" })), worse = mk(P({ fukusho: "見積もりについてお答えします。", sentakushi: "以上です。" }));
+  const a = fakeClient({ responses: [issueful, clean] });
+  const outA = await generateScript(a, pack, q);
+  assert.deepEqual([outA.issues, a.calls()], [[], 2]);
+  const b = await generateScript(fakeClient({ responses: [issueful, worse] }), pack, q);
+  assert.deepEqual(b.issues, ["fukusho"]);
+  const hardFail = { ...issueful, ja: P({ ketsuron: "三つから選び、12件を処理します。" }) }; // 12 is not in the answer
+  assert.deepEqual((await generateScript(fakeClient({ responses: [issueful, hardFail] }), pack, q)).issues, ["fukusho"]);
+  const c = fakeClient({ responses: [clean] });
+  assert.deepEqual([(await generateScript(c, pack, q)).issues, c.calls()], [[], 1], "clean first call: no retry");
+});
+
+// Live 11/03 (3 scripts): a short user answer gives a short script (no invented facts), and the retry stayed short both
+// times (136 → 136, 129 → 129 chars). So "length" is reported but never buys a 2nd call.
+test("C5: a length-only issue is reported without a retry", async () => {
+  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断しました" };
+  const short = { ...asModelScript(scriptFixture), ja: P({ kijun: "基準は、コストです。" }) };
+  const c = fakeClient({ responses: [short, { ...asModelScript(scriptFixture), ja: P() }] });
+  const out = await generateScript(c, pack, q);
+  assert.deepEqual([out.issues, c.calls()], [["length"], 1]);
 });
