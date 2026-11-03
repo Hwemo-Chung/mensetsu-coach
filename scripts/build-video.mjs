@@ -1,5 +1,6 @@
 // Builds the whole demo video (subtitle-only cut) from DEMO-SCRIPT.md: ① story cards → ② first screen → ③ the one-take
-// demo (scripts/record-video.mjs output) → ④ the same review in ko / en / ja + destination menu → ⑤ roadmap → closing.
+// demo (scripts/record-video.mjs output) → ③' what Claude does → ④ the same review in ko / en / ja + destination menu →
+// ⑤ roadmap → closing.
 // Screens are the live app (MOCK server, recorded real outputs, 0 AI calls); captions use the ③ caption band. Scene
 // lengths follow reading time (~8 Japanese chars/s, at least 2.5 s) until the narration is decided.
 // NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): Japanese narration from DEMO-SCRIPT.md read by Gemini TTS for the still
@@ -87,6 +88,11 @@ await card(blank, "聞かれたことに、答えていなかった。", undefin
   await ctx.close();
 }
 const before = shots.length;
+// ③' what Claude does (storyboard v2, PRESENTATION-BENCHMARK 11/03): winners' videos say how Claude is used; ours did not.
+// Facts: lib/questions.js, lib/review.js (corrections that quote text not in the answer are dropped by code), lib/script.js.
+const mid = [];
+await card(blank, "Claude が、することは 3つ。", 6, `<div style="display:inline-block;text-align:left;line-height:1.9">① この会社だけの質問を作る<br>② 答えを採点して、ルールで直す<br>③ 自分の答えから、話せる台本を作る</div><div style="margin-top:22px;color:#fff">ルールにない添削は、プログラムが捨てる。</div>`, "Claudeがすることは三つ。この会社だけの質問を作る。答えを採点して、ルールで直す。自分の答えから、話せる台本を作る。ルールにない添削は、プログラムが捨てます。");
+mid.push(shots.pop());
 // ④ the same review explained in each screen language, then the destination menu
 const four = [];
 for (const [lang, label] of [["ko", "韓国語"], ["en", "English"], ["ja", "日本語"]]) {
@@ -111,7 +117,7 @@ for (const [lang, label] of [["ko", "韓国語"], ["en", "English"], ["ja", "日
 }
 // ⑤ roadmap and closing
 const tail = [];
-for (const [t, s, say] of [["国を増やす", "ルールは国ごとのパック", "ルールは国ごとに分かれているので、国も言葉も足していけます。"], ["声で答える", "音声での回答と発音チェック（準備中）", "声での回答と発音チェックも、準備しています。"], ["毎朝1問", "メールで届く練習", "毎朝1問、メールで届く練習も。"]]) { await card(blank, t, 2.5, s, say); tail.push(shots.pop()); }
+for (const [t, s, say] of [["国を増やす", "ルールは国ごとのパック", "ルールは国ごとに分かれているので、国も言葉も足していけます。"], ["発音チェック", "読み上げた発音を確かめる（準備中）", "読み上げた発音のチェックも、準備しています。"], ["毎朝1問", "メールで届く練習", "毎朝1問、メールで届く練習も。"]]) { await card(blank, t, 2.5, s, say); tail.push(shots.pop()); }
 {
   const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 1.5, locale: "ja" });
   await ctx.addInitScript(() => { try { localStorage.setItem("mensetsu-lang", "ja"); } catch {} });
@@ -160,7 +166,7 @@ async function still(s, i) {
 let i = 0;
 for (const s of shots.slice(0, before)) await still(s, i++);
 execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", take, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-shortest", "-vf", "scale=1920:1080:flags=lanczos,fps=30", ...enc, seg(i++)]);
-for (const s of [...four, ...tail]) await still(s, i++);
+for (const s of [...mid, ...four, ...tail]) await still(s, i++);
 writeFileSync(join(dir, "list.txt"), Array.from({ length: i }, (_, k) => `file '${seg(k)}'`).join("\n"));
 execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-c", "copy", "-movflags", "+faststart", join(dir, "full.mp4")]);
 copyFileSync(join(dir, "full.mp4"), out);

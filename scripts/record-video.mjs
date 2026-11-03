@@ -1,4 +1,4 @@
-// Records section ③ of the demo video: the real app UI driven like a user (paste → pick → type → Send → review →
+// Records section ③ of the demo video: the real app UI driven like a user (paste → pick → 🎤 or type → Send → review →
 // 🔊 → answer again → ✓), one continuous take with no Next buttons and no cuts. API answers are the real outputs
 // recorded by scripts/record-demo.mjs (public/demo/demo-<lang>.json), served after a short "generating" pause, so
 // the take is reproducible and makes 0 AI calls. 🔊 uses the MOCK server's TTS stream (the video has no sound;
@@ -31,7 +31,14 @@ const CAPTIONS = {
   script: ["自分の答えをもとにした台本", "数字は［空欄］。自分の事実で埋めます"],
   retry: ["空欄を埋めて、答え直す", "デモでは、空欄に架空の数字を入れています"],
   compare: [allOk ? "答え直したら、すべて ✓" : "答え直したら、✗ が ✓ に", "最初の答えと並べて比べます"],
+  // ③-a/③-b (storyboard v2, PRESENTATION-BENCHMARK 11/03): the first answer is spoken (record-demo.mjs --voice).
+  voice: ["声で答えても、いい", "話したそのままが、文字になる（端末の中で）"],
+  habit: ["口ぐせまで、見つける", "声で答えると、「なんか」もそのまま残るから"],
 };
+// The spoken answer is the in-browser recogniser's real output for the TTS voice, replayed like the API answers (0 calls).
+const spoken = demo.steps[0].spoken === true;
+// Only a filler rule the recorded review actually returned gets the habit caption (captions state only what the data shows).
+const habitRule = demo.steps[0].review.corrections.find((c) => /^del-/.test(c.rule_id) && demo.steps[0].answer.includes(c.before))?.rule_id;
 const VIEW = { width: 1280, height: 720 }; // × deviceScaleFactor 1.5 = 1920×1080: a 1.5× zoom, readable on a phone
 
 const server = await startServer();
@@ -39,6 +46,17 @@ const browser = await launch();
 const dir = mkdtempSync(join(tmpdir(), "mensetsu-video-"));
 const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 1.5, locale: lang });
 await context.addInitScript((l) => { try { localStorage.setItem("mensetsu-lang", l); localStorage.setItem("mensetsu-tour-tips", "1"); } catch {} }, lang);
+// 🎤 in headless Chrome: a stand-in microphone (MediaRecorder); the MOCK server's /stt-local.js returns __sttText.
+if (spoken) await context.addInitScript((text) => {
+  window.__sttText = text;
+  navigator.mediaDevices.getUserMedia = async () => ({ getTracks: () => [{ stop() {} }] });
+  window.MediaRecorder = class {
+    static isTypeSupported(t) { return t.startsWith("audio/webm"); }
+    constructor(s, o) { this.mimeType = o?.mimeType ?? "audio/webm"; }
+    start() {}
+    stop() { this.ondataavailable?.({ data: new Blob([new Uint8Array(64)], { type: this.mimeType }) }); this.onstop?.(); }
+  };
+}, demo.steps[0].answer);
 const page = await context.newPage();
 const frames = []; // { file, t } — t in seconds (screencast timestamps)
 const cdp = await context.newCDPSession(page);
@@ -160,7 +178,14 @@ await explain(["#log .q:nth-of-type(1)", "#log .q:nth-of-type(3)"], CAPTIONS.que
 await type(String(demo.pick + 1), 150);
 await click("#send");
 await pause(1200);
-await type(demo.steps[0].answer, 35); // the off-target answer
+if (spoken) { // ③-a: answer by voice; the transcript lands in the box (fillers kept), checked, then sent
+  await click("#mic");
+  await pause(5000); // the recording timer runs while the "user" speaks (~13 s of speech, shortened)
+  await click("#mic");
+  await page.waitForFunction(() => document.querySelector("#input").value.length > 20);
+  await pause(600);
+  await explain(["#input", "#mic"], CAPTIONS.voice, HOLD_MS, undefined, true);
+} else await type(demo.steps[0].answer, 35); // the off-target answer
 await click("#send");
 await page.locator("#reviewBox > .review").waitFor({ timeout: 15000 });
 await page.locator("#reviewBox > .script:not(.review) .listen").waitFor({ timeout: 15000 });
@@ -169,6 +194,10 @@ const R = "#reviewBox > .review";
 await explain([`${R} .verdict`, `${R} .verdict + .tr`], CAPTIONS.verdict);
 await explain([`${R} .step.miss, ${R} .step.tip`, `${R} .hint`], CAPTIONS.steps);
 await explain([`${R} .rule`, `${R} .rule + .ja`], CAPTIONS.rule);
+if (spoken && habitRule) { // ③-b: the spoken filler is caught by the pack's rule
+  await page.evaluate((id) => { const r = [...document.querySelectorAll("#reviewBox > .review .rule")].find((e) => e.textContent.includes(id)); r.id = "rec-habit"; }, habitRule);
+  await explain(["#rec-habit", "#rec-habit + .ja"], CAPTIONS.habit);
+}
 // ③ with 🔊: the whole card comes up (the button sits above the title), the read-along highlight runs under the caption.
 await explain(["#reviewBox > .script:not(.review)"], CAPTIONS.script, 4500, () => click("#reviewBox > .script:not(.review) .listen"));
 await type(String(demo.pick + 1), 150); // the app is back at "pick": the same question again, as a user would
@@ -194,4 +223,4 @@ const list = shots.map((f, i) => `file '${f.file}'\nduration ${((shots[i + 1]?.t
 writeFileSync(join(dir, "list.txt"), `${list}\nfile '${shots.at(-1).file}'\n`);
 execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1920:1080:flags=lanczos,fps=30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", join(dir, "out.mp4")]);
 copyFileSync(join(dir, "out.mp4"), out);
-console.log(`${out}: ${(end - start).toFixed(1)} s, ${shots.length} frames (one take, ${reviews} reviews)`);
+console.log(`${out}: ${(end - start).toFixed(1)} s, ${shots.length} frames (one take, ${reviews} reviews${spoken ? `, spoken; habit caption: ${habitRule ?? "none"}` : ""})`);
