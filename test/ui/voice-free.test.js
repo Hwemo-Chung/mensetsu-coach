@@ -71,14 +71,17 @@ const micStub = () => {
   };
 };
 
-test("free-tier line: hidden until the first recording starts, then shown next to 🎤; not again in the same session (mobile)", async () => {
+// Intent changed 11/03: the answer 🎤 now recognises in the browser, so its first-use line says the model is downloaded once
+// and the audio stays on the device; the Google free-tier line is left to the read-aloud check (still /api/stt).
+test("on-device line: hidden until the first answer recording starts, then shown next to 🎤; not again; never the free-tier line (mobile)", async () => {
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.mobile);
   await context.addInitScript(micStub);
   await page.reload();
   await page.locator(".msg.coach").first().waitFor();
   await toAnswer(page);
-  const line = page.getByText(ko.mic.freeTier);
+  const line = page.getByText(ko.mic.local);
   assert.equal(await line.count(), 0, "not before recording");
+  assert.equal(await page.getByText(ko.mic.freeTier).count(), 0);
   await page.getByRole("button", { name: ko.mic.start }).click();
   await line.waitFor({ timeout: 2000 });
   // ● glyph → record sprite icon (ICON-DUOTONE §4); intent unchanged: the timer still shows.
@@ -93,6 +96,7 @@ test("free-tier line: hidden until the first recording starts, then shown next t
   await page.getByRole("button", { name: ko.mic.start }).click();
   await page.getByRole("button", { name: ko.mic.stop }).waitFor();
   assert.ok(await line.isHidden(), "first recording only");
+  assert.equal(await page.getByText(ko.mic.freeTier).count(), 0, "the answer audio never goes to Google");
   assert.deepEqual(errors, []);
   await context.close();
 });

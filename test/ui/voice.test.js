@@ -1,15 +1,13 @@
 // Voice UI (UIUX-SPEC §9): 🔊 on the model script (one /api/tts call per script, streamed, read-along highlight,
-// device-voice fallback), 🎤 above Send (record → /api/stt → answer box, never auto-sent), three-dot loader.
-// MOCK server: TTS = ~3 s of silence streamed in 6 chunks, STT = test/fixtures/stt.json. 0 Claude / 0 Gemini calls.
+// device-voice fallback), 🎤 above Send (record → in-browser Whisper → answer box, never auto-sent), three-dot loader.
+// MOCK server: TTS = ~3 s of silence streamed in 6 chunks, 🎤 = test/fixtures/stt-local.mock.js. 0 Claude / 0 Gemini calls.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import { LANGS } from "../../public/i18n/index.js";
 import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, MAIL, ANSWER, VIEWPORTS, ROOT, scriptCard, toAnswer, toScript, ttsRequests, speechStub, micStub, TOUR, tourTo } from "./harness.js";
 
 const ko = LANGS.ko;
-// The STT fixture now mirrors the primary model (flash-lite): JSON {text, kana} inside parts[0].text.
-const STT_TEXT = JSON.parse(JSON.parse(readFileSync(`${ROOT}/test/fixtures/stt.json`, "utf8")).candidates[0].content.parts[0].text).text;
+import { MOCK_TEXT as STT_TEXT } from "../fixtures/stt-local.mock.js";
 let server, browser;
 before(async () => { server = await startServer(); browser = await launch(); });
 after(async () => { await browser?.close(); server?.stop(); });
@@ -150,7 +148,7 @@ test("tutorial 🔊 reads with the device voice: no /api/tts request", async () 
   await context.close();
 });
 
-test("🎤 above Send at the answer stage only: record → timer → stop → transcript in the box, never sent (mobile)", async () => {
+test("🎤 above Send at the answer stage only: record → timer → stop → in-browser transcript in the box, never sent, audio never uploaded (mobile)", async () => {
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.mobile);
   await context.addInitScript(micStub, {});
   await page.reload();
@@ -184,11 +182,12 @@ test("🎤 above Send at the answer stage only: record → timer → stop → tr
   assert.equal(await page.evaluate(() => document.activeElement.id), "input");
   assert.ok(await page.locator("#send.ready").count(), "Send is highlighted");
   assert.equal(await bubbles(page, "me").count(), me, "not sent automatically");
-  assert.equal(stt.length, 1);
-  const u = new URL(stt[0].url());
-  assert.deepEqual([u.searchParams.get("pack"), u.searchParams.get("lang")], ["jp", "ko"]);
-  assert.match(stt[0].headers()["content-type"], /^audio\/webm/);
-  assert.ok(stt[0].headers()["x-access-code"]);
+  assert.equal(stt.length, 0, "the answer audio stays in the browser");
+  // Recognised in the pack's interview language (jp → ja), whatever the screen language (ko).
+  const calls = await page.evaluate(() => window.__sttCalls);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].lang, "ja");
+  assert.match(calls[0].type, /^audio\/webm/);
   assert.ok(await page.evaluate(() => window.__mic.stopped > 0), "microphone released");
   await shot(page, "mobile-24-mic-transcribed");
 

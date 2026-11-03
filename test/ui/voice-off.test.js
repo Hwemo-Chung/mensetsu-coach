@@ -1,5 +1,5 @@
-// Shipped default (decision 11/03): STT_ENABLED unset → no 🎤 answer recording and no read-aloud check, 🔊 stays.
-// The Gemini free tier forbids personal data; recorded answers carry names and companies. MOCK server, 0 AI calls.
+// Shipped default (decision 11/03): STT_ENABLED unset → no read-aloud check (Gemini free tier forbids personal data), 🔊 stays.
+// Intent changed 11/03: the answer 🎤 recognises in the browser (no upload), so it shows even with STT off.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { LANGS } from "../../public/i18n/index.js";
@@ -10,7 +10,7 @@ let server, browser;
 before(async () => { server = await startServer({ STT_ENABLED: "0" }); browser = await launch(); });
 after(async () => { await browser?.close(); server?.stop(); });
 
-test("STT off: answer stage has no 🎤, the script card has 🔊 but no read-aloud button, /api/stt never called", async () => {
+test("STT off: answer stage still has the on-device 🎤, the script card has 🔊 but no read-aloud button, /api/stt never called", async () => {
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop);
   const stt = [];
   page.on("request", (r) => { if (r.url().includes("/api/stt")) stt.push(r); });
@@ -20,7 +20,7 @@ test("STT off: answer stage has no 🎤, the script card has 🔊 but no read-al
   await bubbles(page, "coach").filter({ hasText: ko.chat.askPick({ count: 10 }) }).waitFor();
   await send(page, "1");
   await page.waitForFunction((ph) => document.querySelector("#input").placeholder === ph, ko.chat.answerPlaceholder);
-  assert.equal(await page.locator("#mic").isHidden(), true, "🎤 hidden at the answer stage");
+  assert.equal(await page.locator("#mic").isVisible(), true, "on-device 🎤 at the answer stage");
   await page.fill("#input", ANSWER);
   await page.press("#input", "Control+Enter");
   await scriptCard(page).getByRole("button", { name: ko.tts.play }).waitFor();

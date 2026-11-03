@@ -16,13 +16,12 @@ before(async () => { server = await startServer(); browser = await launch(); });
 after(async () => { await browser?.close(); server?.stop(); });
 
 // ---- V3: a recording the recogniser could not make out is not put in the answer box ----
-test("V3: low-quality transcript → box untouched, coach row with a retry mic that records again; x-duration-ms sent (mobile)", async () => {
+test("V3: a recording the in-browser recogniser could not make out → box untouched, coach row with a retry mic that records again (mobile)", async () => {
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.mobile);
   await context.addInitScript(micStub, {});
+  await context.addInitScript(() => { window.__sttText = ""; }); // nothing recognised (speechQuality → empty)
   await page.reload();
   await page.locator(".msg.coach").first().waitFor();
-  const stt = [];
-  await page.route("**/api/stt*", (r) => { stt.push(r.request()); return r.fulfill({ json: { text: "えー", quality: "low", reason: "too_short" } }); });
   await toAnswer(page);
   await page.fill("#input", "前置き");
   await page.getByRole("button", { name: ko.mic.start }).click();
@@ -32,8 +31,6 @@ test("V3: low-quality transcript → box untouched, coach row with a retry mic t
   await row.waitFor({ timeout: 4000 });
   assert.equal(await page.inputValue("#input"), "前置き", "nothing appended");
   assert.equal(await page.locator("#send.ready").count(), 0);
-  const ms = Number(stt[0].headers()["x-duration-ms"]);
-  assert.ok(ms >= 200 && ms < 5000, `x-duration-ms ${ms}`);
   const retry = row.getByRole("button", { name: ko.mic.retry });
   assert.equal(await retry.locator('svg.icon > use[href="/icons.svg#mic"]').count(), 1);
   const b = await retry.boundingBox();
@@ -43,8 +40,7 @@ test("V3: low-quality transcript → box untouched, coach row with a retry mic t
   await retry.click();
   assert.equal(await page.getByRole("button", { name: ko.mic.stop }).getAttribute("aria-pressed"), "true", "retry starts a new recording");
   await page.getByRole("button", { name: ko.mic.stop }).click();
-  await page.waitForFunction(() => document.querySelectorAll("#log > .msg.coach").length && !document.querySelector("#mic").disabled);
-  assert.equal(stt.length, 2);
+  await page.waitForFunction(() => window.__sttCalls?.length === 2 && !document.querySelector("#mic").disabled);
   assert.deepEqual(errors, []);
   await context.close();
 });

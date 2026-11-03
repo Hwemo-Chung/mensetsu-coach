@@ -8,10 +8,11 @@
   },
   "scripts": {
     "dev": "node dev.js",
-    "test": "node --test test/unit.test.js test/generate.test.js test/pii-scan.test.js test/i18n.test.js test/export.test.js test/mail.test.js test/demo.test.js test/snapshot.test.js test/lang.test.js test/session.test.js test/tts.test.js test/stt.test.js test/kana.test.js test/readcheck.test.js",
+    "test": "node --test test/unit.test.js test/generate.test.js test/pii-scan.test.js test/i18n.test.js test/export.test.js test/mail.test.js test/demo.test.js test/snapshot.test.js test/lang.test.js test/session.test.js test/tts.test.js test/stt.test.js test/stt-local.test.js test/kana.test.js test/readcheck.test.js",
     "test:ui": "node --test --test-concurrency=1 \"test/ui/*.test.js\"",
     "test:live": "node --test test/live.test.js",
-    "eval": "node scripts/eval.mjs"
+    "eval": "node scripts/eval.mjs",
+    "vendor:stt": "mkdir -p public/vendor && cp node_modules/@huggingface/transformers/dist/transformers.min.js node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.mjs node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm public/vendor/"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0",

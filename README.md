@@ -90,7 +90,8 @@ npm run dev             # http://localhost:3000
 ```
 
 - 듣기 버튼(모범 스크립트 읽기)은 `GEMINI_API_KEY`(선택)가 있어야 동작합니다. 키가 없으면 기기 음성(Kyoko·Google 日本語)으로 읽고, 기기 음성도 없으면 재생할 수 없다고 안내합니다.
-- 녹음(음성 답변·따라 읽기 확인)은 **기본으로 꺼져 있습니다**. Gemini 무료 등급 약관이 개인정보 전송을 금지하는데("Do not submit … personal information to the Unpaid Services"), 녹음한 답변에는 이름과 회사명이 들어가기 때문입니다. 유료 등급에서 `STT_ENABLED=1`을 설정하면 켜집니다. 이 값이 없으면 `/api/stt`는 음성을 읽기 전에 503을 돌려주고, 화면에도 녹음 버튼이 나오지 않습니다.
+- 🎤 음성 답변은 **항상 켜져 있고, 브라우저 안에서 인식합니다**. 오픈소스 Whisper-small(transformers.js)을 쓰며, 녹음은 기기 밖으로 나가지 않습니다. 인식 언어는 면접 언어(ja/ko) 하나로 고정하고, 필러(えーと·なんか·음·어)를 남기도록 프롬프트를 붙입니다. 인식 모델(약 260MB)은 첫 사용 때 huggingface.co에서 한 번 받아 브라우저에 캐시합니다. 기기 하한선은 RAM 4GB입니다(Android 8GB·4GB 통과, 2GB는 탭이 꺼짐. 근거 `01_설계문서/research/STT-OSS-EVAL.md`).
+- 따라 읽기 확인(모범 스크립트를 소리 내어 읽기)은 **기본으로 꺼져 있습니다**. 들은 그대로의 히라가나가 필요해 Gemini를 쓰는데, Gemini 무료 등급 약관이 개인정보 전송을 금지하기 때문입니다("Do not submit … personal information to the Unpaid Services"). 유료 등급에서 `STT_ENABLED=1`을 설정하면 켜집니다. 이 값이 없으면 `/api/stt`는 음성을 읽기 전에 503을 돌려주고, 화면에도 따라 읽기 버튼이 나오지 않습니다.
 - `ACCESS_CODE`는 직접 정하는 값입니다. 화면에서 이 값을 입력해야 질문 생성 요청이 통과합니다.
 - `.env`를 저장소 밖에 두려면 `ENV_FILE=/path/to/.env npm run dev`로 실행합니다.
 - `npm test`: 오프라인 단위 테스트와 개인정보 패턴 검사. `PII_DENYLIST`에 개인정보 목록 파일 경로를 주면 그 목록으로도 검사합니다. 목록 파일은 저장소에 없습니다.
@@ -123,7 +124,7 @@ npm run dev             # http://localhost:3000
 
 - 접근 코드가 설정되지 않으면 모든 요청을 막습니다 (fail-closed). 요청 제한은 API별·IP별 10분 단위입니다(질문 생성 10, 점검·스크립트 각 30, 역질문 10, 메일 가입 5; 이 API들은 틀린 코드도 제한에 포함). 접근 코드 확인(`/api/access`)은 틀린 시도만 IP당 10분 20회까지 세고, 넘으면 그 IP는 10분 동안 맞는 코드도 거부합니다(같은 IP를 쓰는 행사장에서 맞는 코드 입력이 한도를 쓰지 않게). 서버 인스턴스 메모리에 있어 인스턴스끼리 공유되지 않습니다.
 - 입력한 메일 원문과 첨부 파일은 Anthropic API로 전송됩니다. 서버는 원문과 첨부 내용을 로그에 남기지 않습니다. API 데이터 보존 설정은 아직 확인하지 않았습니다.
-- 음성 기능은 Google Gemini API(Google LLC)를 씁니다. 지금은 듣기 버튼이 보내는 모범 스크립트 문장만 전송합니다. 듣기는 서버가 서명한 모범 스크립트만 읽습니다(`/api/script` 응답의 HMAC 서명을 `/api/tts`가 확인). 서명이 없으면(튜토리얼, 11/03 이전에 저장된 세션) 기기 음성으로 읽습니다. 녹음은 무료 등급 약관 때문에 꺼 두었습니다(위 실행 방법 참고). 켜면 녹음한 답변 음성을 보내며, 음성은 가릴 수 없고 서버에 저장하지 않습니다. Claude는 음성을 다루지 않고 질문 생성·점검·스크립트만 맡습니다. 무료 등급에서는 Google이 입력과 출력을 서비스 개선에 쓰고 사람이 검토할 수 있습니다([Gemini API 추가 약관](https://aistudio.google.com/docs/terms), 2026-03-23 발효). 처리방침의 위탁처는 5곳입니다.
+- 음성 기능은 Google Gemini API(Google LLC)를 씁니다. 지금은 듣기 버튼이 보내는 모범 스크립트 문장만 전송합니다. 듣기는 서버가 서명한 모범 스크립트만 읽습니다(`/api/script` 응답의 HMAC 서명을 `/api/tts`가 확인). 서명이 없으면(튜토리얼, 11/03 이전에 저장된 세션) 기기 음성으로 읽습니다. 음성 답변은 브라우저에서 인식하므로 Google에 보내지 않습니다. 따라 읽기 녹음은 무료 등급 약관 때문에 꺼 두었습니다(위 실행 방법 참고). 켜면 읽은 음성을 보내며, 음성은 가릴 수 없고 서버에 저장하지 않습니다. Claude는 음성을 다루지 않고 질문 생성·점검·스크립트만 맡습니다. 무료 등급에서는 Google이 입력과 출력을 서비스 개선에 쓰고 사람이 검토할 수 있습니다([Gemini API 추가 약관](https://aistudio.google.com/docs/terms), 2026-03-23 발효). 처리방침의 위탁처는 5곳입니다.
 - 브라우저(localStorage)에는 기업 요약, 질문, 연습한 답변과 점검·스크립트 결과, 질문별 메모(노트)가 저장됩니다. 원문 메일과 첨부는 저장하지 않습니다. "끝내기·저장"을 누르면 지웁니다.
 - **메일링에 가입한 경우에만** 서버(Upstash Redis)에 이메일 주소·화면 언어·동의 시각을 저장합니다. 키는 이메일의 HMAC이고, 링크와 로그에는 이메일이 나오지 않습니다. 메일마다 수신 거부 링크가 있고, 누르면 즉시 삭제됩니다. 메일 내용은 규칙 팩에서 날짜별로 고르며 AI를 호출하지 않습니다.
 - 입력(Claude 전송 전)과 출력 양쪽에서 이메일·전화번호 패턴을 가립니다(전각 ＠·숫자 포함). 문장 중간의 이름과 PDF·이미지 첨부의 내용은 가리지 못합니다.
@@ -153,3 +154,5 @@ npm run dev             # http://localhost:3000
 
 Icons: Phosphor Icons (duotone), Copyright (c) 2023 Phosphor Icons — MIT License, https://github.com/phosphor-icons/core
 The SVG paths in public/icons.svg are third-party assets (full licence text: public/icons.LICENSE.txt); only the sprite assembly was done during the contest.
+
+Speech recognition runtime: public/vendor/ holds unmodified copies of @huggingface/transformers 4.3.2 (Apache-2.0) and onnxruntime-web (MIT), see public/vendor/LICENSES.txt. They are third-party dependencies, not contest-authored code. The Whisper-small weights (MIT) are not in this repository; the browser downloads them from huggingface.co.

@@ -1,9 +1,12 @@
 // Voice (UIUX-SPEC §9). 🔊 reads a model script: ONE /api/tts call per script (Gemini free tier ≈ 3 TTS requests/min),
-// raw PCM streamed into Web Audio, with a read-along highlight. 🎤 records an answer and puts the /api/stt transcript
-// into the answer box; it is never sent automatically (recognition errors would go straight into the review).
+// raw PCM streamed into Web Audio, with a read-along highlight. 🎤 records an answer, recognises it in the browser
+// (stt-local.js, open-source Whisper, audio never uploaded) and puts the transcript into the answer box; it is never sent
+// automatically (recognition errors would go straight into the review). The read-aloud check still uses /api/stt.
 import { $, el, iel, icon, state, T, message, still, targetOf, bubble } from "./render.js";
 import { highlightLength, totalSeconds, fromBoundary } from "./tts-timing.js";
 import { compareReading } from "./readcheck.js";
+import { recognize, warm, supported as localSupported } from "./stt-local.js";
+import { speechQuality } from "./stt-whisper.js";
 
 let opts = { code: () => null, pack: () => "jp" }; // set by app.js (the verified code lives only in app.js memory)
 const VOICE_KEY = "mensetsu-tts-voice", SPEED_KEY = "mensetsu-tts-speed";
@@ -224,10 +227,10 @@ async function playDevice(me, hl, card, text, cleanups) {
 // ---- 🎤 answer / read-aloud recording ----
 const mic = $("mic"), status = $("micStatus"), freeNote = $("micNote"), input = $("input"), send = $("send");
 const MAX_REC_S = 90;
-let recording = false; // /api/access says whether STT is allowed (off on the Gemini free tier, decision 11/03)
+let recording = false; // /api/access: server STT allowed → read-aloud check (off on the Gemini free tier, decision 11/03)
 export const allowRecording = (on) => { recording = on === true; };
 let rec = null; // { recorder, stream, timer, t0, cancelled, ui }: one recording at a time, answer or read-aloud
-let warned = false; // free-tier line (decision 11/03): first recording of this page session only
+const noted = new Set(); // first-use line per kind (answer: on-device, read-aloud: free tier), once per page session
 const micSupported = () => Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
 
 // recording = the timer line, which carries the record icon. Same text → untouched, so the live region is not re-announced.
@@ -271,9 +274,10 @@ async function startRec(ui, done) {
   };
   recorder.start();
   ui.set(true);
-  if (!warned) {
-    warned = true;
-    freeNote.textContent = T().mic.freeTier;
+  const kind = ui === answerUi ? "local" : "freeTier";
+  if (!noted.has(kind)) {
+    noted.add(kind);
+    freeNote.textContent = T().mic[kind];
     freeNote.hidden = false;
   }
   const tick = () => {
@@ -301,24 +305,22 @@ const postStt = (blob, ms, extra = {}) => fetch(`/api/stt?${new URLSearchParams(
   body: blob,
 });
 
+// Answer recording → in-browser Whisper in the pack's interview language (never auto-detected).
 async function transcribe(blob, ms) {
   mic.disabled = true;
   say(T().mic.transcribing);
-  const my = state.epoch;
+  const my = state.epoch, lang = targetOf();
   try {
-    const res = await postStt(blob, ms);
-    const data = await res.json().catch(() => ({ code: "generation_failed" }));
+    const text = (await recognize(blob, lang, (pct) => { if (my === state.epoch) say(pct < 100 ? T().mic.loading({ pct }) : T().mic.transcribing); })).trim();
     if (my !== state.epoch) return;
-    if (!res.ok) return say(message(data));
-    if (data.quality === "low") return askAgain(); // V3: a bad transcript never goes into the answer box
-    if (!data.text) return say(message({ code: "generation_failed" }));
+    if (speechQuality(text, ms, lang).quality === "low") return askAgain(); // V3: a bad transcript never goes into the answer box
     const typed = input.value.replace(/\s+$/, "");
-    input.value = typed ? `${typed}\n${data.text}` : data.text;
+    input.value = typed ? `${typed}\n${text}` : text;
     input.focus();
     send.classList.add("ready");
     say(T().mic.hint);
   } catch {
-    say(message({ code: "network" }));
+    if (my === state.epoch) say(T().mic.failed);
   } finally {
     mic.disabled = false;
   }
@@ -329,8 +331,15 @@ function askAgain() {
   const b = bubble("coach", T().mic.lowQuality);
   const btn = iel("button", "inline-btn", "mic", T().mic.retry);
   btn.type = "button";
-  btn.addEventListener("click", () => { if (!mic.hidden && !rec) startRec(answerUi, transcribe); }); // answer stage only
+  btn.addEventListener("click", () => { if (!mic.hidden && !rec) startAnswer(); }); // answer stage only
   b.append("\n", btn);
+}
+
+// The model download starts with the recording, so it overlaps with the user speaking.
+function startAnswer() {
+  if (!localSupported()) return say(T().mic.unsupported);
+  warm();
+  startRec(answerUi, transcribe);
 }
 
 // ---- V4: read the model script aloud → recognition-based check against its hiragana reading (readcheck.js) ----
@@ -425,9 +434,9 @@ async function speakSentence(card, text) {
 // Visible only at the answer stage. Leaving it stops a recording without sending it.
 export function showMic(on) {
   if (!on && rec?.ui === answerUi) stopRec(true); // a read-aloud check on the script card keeps going
-  mic.hidden = !(on && recording);
+  mic.hidden = !on; // on-device recognition: no server switch needed
   setMic(rec?.ui === answerUi);
-  mic.classList.toggle("off", !micSupported());
+  mic.classList.toggle("off", !micSupported() || !localSupported());
 }
 // The answer was sent: the check-before-sending hint and the Send highlight have done their job.
 export function voiceSent() {
@@ -443,7 +452,7 @@ export function stopVoice() {
 
 export function initVoice(o) {
   opts = o;
-  mic.addEventListener("click", () => (rec?.ui === answerUi ? stopRec() : startRec(answerUi, transcribe)));
+  mic.addEventListener("click", () => (rec?.ui === answerUi ? stopRec() : startAnswer()));
   const speed = $("ttsSpeed"), radios = document.querySelectorAll("input[name=ttsVoice]");
   $("opts").addEventListener("click", () => {
     for (const r of radios) r.checked = r.value === voiceOf();

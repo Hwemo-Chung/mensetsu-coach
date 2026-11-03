@@ -38,7 +38,7 @@ const sttReadDeps = sttMock(await readFile("test/fixtures/stt-read.json", "utf8"
 const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: asModelScript(scriptFixture) }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) }, "/api/reverse": { client: fakeClient({ result: reverseFixture }) }, "/api/tts": { fetch: mockTtsFetch, apiKey: "mock" }, "/api/stt": sttMock(await readFile("test/fixtures/stt.json", "utf8")) };
 const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
 const securityHeaders = Object.fromEntries(vercel.headers[0].headers.map((h) => [h.key, h.value]));
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".txt": "text/plain; charset=utf-8", ".svg": "image/svg+xml" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm", ".css": "text/css", ".txt": "text/plain; charset=utf-8", ".svg": "image/svg+xml" };
 const PORT = Number(process.env.PORT) || 3000;
 
 createServer(async (req, res) => {
@@ -59,7 +59,8 @@ createServer(async (req, res) => {
     }
     const rel = normalize(url.pathname === "/" ? "/index.html" : url.pathname);
     if (rel.includes("..")) return res.writeHead(400).end();
-    const body = await readFile(join("public", rel));
+    // MOCK: the answer 🎤 gets a fixed transcript instead of downloading the Whisper model (test/ui).
+    const body = await readFile(MOCK && rel === "/stt-local.js" ? "test/fixtures/stt-local.mock.js" : join("public", rel));
     res.writeHead(200, { "content-type": TYPES[extname(rel)] || "application/octet-stream" }).end(body);
   } catch (e) {
     if (e.code === "ENOENT") return res.writeHead(404).end("not found");

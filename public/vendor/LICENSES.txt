@@ -1,0 +1,9 @@
+Vendored for the in-browser answer recogniser (public/stt-worker.js); copied by `npm run vendor:stt`, not edited.
+
+transformers.min.js — @huggingface/transformers 4.3.2, Apache-2.0
+  https://github.com/huggingface/transformers.js/blob/main/LICENSE
+ort-wasm-simd-threaded.asyncify.mjs / .wasm — onnxruntime-web 1.31.0-dev.20260914-8d85527a0, MIT (WASM backend, CPU)
+  https://github.com/microsoft/onnxruntime/blob/main/LICENSE
+
+Model weights are not in this repository: the browser downloads onnx-community/whisper-small (OpenAI Whisper, MIT)
+from huggingface.co on first use and keeps it in the browser cache.
