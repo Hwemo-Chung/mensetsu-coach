@@ -318,6 +318,7 @@ async function transcribe(blob, ms) {
     input.value = typed ? `${typed}\n${text}` : text;
     input.focus();
     send.classList.add("ready");
+    freeNote.hidden = true; // the check-the-transcript hint takes over: one notice line on a phone, not two
     say(T().mic.hint);
   } catch {
     if (my === state.epoch) say(T().mic.failed);

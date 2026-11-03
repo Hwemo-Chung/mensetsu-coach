@@ -193,13 +193,14 @@ textarea { flex: 1 1 auto; min-width: 0; resize: none; border: 1px solid #c8c8c8
   .cmp-answers { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .panel { position: static; z-index: auto; grid-column: 2; grid-row: 2 / 4; min-height: 0; border-left: 1px solid var(--line); }
 }
-/* Wide pane: margin notes. Body column ≤ 40em, notes column 260px; a note (step hint, correction reason, script points)
+/* Wide pane: margin notes. Body column ≤ 40em, notes column 260px; a note (correction reason, script points)
    is auto-placed on the row of the line it explains (sparse grid placement), so no extra markup is needed. */
 @media (min-width: 1280px) {
   .pane .review, .pane .script { display: grid; grid-template-columns: minmax(0, 40em) minmax(200px, 260px); column-gap: 32px; align-items: start; }
   .pane .review > *, .pane .script > * { grid-column: 1; }
   .pane .review > .title, .pane .script > .title { grid-column: 1 / -1; }
-  .pane .review > .hint, .pane .review > .why { grid-column: 2; margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--line); }
+  /* Step hints stay under their label in column 1 (they are the explanation, not a note; 11/03 layout check). */
+  .pane .review > .why { grid-column: 2; margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--line); }
   /* 🔊 out of the grid flow: float is ignored in a grid, and as a grid item it pushed the title below the points. */
   .pane .script { position: relative; }
   .pane .script > .listen { position: absolute; top: 0; right: 0; margin: 0; }

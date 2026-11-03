@@ -285,6 +285,14 @@ for (const width of [1440, 1920]) {
     // Document-style pane: ① structure ② corrections ③ model script, each section once.
     const titles = await page.locator("#reviewBox .title").allTextContents();
     for (const t of [ko.review.title, ko.review.corrections, ko.script.title]) assert.ok(titles.includes(t), `pane section ${t}`);
+    // 11/03 layout check: a step hint is the step's explanation, not a margin note: it sits under its step label (same left
+    // edge, below it), so the label column has no empty gap and the hint is not squeezed into the 260px notes column.
+    const steps = await page.locator("#reviewBox .review > .hint").evaluateAll((hs) => hs.map((h) => {
+      const label = h.previousElementSibling.getBoundingClientRect(), r = h.getBoundingClientRect();
+      return { dx: Math.abs(r.left - label.left), below: r.top >= label.bottom - 1, width: r.width };
+    }));
+    assert.ok(steps.length >= 3, "step hints measured");
+    for (const x of steps) assert.ok(x.dx <= 24 && x.below && x.width > 300, `hint under its label: ${JSON.stringify(x)}`);
     assert.ok(await noHorizontalOverflow(page));
     await shot(page, `redesign-${width}-review`);
     assert.deepEqual(errors, []);

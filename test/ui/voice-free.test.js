@@ -88,6 +88,7 @@ test("on-device line: hidden until the first answer recording starts, then shown
   assert.ok(await page.locator("#micStatus", { hasText: /^0:0\d$/ }).isVisible(), "the timer still shows");
   await page.getByRole("button", { name: ko.mic.stop }).click();
   await page.locator("#micStatus", { hasText: ko.mic.hint }).waitFor({ timeout: 4000 });
+  assert.ok(await line.isHidden(), "the check-the-transcript hint takes over: one notice line, not two (mobile)");
   await page.press("#input", "Control+Enter");
   await scriptCard(page).waitFor();
   assert.ok(await line.isHidden(), "gone once the answer is sent");
