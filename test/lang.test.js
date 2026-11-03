@@ -2,7 +2,7 @@
 // (questions, scripts); everything else is in the native language (= UI lang). Reading script depends on both.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { explainLang, loadPack, PACKS, TARGET_LANGS, READINGS, EXPLAIN_LANGS, buildQuestionRequest, buildScriptRequest, buildReviewRequest, generateQuestions, generateScript, generateReview, maskInput, countSpecific } from "../lib/coach.js";
+import { loadPack, PACKS, TARGET_LANGS, READINGS, EXPLAIN_LANGS, buildQuestionRequest, buildScriptRequest, buildReviewRequest, generateQuestions, generateScript, generateReview, maskInput, countSpecific } from "../lib/coach.js";
 import { POST as questionsPOST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
 import { POST as reviewPOST } from "../api/review.js";
@@ -30,7 +30,7 @@ for (const id of ["jp", "kr"]) {
   const target = pack.language_pair.target;
   const TL = TARGET_LANGS[target];
   for (const lang of ["ko", "en", "ja"]) {
-    const L = explainLang(lang, target); // intent unchanged; jp + ja names plain 日本語 (PRD §16-17)
+    const L = EXPLAIN_LANGS[lang];
     const same = target === lang;
     test(`${id}/${lang}: interview text in ${target}, explanations in ${lang}, reading ${same ? "and translation absent" : "per table"}`, () => {
       // questions: valid schema for this pack, question in the target language, translation/basis in native
