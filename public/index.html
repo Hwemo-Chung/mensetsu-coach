@@ -14,11 +14,23 @@
       <div class="controls">
         <span class="picker"><svg class="icon" aria-hidden="true"><use href="/icons.svg#flag"></use></svg><select id="dest" class="lang"></select></span>
         <span class="picker"><svg class="icon" aria-hidden="true"><use href="/icons.svg#globe"></use></svg><select id="lang" class="lang" data-i18n-label="language"></select></span>
-        <button type="button" id="panelToggle" class="end" aria-controls="panel" aria-expanded="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#panel"></use></svg><span data-i18n="panel"></span></button>
+        <button type="button" id="panelToggle" class="end" aria-controls="panel" aria-expanded="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#panel"></use></svg><span class="lbl" data-i18n="panel"></span></button>
         <button type="button" id="opts" class="end ib" aria-haspopup="dialog" aria-controls="options" data-i18n-label="opts.button"><svg class="icon" aria-hidden="true"><use href="/icons.svg#settings"></use></svg></button>
-        <button type="button" id="end" class="end" data-i18n="end"></button>
+        <button type="button" id="end" class="end"><svg class="icon" aria-hidden="true"><use href="/icons.svg#download"></use></svg><span class="lbl" data-i18n="end"></span></button>
       </div>
     </header>
+    <nav id="rail" class="rail" aria-labelledby="railTitle">
+      <div id="railGuide">
+        <h2 class="rail-title" data-i18n="rail.guideTitle"></h2>
+        <ol class="rail-steps"><li data-i18n="rail.step1"></li><li data-i18n="rail.step2"></li><li data-i18n="rail.step3"></li></ol>
+      </div>
+      <div id="railList" hidden>
+        <h2 id="railTitle" class="rail-title" data-i18n="rail.title"></h2>
+        <p id="railProgress" class="rail-progress"></p>
+        <progress id="railBar" max="10" value="0" aria-hidden="true"></progress>
+        <ol id="railItems" class="rail-items"></ol>
+      </div>
+    </nav>
     <main id="log" class="log" aria-live="polite"></main>
     <form id="composer" class="composer">
       <div id="tour" class="tour" role="dialog" aria-labelledby="tourTitle" aria-describedby="tourBody" tabindex="-1" hidden>
@@ -31,15 +43,12 @@
         </div>
       </div>
       <div id="chip" class="chip" hidden><span id="chipName"></span><button type="button" id="chipX" data-i18n-label="removeFile"><svg class="icon" aria-hidden="true"><use href="/icons.svg#x"></use></svg></button></div>
-      <p id="micStatus" class="mic-status" aria-live="polite" hidden></p>
-      <p id="micNote" class="mic-status" hidden></p>
+      <div class="notices"><p id="micStatus" class="mic-status" aria-live="polite" hidden></p><p id="micNote" class="mic-status" hidden></p></div>
       <div class="row">
         <label class="attach" tabindex="0" role="button" data-i18n-label="attach"><svg class="icon" aria-hidden="true"><use href="/icons.svg#attach"></use></svg><input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
-        <textarea id="input" rows="2" required></textarea>
-        <div class="send-col">
-          <button type="button" id="mic" class="mic" aria-pressed="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#mic"></use></svg></button>
-          <button id="send" type="submit" data-i18n="send"></button>
-        </div>
+        <textarea id="input" rows="1" required></textarea>
+        <button type="button" id="mic" class="mic" aria-pressed="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#mic"></use></svg></button>
+        <button id="send" type="submit"><svg class="icon" aria-hidden="true"><use href="/icons.svg#send"></use></svg><span class="lbl" data-i18n="send"></span></button>
       </div>
       <p class="note"><span data-i18n="note"></span> <a href="/privacy.html" data-i18n="privacy"></a></p>
     </form>
@@ -51,7 +60,7 @@
         </div>
         <button type="button" id="panelClose" class="tab panel-close" data-i18n="panelClose"></button>
       </div>
-      <div id="paneReview" class="pane" role="tabpanel" aria-labelledby="tabReview"><p id="reviewEmpty" class="legend" data-i18n="panel.empty"></p><div id="reviewBox"></div></div>
+      <div id="paneReview" class="pane" role="tabpanel" aria-labelledby="tabReview"><p id="reviewEmpty" class="legend" data-i18n="panel.empty"></p><div id="reviewGuide" class="guide"></div><div id="reviewBox"></div></div>
       <div id="paneNotes" class="pane" role="tabpanel" aria-labelledby="tabNotes" hidden>
         <p id="notesEmpty" class="legend" data-i18n="notes.empty"></p>
         <div id="noteBox" class="note-box" hidden>
@@ -60,6 +69,17 @@
           <p id="noteStatus" class="legend" role="status"></p>
         </div>
       </div>
+    </aside>
+    <aside id="start" class="start" aria-labelledby="startTitle" hidden>
+      <h2 id="startTitle" data-i18n="start.title"></h2>
+      <p class="start-lead" data-i18n="start.lead"></p>
+      <p class="start-gets" data-i18n="start.gets"></p>
+      <ul class="start-list">
+        <li><svg class="icon" aria-hidden="true"><use href="/icons.svg#question"></use></svg><span data-i18n="start.get1"></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="/icons.svg#check"></use></svg><span data-i18n="start.get2"></span></li>
+        <li><svg class="icon" aria-hidden="true"><use href="/icons.svg#speaker"></use></svg><span data-i18n="start.get3"></span></li>
+      </ul>
+      <button type="button" id="startCta" class="start-cta" data-i18n="start.cta"></button>
     </aside>
   </div>
   <dialog id="confirm" class="mail" aria-labelledby="confirmTitle" aria-describedby="confirmBody">
@@ -77,6 +97,12 @@
       <h2 id="optionsTitle" data-i18n="opts.button"></h2>
       <label class="consent switch"><input id="tourTips" type="checkbox" role="switch" aria-describedby="tourTipsHint" checked> <span data-i18n="opts.tourTips"></span></label>
       <p id="tourTipsHint" class="legend" data-i18n="opts.tourTipsHint"></p>
+      <fieldset class="opt-group" aria-describedby="tourEndHint">
+        <legend data-i18n="opts.tourEnd"></legend>
+        <label class="consent switch"><input type="radio" name="tourEnd" value="a"> <span data-i18n="opts.tourEndA"></span></label>
+        <label class="consent switch"><input type="radio" name="tourEnd" value="b"> <span data-i18n="opts.tourEndB"></span></label>
+      </fieldset>
+      <p id="tourEndHint" class="legend" data-i18n="opts.tourEndHint"></p>
       <fieldset class="opt-group">
         <legend data-i18n="opts.voice"></legend>
         <label class="consent switch"><input type="radio" name="ttsVoice" value="Kore"> <span data-i18n="opts.voiceKore"></span></label>

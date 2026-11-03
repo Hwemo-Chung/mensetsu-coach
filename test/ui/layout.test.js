@@ -61,9 +61,10 @@ test("desktop: side panel beside the chat, open by default once questions exist,
   await page.click("#panelClose");
   await panel.waitFor({ state: "hidden" });
   assert.equal(await focused(page), "panelToggle");
-  const closed = await page.locator("#log").boundingBox();
+  const [closed, rail] = await Promise.all([page.locator("#log").boundingBox(), page.locator("#rail").boundingBox()]);
   // Intent changed (layout B): closed = the chat takes the whole width (was: back to one centred 560px column).
-  assert.ok(closed.width >= 0.9 * VIEWPORTS.desktop.width, `chat spans the width when the panel is closed (${closed.width})`);
+  // Intent changed 11/03 (UIUX §11.3): at ≥1280px the 280px question rail stays; the chat takes all of the rest.
+  assert.ok(closed.x >= rail.x + rail.width - 1 && closed.width >= 0.9 * (VIEWPORTS.desktop.width - rail.width), `chat spans the width beside the rail when the panel is closed (${closed.width})`);
   await tourTo(page, TOUR.compare);
   await page.locator("#log > .msg.review").nth(1).waitFor();
   assert.equal(await panel.isHidden(), true, "closed by the user: not reopened automatically");
@@ -232,8 +233,8 @@ test("options: tutorial tips toggle defaults on and survives a reload; 44px touc
   await context.close();
 });
 
-// Layout B (LAYOUT-BENCHMARK §5, approved 11/03): white top bar, flat rows with a role label, chat | document-style
-// review pane across the viewport, each text column capped at 40em, nothing under 14px.
+// Layout B (LAYOUT-BENCHMARK §5, approved 11/03): white top bar, chat | document-style review pane across the viewport,
+// each text column capped at 40em, nothing under 14px. v3 (UIUX §11, 11/03): rail | chat | pane, LINE-style rows.
 async function answered(page) {
   await toQuestions(page);
   await send(page, "1");
@@ -253,14 +254,16 @@ const smallText = () => [...document.body.querySelectorAll("*")].filter((e) => e
   .map((e) => ({ who: e.id || e.className || e.tagName, px: parseFloat(getComputedStyle(e).fontSize) })).filter((x) => x.px < 14);
 
 for (const width of [1440, 1920]) {
-  test(`layout B ${width}: chat | review fill ≥ 90% of the width; text ≤ 40em; nothing < 14px; flat labelled rows`, async () => {
+  test(`layout v3 ${width}: rail | chat | review fill the width; text ≤ 40em; nothing < 14px; bubbles, mark and cards`, async () => {
     const { context, page, errors } = await openApp(browser, server.url, { width, height: 900 });
     await answered(page);
     const panel = page.locator("#panel");
     assert.equal(await panel.isVisible(), true, "open by default on desktop");
-    const [chat, side, first] = await Promise.all([page.locator("#log").boundingBox(), panel.boundingBox(), page.locator("#log > .msg").first().boundingBox()]);
-    assert.ok(side.x + side.width - chat.x >= 0.9 * width, `uses ${Math.round(side.x + side.width - chat.x)} of ${width}px`);
-    assert.ok(first.x <= 24, `left gutter ${first.x}px ≤ 24`);
+    const [rail, side] = await Promise.all([page.locator("#rail").boundingBox(), panel.boundingBox()]);
+    // Intent changed 11/03 (UIUX §11.3): the columns now start with the question rail at the left edge (was: the chat
+    // with a ≤ 24px gutter); together they still fill the viewport.
+    assert.ok(rail.x <= 1, `rail at the left edge (${rail.x})`);
+    assert.ok(side.x + side.width - rail.x >= 0.9 * width, `uses ${Math.round(side.x + side.width - rail.x)} of ${width}px`);
     assert.ok(width - (side.x + side.width) <= 24, "right gutter ≤ 24");
 
     const chatEms = await page.locator("#log").evaluate(lineEms);
@@ -269,19 +272,27 @@ for (const width of [1440, 1920]) {
     for (const x of [...chatEms, ...paneEms]) assert.ok(x.em <= 40.05, `${x.who} line ${x.em.toFixed(1)}em > 40em`);
     assert.deepEqual(await page.evaluate(smallText), [], "no text under 14px");
 
-    // Flat rows: no bubble shape, no shadow, no fill; a role label (CSS generated, so textContent stays clean) on top.
-    assert.equal(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), "rgb(255, 255, 255)");
+    // Intent changed 11/03 (UIUX §11.2): was "flat rows: no bubble, no fill, radius ≤ 4, visible role label". Now LINE-style:
+    // grey chat page, my rows light-green bubbles on the right, coach rows white with the mark, long content as 12px cards.
+    // Unchanged: no shadows, and the role names stay in ::before (read by screen readers, so textContent stays clean).
+    assert.equal(await page.locator("#log").evaluate((e) => getComputedStyle(e).backgroundColor), "rgb(243, 244, 246)");
     const rows = await page.locator("#log > .msg").evaluateAll((all) => all.map((e) => {
-      const cs = getComputedStyle(e);
-      return { cls: e.className, shadow: cs.boxShadow, bg: cs.backgroundColor, radius: Math.max(...["TopLeft", "TopRight", "BottomLeft", "BottomRight"].map((k) => parseFloat(cs[`border${k}Radius`]))), role: getComputedStyle(e, "::before").content };
+      const cs = getComputedStyle(e), log = e.parentElement.getBoundingClientRect(), r = e.getBoundingClientRect();
+      return { cls: e.className, shadow: cs.boxShadow, bg: cs.backgroundColor, radius: Math.max(...["TopLeft", "TopRight", "BottomLeft", "BottomRight"].map((k) => parseFloat(cs[`border${k}Radius`]))), role: getComputedStyle(e, "::before").content, right: log.right - parseFloat(getComputedStyle(e.parentElement).paddingRight) - r.right };
     }));
     for (const r of rows) {
       assert.equal(r.shadow, "none", `${r.cls} shadow`);
-      assert.ok(r.radius <= 4, `${r.cls} radius ${r.radius}`);
-      assert.ok(r.bg === "rgba(0, 0, 0, 0)" || r.bg === "rgb(255, 255, 255)", `${r.cls} background ${r.bg}`);
-      if (/\bme\b/.test(r.cls)) assert.equal(r.role, JSON.stringify(ko.ui.roleMe), r.cls);
-      else if (/\bcoach\b/.test(r.cls)) assert.equal(r.role, JSON.stringify(ko.ui.roleCoach), r.cls);
+      if (/\bme\b/.test(r.cls)) {
+        assert.equal(r.role, JSON.stringify(ko.ui.roleMe), r.cls);
+        assert.equal(r.bg, "rgb(217, 246, 225)", `${r.cls} light green`);
+        assert.ok(r.radius === 16 && Math.abs(r.right) <= 1, `${r.cls} bubble on the right (${r.radius}, ${r.right})`);
+      } else if (/\bcoach\b/.test(r.cls)) {
+        assert.equal(r.role, JSON.stringify(ko.ui.roleCoach), r.cls);
+        if (/\b(script|compare)\b/.test(r.cls)) assert.ok(r.radius === 12 && r.bg === "rgb(255, 255, 255)", `${r.cls} card`);
+        else if (!/\bqs\b/.test(r.cls)) assert.ok(r.radius === 16 && r.bg === "rgb(255, 255, 255)", `${r.cls} coach bubble`);
+      }
     }
+    assert.notEqual(await page.locator("#log > .msg.coach").first().evaluate((e) => getComputedStyle(e, "::after").content), "none", "coach mark");
     // Document-style pane: ① structure ② corrections ③ model script, each section once.
     const titles = await page.locator("#reviewBox .title").allTextContents();
     for (const t of [ko.review.title, ko.review.corrections, ko.script.title]) assert.ok(titles.includes(t), `pane section ${t}`);
@@ -370,26 +381,29 @@ test("panel close lasts the tab; ko keep-all except Japanese lines; Send-ready r
   await context.close();
 });
 
-// UI fix 11/03 (sample approved): select chevron off the edge; the input fills the column (%), Send is bigger and sits at
-// the right edge of the composer row, on desktop and phone.
-test("composer: input grows with the column, Send 56px tall at the right edge; header chevrons have a right margin", async () => {
-  for (const [vp, minW] of [["desktop", 112], ["mobile", 88]]) {
+// UI fix 11/03 (sample approved): select chevron off the edge; the input fills the column (%), Send sits at the right edge.
+// Intent changed 11/03 (UIUX §11.2/§11.4-3): was "input ≥ 80px tall, Send 56px tall and ≥ 112/88px wide"; now one pill row
+// [📎][input][🎤][Send] that grows with the text, Send a 44px round icon on a phone (icon + label on desktop). The phone
+// pickers are icon-only (transparent select over the icon), so the chevron check stays on desktop.
+test("composer: one pill row spanning the column, Send at its right end; desktop pickers keep the chevron margin", async () => {
+  for (const vp of ["desktop", "mobile"]) {
     const { context, page } = await openApp(browser, server.url, VIEWPORTS[vp]);
     const m = await page.evaluate(() => {
       const r = (s) => document.querySelector(s).getBoundingClientRect();
-      const comp = document.querySelector("#composer"), pad = parseFloat(getComputedStyle(comp).paddingRight);
+      const comp = document.querySelector("#composer"), cs = getComputedStyle(comp);
       const after = getComputedStyle(document.querySelector(".picker"), "::after");
-      return { row: r(".composer .row"), input: r("#input"), send: r("#send"), compRight: r("#composer").right - pad,
+      return { row: r(".composer .row"), input: r("#input"), send: r("#send"), compLeft: r("#composer").left + parseFloat(cs.paddingLeft), compRight: r("#composer").right - parseFloat(cs.paddingRight),
         chevronRight: parseFloat(after.right), appearance: getComputedStyle(document.querySelector("#dest")).appearance };
     });
-    assert.ok(Math.abs(m.row.right - m.compRight) <= 1, `${vp}: row spans the composer (${m.row.right} vs ${m.compRight})`);
-    assert.ok(Math.abs(m.send.right - m.row.right) <= 1, `${vp}: Send at the right edge`);
-    assert.ok(m.send.height >= 56 && m.send.width >= minW, `${vp}: Send ${m.send.width}x${m.send.height}`);
-    if (vp === "mobile") assert.ok(m.send.width <= 100, `phone Send stays narrow so the input keeps its width (${m.send.width})`);
-    assert.ok(m.input.height >= 80, `${vp}: input ${m.input.height}px tall`);
-    if (vp === "desktop") assert.ok(m.input.width / m.row.width >= 0.7, `input ${m.input.width}/${m.row.width}`);
+    assert.ok(Math.abs(m.row.right - m.compRight) <= 1 && Math.abs(m.row.left - m.compLeft) <= 1, `${vp}: row spans the composer (${m.row.left}–${m.row.right} vs ${m.compLeft}–${m.compRight})`);
+    assert.ok(m.row.right - m.send.right <= 6, `${vp}: Send at the right end of the pill`);
+    assert.ok(m.row.height <= 56, `${vp}: one row (${m.row.height})`);
+    assert.ok(m.send.height >= 44 && m.send.width >= 44, `${vp}: Send ${m.send.width}x${m.send.height}`);
+    if (vp === "mobile") assert.ok(m.send.width <= 48, `phone Send is a round icon (${m.send.width})`);
+    else assert.ok(m.send.width >= 80, `desktop Send shows its label (${m.send.width})`);
+    assert.ok(m.input.width / m.row.width >= 0.6, `input ${m.input.width}/${m.row.width}`);
     assert.equal(m.appearance, "none");
-    assert.ok(m.chevronRight >= 12, `chevron right ${m.chevronRight}`);
+    if (vp === "desktop") assert.ok(m.chevronRight >= 12, `chevron right ${m.chevronRight}`);
     await context.close();
   }
 });

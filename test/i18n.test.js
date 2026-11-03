@@ -59,3 +59,17 @@ test("destination labels name the country only, never an audience (外国人向�
     assert.doesNotMatch(t.dest[d], /向け|외국인|내국인|용\)|for non|foreign/i, `${code}.dest.${d}: ${t.dest[d]}`);
   }
 });
+
+// English UI for US/UK readers (benchmark 11/04: GOV.UK / Microsoft style): plain sentences of at most 25 words, and
+// counts that read right in the singular ("1 answer", never "1 answers" or "correction(s)").
+test("en copy: every sentence ≤ 25 words; singular and plural counts read right", () => {
+  const en = LANGS.en, long = [];
+  const strings = (o) => Object.values(o).flatMap((v) => (typeof v === "string" ? [v] : v && typeof v === "object" ? strings(v) : []));
+  for (const s of strings(en)) for (const sentence of s.split(/(?<=[.!?])\s+|\n/)) if (sentence.trim().split(/\s+/).length > 25) long.push(sentence);
+  assert.deepEqual(long, []);
+  assert.match(en.habits.title({ n: 1 }), /\b1 answer\)/);
+  assert.match(en.habits.title({ n: 2 }), /\b2 answers\)/);
+  assert.doesNotMatch(en.review.dropped({ n: 1 }), /\(s\)/);
+  assert.match(en.chat.restored({ q: 10, a: 1 }), /\b1 answer\b/);
+  assert.match(en.chat.specificity({ n: 1, total: 10 }), /\b1 question quotes\b/);
+});

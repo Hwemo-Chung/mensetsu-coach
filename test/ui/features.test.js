@@ -38,7 +38,8 @@ test("F7 lines, before/after compare after two answers to one question, notes sa
 
   await answer(page, 1);
   // The mock review has one correction whose `before` is not in the answer (del-chanto): the gate drops it.
-  await page.locator("#log > .msg.review .legend", { hasText: ko.review.dropped({ n: 1 }) }).waitFor();
+  // Intent changed 11/04 (UIUX §11.3): desktop shows the review details (incl. the F7 line) in the panel only.
+  await page.locator("#reviewBox > .review .legend", { hasText: ko.review.dropped({ n: 1 }) }).waitFor();
   assert.equal(await page.locator("#log > .msg.compare").count(), 0, "one attempt: no compare yet");
 
   await answer(page, 1);
@@ -47,8 +48,14 @@ test("F7 lines, before/after compare after two answers to one question, notes sa
   assert.equal(await cmp.locator(".title").textContent(), ko.compare.title({ n: "1" }));
   assert.equal(await cmp.locator("tbody tr").count(), 5, "answered + 4 steps");
   assert.equal(await page.locator("#log > .msg.review").count(), 2, "compare is not a review bubble");
+  // Intent changed 11/04 (layout check): first | latest sit side by side only when the card is ≥560px wide. The
+  // 3-column dashboard's chat column is narrower (two columns held ~10 characters a line), so the chat copy stacks and
+  // the wide panel copy (④) shows them side by side.
   const [a, b] = await Promise.all([0, 1].map((i) => cmp.locator(".cmp-answer").nth(i).boundingBox()));
-  assert.ok(b.x > a.x && Math.abs(a.y - b.y) < 2, "desktop: answers side by side");
+  assert.ok(b.y > a.y + a.height - 1, "desktop chat column: answers stacked");
+  const pc = page.locator("#reviewBox .compare");
+  const [pa, pb] = await Promise.all([0, 1].map((i) => pc.locator(".cmp-answer").nth(i).boundingBox()));
+  assert.ok(pb.x > pa.x && Math.abs(pa.y - pb.y) < 2, "desktop panel: answers side by side");
   // Panel (open by default on desktop). Intent changed (layout B, 11/03): the pane is one document ① ② ③ ④, so the
   // compare section is now the last one (④) instead of sitting above the review.
   await page.locator("#reviewBox > .compare:last-child").waitFor();

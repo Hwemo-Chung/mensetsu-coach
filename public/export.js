@@ -90,3 +90,12 @@ export function compareAttempts(session, qid) {
     answers: [first.answer, last.answer],
   };
 }
+
+// Rail status per question (UIUX §11.3), from the latest reviewed attempt: "todo" ○ none yet, "miss" ✗ the answer missed
+// the question or a required step, "ok" ✓ answered with every required step (optional ones such as 復唱 do not count).
+export function statusOf(session, qid) {
+  const r = (session?.attempts ?? []).findLast((a) => a.question_id === qid && a.review)?.review;
+  if (!r) return "todo";
+  const steps = session.pack?.steps ?? JP_STEPS;
+  return r.answers_question === "yes" && steps.every((s) => s.optional || r.steps[s.key]?.present) ? "ok" : "miss";
+}

@@ -59,8 +59,11 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
     assert.equal(await review.locator(".step.miss", { hasText: "復唱" }).count(), 0);
     assert.match(await review.locator(".step.miss", { hasText: "締め" }).textContent(), new RegExp(Object.values(t.closings).join("|")));
     // F4: the correction quoting the answer stays; the one not in the answer (del-chanto) is dropped by the gate.
-    await review.locator(".rule", { hasText: "【str-ketsuron】" }).waitFor();
-    assert.equal(await review.locator(".rule", { hasText: "del-chanto" }).count(), 0);
+    // Intent changed 11/04 (UIUX §11.3): with the desktop panel open, the chat review is a summary (verdict + steps)
+    // and the corrections are read in the panel, so the details are not shown twice side by side.
+    const detail = vp === "desktop" ? page.locator("#reviewBox > .review") : review;
+    await detail.locator(".rule", { hasText: "【str-ketsuron】" }).waitFor();
+    assert.equal(await detail.locator(".rule", { hasText: "del-chanto" }).count(), 0);
     for (const label of [t.script.title, t.script.text.ja, t.script.reading.ja, t.script.points]) await script.getByText(label, { exact: true }).waitFor();
     await bubbles(page, "coach").filter({ hasText: t.habits.title({ n: 1 }) }).waitFor();
     await shot(page, `${vp}-03-review`, review);

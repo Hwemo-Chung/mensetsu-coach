@@ -157,7 +157,7 @@ test("m6: app and privacy pages declare an inline favicon (no /favicon.ico 404)"
   for (const f of ["index.html", "privacy.html"]) assert.match(readFileSync(join(ROOT, "public", f), "utf8"), /<link rel="icon" href="data:,">/, f);
 });
 
-test("header: one row at 1440x900, at most two rows and no overflow at 390x844 (ko/en/ja)", async () => {
+test("header: one row at 1440x900 and at 390x844 (≤ 56px on the phone), no overflow (ko/en/ja)", async () => {
   for (const lang of ["ko", "en", "ja"]) for (const vp of ["desktop", "mobile"]) {
     const { context, page, errors } = await open(VIEWPORTS[vp], lang);
     await page.evaluate(() => { document.getElementById("panelToggle").hidden = false; }); // widest state: all controls shown
@@ -166,7 +166,11 @@ test("header: one row at 1440x900, at most two rows and no overflow at 390x844 (
       .map((e) => { const r = e.getBoundingClientRect(); return Math.round(r.top + r.height / 2); })); // row = vertical centre (text and 44px buttons differ in height)
     const rows = new Set(tops).size;
     if (vp === "desktop") assert.equal(rows, 1, `${lang} desktop rows ${tops}`);
-    else assert.ok(rows <= 2, `${lang} mobile rows ${tops}`);
+    // Intent changed 11/03 (UIUX §11.4-1): was "at most two rows on a phone"; now one row of icon controls, at most 56px tall.
+    else {
+      assert.equal(rows, 1, `${lang} mobile rows ${tops}`);
+      assert.ok((await page.locator(".bar").boundingBox()).height <= 56, `${lang} mobile header height`);
+    }
     assert.ok(await noHorizontalOverflow(page), `${lang} ${vp} overflow`);
     for (const s of ["#dest", "#lang", "#panelToggle", "#opts", "#end"]) {
       const h = (await page.locator(s).boundingBox()).height;

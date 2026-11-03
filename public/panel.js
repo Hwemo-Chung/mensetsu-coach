@@ -1,6 +1,6 @@
 // Side panel (첨삭 | 노트) re-draws the latest review; chat bubbles stay the source. Desktop: beside the chat.
 // Mobile: full-screen overlay, opened only by the button, with the chat behind it inert.
-import { $, el, state, T, persist, renderReview, renderCompare, renderScript, habitsLine } from "./render.js";
+import { $, el, state, T, persist, renderReview, renderCompare, renderScript, habitsLine, renderRail, JP_STEPS, stepName } from "./render.js";
 import { addListen } from "./voice.js";
 
 export const panel = $("panel");
@@ -49,6 +49,7 @@ for (const x of tabs) {
 // Layout B: on desktop the panel is open by default once a session has questions (empty state until the first
 // review), unless the user closed it once. Called right after renderQuestions(); a phone never opens it by itself.
 export function openByDefault() {
+  renderGuide(); // the tour opens the panel without a session: the 4-step guide still fills it
   let closedByUser = false;
   try { closedByUser = sessionStorage.getItem(PANEL_CLOSED) === "1"; } catch {}
   if (wide.matches && panel.hidden && !closedByUser) openPanel();
@@ -77,7 +78,17 @@ export function showReview(r, cmp, script) {
 // saved 400ms after typing stops, exported under that question, cleared with the session.
 const note = $("note");
 let noteTimer = 0;
+// Before the first review the 첨삭 tab is not blank (UIUX §11.3): the question being practised and the 4-step structure.
+// CSS hides this guide once #reviewEmpty is hidden (a review is shown).
+function renderGuide() {
+  const q = state.current, t = T();
+  const parts = q ? [el("p", "ja", `Q${q.id.slice(1)}. ${q.question}`), ...(q.question_tr ? [el("p", "tr", q.question_tr)] : [])] : [];
+  const ol = el("ol", "guide-steps");
+  for (const s of state.session?.pack?.steps ?? JP_STEPS) ol.append(el("li", null, `${stepName(s, " — ")}${s.optional ? ` (${t.review.recommended})` : ""}`));
+  $("reviewGuide").replaceChildren(...parts, el("p", "title", t.panel.guide), ol);
+}
 export function renderNotes() {
+  renderGuide();
   const session = state.session;
   const q = state.current ?? session?.questions.find((x) => x.id === session.attempts.at(-1)?.question_id);
   const on = Boolean(session && q);
@@ -103,4 +114,5 @@ export function resetPanel() {
   panel.hidden = toggle.hidden = true;
   expanded(false);
   syncInert();
+  renderRail(); // no session (finished, reset, or the demo left) → the rail's 3-step guide
 }

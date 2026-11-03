@@ -1,5 +1,5 @@
 // Voice UI (UIUX-SPEC §9): 🔊 on the model script (one /api/tts call per script, streamed, read-along highlight,
-// device-voice fallback), 🎤 above Send (record → in-browser Whisper → answer box, never auto-sent), three-dot loader.
+// device-voice fallback), 🎤 left of Send in the pill bar (record → in-browser Whisper → answer box, never auto-sent), three-dot loader.
 // MOCK server: TTS = ~3 s of silence streamed in 6 chunks, 🎤 = test/fixtures/stt-local.mock.js. 0 Claude / 0 Gemini calls.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -148,7 +148,7 @@ test("tutorial 🔊 reads with the device voice: no /api/tts request", async () 
   await context.close();
 });
 
-test("🎤 above Send at the answer stage only: record → timer → stop → in-browser transcript in the box, never sent, audio never uploaded (mobile)", async () => {
+test("🎤 beside Send at the answer stage only: record → timer → stop → in-browser transcript in the box, never sent, audio never uploaded (mobile)", async () => {
   const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.mobile);
   await context.addInitScript(micStub, {});
   await page.reload();
@@ -160,7 +160,8 @@ test("🎤 above Send at the answer stage only: record → timer → stop → in
   const mic = page.getByRole("button", { name: ko.mic.start });
   const [m, s] = await Promise.all([mic.boundingBox(), page.locator("#send").boundingBox()]);
   assert.ok(m.width >= 44 && m.height >= 44, `${m.width}x${m.height}`);
-  assert.ok(m.y + m.height <= s.y + 1 && m.x < s.x + s.width && s.x < m.x + m.width, "stacked above Send");
+  // Intent changed 11/03 (UIUX §11): was "🎤 stacked above a tall Send"; the composer is now one pill row, 🎤 just left of Send.
+  assert.ok(Math.abs((m.y + m.height / 2) - (s.y + s.height / 2)) <= 2 && m.x + m.width <= s.x + 1 && s.x - (m.x + m.width) <= 8, "same row, left of Send");
   assert.equal(await mic.getAttribute("aria-pressed"), "false");
 
   await page.fill("#input", "前置き");

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sessionToMarkdown, exportFileName, compareAttempts, mask } from "../public/export.js";
+import { sessionToMarkdown, exportFileName, compareAttempts, mask, statusOf } from "../public/export.js";
 import { maskInput } from "../lib/privacy.js";
 import { LANGS } from "../public/i18n/index.js";
 import { fixture, scriptFixture, reviewFixture } from "./fake-claude.js";
@@ -39,8 +39,9 @@ test("F6 markdown: personal-data patterns are masked in the exported document (P
 
 test("F6 markdown: works with no attempts and with a failed review; labels follow the language", () => {
   const md = sessionToMarkdown({ ...session, attempts: [{ question_id: "q1", answer: "A", review: null, script: scriptFixture }] }, LANGS.en);
-  assert.ok(md.includes("③ Model script"));
-  assert.ok(!md.includes("① Structure check"));
+  // Intent unchanged: the en label was renamed 11/04 ("A stronger version", US/UK benchmark), so read it from en.js.
+  assert.ok(md.includes(LANGS.en.script.title));
+  assert.ok(!md.includes(LANGS.en.review.title));
   assert.ok(sessionToMarkdown({ ...session, attempts: [] }, LANGS.ja).includes(fixture.questions[0].question));
 });
 
@@ -86,4 +87,22 @@ test("compareAttempts: null below two reviewed attempts; first vs latest per ste
   assert.deepEqual(c.steps.map((x) => x.first), Object.values(miss.steps).map((v) => v.present));
   const kr = compareAttempts({ ...s, pack: { steps: [{ key: "ketsuron", label: "결론" }] } }, "q3");
   assert.deepEqual(kr.steps.map((x) => x.label), ["결론"], "pack step labels win");
+});
+
+test("statusOf (rail ○/✗/✓): latest reviewed attempt decides; an optional step (復唱) missing still counts as ✓", () => {
+  const step = (present) => ({ present, note: "" });
+  const ok = { ...reviewFixture, answers_question: "yes", steps: { fukusho: step(false), ketsuron: step(true), kijun: step(true), sentakushi: step(true) } };
+  const offTopic = { ...ok, answers_question: "no" };
+  const s = { ...session, attempts: [] };
+  assert.equal(statusOf(s, "q1"), "todo", "no attempt");
+  s.attempts.push({ question_id: "q1", answer: "a", review: null });
+  assert.equal(statusOf(s, "q1"), "todo", "script only, no review");
+  s.attempts.push({ question_id: "q1", answer: "b", review: reviewFixture });
+  assert.equal(statusOf(s, "q1"), "miss", "required steps missing");
+  s.attempts.push({ question_id: "q1", answer: "c", review: ok });
+  assert.equal(statusOf(s, "q1"), "ok", "all required steps, 復唱 optional");
+  s.attempts.push({ question_id: "q1", answer: "d", review: offTopic });
+  assert.equal(statusOf(s, "q1"), "miss", "did not answer the question");
+  assert.equal(statusOf(s, "q2"), "todo", "per question");
+  assert.equal(statusOf({ ...s, pack: { steps: [{ key: "ketsuron", label: "결론" }] }, attempts: [{ question_id: "q1", answer: "e", review: { ...offTopic, answers_question: "yes" } }] }, "q1"), "ok", "pack steps win");
 });

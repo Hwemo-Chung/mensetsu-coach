@@ -1,57 +1,58 @@
-/* Layout B (LAYOUT-BENCHMARK §4–5): white page, flat rows split by hairlines, no bubbles, no shadows, no pastel boxes.
-   Green is only for primary buttons, emphasis text and icons: --green-ink #047a35 on white 5.47:1 (WCAG AA).
-   #06c755 stays only as the "playing" icon colour. Type: body 16px, nothing under 14px, Japanese script 18px / 1.9. */
-:root { --ink: #1f1f1f; --muted: #5c5c5c; --line: #e5e5e5; --green: #06c755; --green-ink: #047a35; --red: #b00020; --warn: #6d4c00; --gutter: 16px; }
+/* v3 (UIUX-SPEC §11, approved 11/03): LINE-style chat on a light-grey page — coach rows with a mark on the left, my rows as
+   light-green bubbles on the right, long content (questions, review, script, compare) as white cards; one pill composer.
+   ≥1024px: chat | review pane. ≥1280px: question rail | chat | review pane.
+   Green text/icons use --green-ink #047a35 (5.47:1 on white, 4.9:1 on --page); #06c755 stays only as the "playing" icon.
+   Type: body 16px, nothing under 14px, Japanese script 18px / 1.9. */
+:root { --ink: #1f1f1f; --muted: #5c5c5c; --line: #e3e6ea; --field: #c8ccd2; --page: #f3f4f6; --me: #d9f6e1; --tint: #e8f5ec; --green: #06c755; --green-ink: #047a35; --red: #b00020; --warn: #6d4c00; --gutter: 12px; --col: 40em; }
 * { box-sizing: border-box; }
 body { margin: 0; font-family: -apple-system, "Hiragino Sans", "Apple SD Gothic Neo", "Noto Sans JP", sans-serif; font-size: 16px; line-height: 1.6; color: var(--ink); background: #fff; }
 [hidden] { display: none !important; }
 /* Duotone sprite icons (public/icons.svg): size = font-size, colour = color; the tint is the same colour at 20%. */
 .icon { width: 1em; height: 1em; fill: currentColor; flex: none; vertical-align: -0.15em; }
 :focus-visible { outline: 2px solid var(--green-ink); outline-offset: 2px; }
-textarea:focus { outline: 2px solid var(--green-ink); outline-offset: 1px; }
 .attach:focus-within { outline: 2px solid var(--green-ink); }
 button, select, textarea, input { font: inherit; color: inherit; }
+/* Visually hidden, still read and still the accessible name (role labels, status words, icon-button labels on a phone). */
+.vh, .msg[data-role]::before { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.msg[data-role]::before { content: attr(data-role); }
+@media (max-width: 1023px) { .lbl { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
 
-/* Mobile-first: one column. Desktop (≥1024px) puts the review pane beside the chat when it is open. */
 .app { height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
 
-/* Top bar: white with a hairline; brand left, controls right. */
-.bar { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 4px var(--gutter); background: #fff; border-bottom: 1px solid var(--line); }
-.brand { white-space: nowrap; font-weight: 700; font-size: 18px; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.bar .sub { font-weight: 400; font-size: 14px; color: var(--muted); margin-left: 8px; }
-.controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 8px; margin-left: auto; min-width: 0; max-width: 100%; }
-.controls > * { min-height: 44px; }
-.lang { font-size: 14px; border: 1px solid #c8c8c8; border-radius: 4px; padding: 0 6px; background: #fff; min-width: 0; max-width: 42vw; text-overflow: ellipsis; }
-.picker { position: relative; display: inline-flex; align-items: center; gap: 4px; min-width: 0; color: var(--muted); }
-/* Own chevron with a 14px right margin: the native arrow sat on the border (UI fix 11/03). */
-.picker > select { align-self: stretch; -webkit-appearance: none; appearance: none; padding: 0 36px 0 12px; }
-.picker::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; }
-.end { font-size: 14px; border: 1px solid #c8c8c8; border-radius: 4px; padding: 0 12px; background: #fff; cursor: pointer; white-space: nowrap; }
-/* Icon-only header button: no box; the icon sits straight on the bar. */
-.end.ib { min-width: 44px; font-size: 22px; padding: 0; border: 0; background: none; color: var(--green-ink); }
-#panelToggle { color: var(--green-ink); }
-#panelToggle > .icon { margin-right: 6px; font-size: 18px; }
+/* Top bar: one row, 56px. Mark + name left; destination, language, panel, options, save right (icons on a phone). */
+.bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 2px; height: 56px; padding: 0 6px 0 var(--gutter); background: #fff; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 8px; margin-right: auto; min-width: 0; white-space: nowrap; font-weight: 700; font-size: 16px; overflow: hidden; text-overflow: ellipsis; }
+.brand::before { content: "面" / ""; display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px; background: var(--green-ink); color: #fff; font-size: 17px; }
+.bar .sub { display: none; font-weight: 400; font-size: 14px; color: var(--muted); }
+.controls { display: flex; align-items: center; gap: 2px; min-width: 0; }
+/* Picker: icon + native select. Phone: the select is a transparent 44px layer over the icon (opens the native list). */
+.picker { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; height: 44px; border-radius: 8px; color: var(--green-ink); }
+.picker > .icon { font-size: 22px; }
+.picker > select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; -webkit-appearance: none; appearance: none; border: 0; }
+.picker:has(> select:focus-visible) { outline: 2px solid var(--green-ink); outline-offset: 1px; }
+.end { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; height: 44px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--green-ink); font-size: 14px; white-space: nowrap; cursor: pointer; }
+.end > .icon { font-size: 22px; }
+.end.ib { padding: 0; }
 #panelToggle[aria-expanded="true"] { color: var(--ink); } /* panel open: icon swap (panel → x) + text colour, no fill */
-/* Header: at most two rows on a phone (controls flow on from the brand; the subtitle repeats the title and the
-   destination select, so it goes), one row on desktop (see the ≥1024px block). */
-@media (max-width: 1023px) {
-  .bar .sub { display: none; }
-  .controls { display: contents; }
-  .brand { margin-right: auto; }
-  .lang { max-width: 34vw; }
-  .picker > .icon { display: none; } /* keeps the phone header at two rows; the select text names it */
-}
 
-/* Chat: flat rows, a small role label on top (render.js bubble() sets data-role), hairline between rows. */
-.log { grid-column: 1; grid-row: 2; min-height: 0; overflow-y: auto; padding: 8px var(--gutter) 16px; display: flex; flex-direction: column; align-items: flex-start; }
-.msg { width: 100%; max-width: 40em; padding: 12px 0; border-top: 1px solid var(--line); white-space: pre-wrap; word-break: break-word; }
+/* Chat column: centred, at most 40em; grey page so white cards and bubbles stand out. */
+.log { grid-column: 1; grid-row: 2; min-height: 0; overflow-y: auto; background: var(--page); padding: 12px max(var(--gutter), calc((100% - var(--col)) / 2)) 16px; display: flex; flex-direction: column; align-items: flex-start; }
+.msg { position: relative; max-width: min(85%, var(--col)); margin: 2px 0 2px 40px; padding: 9px 14px; border-radius: 4px 16px 16px 16px; background: #fff; white-space: pre-wrap; word-break: break-word; }
 /* Korean breaks at spaces (no "개인정/보"); Japanese has no spaces, so its lines keep the normal CJK breaks. */
 :lang(ko) .msg, :lang(ko) .note { word-break: keep-all; overflow-wrap: anywhere; }
 :lang(ko) .msg .ja { word-break: normal; }
-.log > .msg:first-child { border-top: 0; }
-.msg[data-role]::before { content: attr(data-role); display: block; margin-bottom: 2px; font-size: 14px; font-weight: 700; color: var(--muted); white-space: normal; }
-.me[data-role]::before { color: var(--green-ink); }
-/* Each text block keeps its own 40em cap, so 14–15px lines stay ≤ 40 characters too. */
+/* Coach mark (avatar) on the first row of a coach run, LINE-style; role names stay for screen readers (::before, hidden). */
+.msg.coach { margin-top: 12px; }
+.msg.coach::after { content: "面" / ""; position: absolute; left: -40px; top: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--green-ink); color: #fff; font-size: 16px; font-weight: 700; line-height: 32px; text-align: center; white-space: normal; }
+.msg.coach:not(.qs, .script, .compare) + .msg.coach:not(.qs, .script, .compare) { margin-top: 2px; }
+.msg.coach:not(.qs, .script, .compare) + .msg.coach::after, .msg.qs::after, .msg.script::after, .msg.compare::after { content: none; }
+.msg.me { align-self: flex-end; max-width: 80%; margin: 12px 0 2px; background: var(--me); border-radius: 16px 4px 16px 16px; }
+.msg.err { color: var(--red); border: 1px solid #f0c7cd; margin-top: 8px; }
+.msg.note { color: var(--warn); }
+/* Long content = full-width white card (1px border, 12px radius). */
+.msg.script, .msg.compare { width: 100%; max-width: var(--col); margin: 10px 0 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
+.log > .quick, .log > .next-btn { margin-left: 40px; }
+/* Each text block keeps its own 40em cap. */
 .log p, .log li, .pane p, .pane li { max-width: 40em; }
 .err { color: var(--red); }
 .typing { color: var(--muted); }
@@ -62,11 +63,21 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .dots i:nth-child(3) { animation-delay: .4s; }
 @keyframes dot { 0%, 80%, 100% { opacity: .3; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
 .wait-label { margin-left: 8px; font-size: 14px; }
-/* Listen button on the model script (top-right) and the read-along highlight. Playing = stop icon + bright green. */
-.script .listen, .script .readaloud { float: right; margin: -30px 0 4px 14px; /* up into the role-label row = card top-right; ≥12px of air to the text beside it (desktop-26) */ min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--green-ink); font-size: 24px; cursor: pointer; }
+
+/* Question list: an intro line, then one card per question with its [練習する] button. */
+.msg.qs { width: 100%; max-width: var(--col); margin-left: 0; padding: 0; background: none; border-radius: 0; font-weight: 600; }
+.msg.qs > .legend { font-weight: 400; margin: 2px 0 4px; }
+.q { margin: 8px 0 0; padding: 12px 14px; background: #fff; border: 1px solid var(--line); border-radius: 12px; white-space: normal; font-weight: 400; }
+.tag { display: inline-block; font-size: 14px; color: var(--green-ink); background: var(--tint); font-weight: 700; border-radius: 999px; padding: 1px 10px; margin: 0 6px 6px 0; }
+.ja { font-weight: 600; margin: 4px 0 2px; }
+.tr, .basis, .reading { color: var(--muted); font-size: 15px; margin: 0; }
+.q .basis { margin-top: 4px; }
+.q > .practice { display: flex; align-items: center; margin: 10px 0 0 auto; border-color: var(--green-ink); font-weight: 700; }
+
+/* Listen / read-aloud buttons at the card's top-right; playing = stop icon + bright green. */
+.script .listen, .script .readaloud { float: right; margin: -8px -8px 4px 4px; min-width: 44px; min-height: 44px; border: 0; background: none; color: var(--green-ink); font-size: 24px; cursor: pointer; }
 .script .listen[aria-pressed="true"] { color: var(--green); }
-/* V4 read-aloud: mic left of the speaker; red while recording; wrong sentences get a wavy red underline (text unchanged). */
-.script .readaloud { margin-left: 0; }
+.script .readaloud { margin-right: 0; } /* sits left of 🔊 (float order); a negative margin would overlap it */
 .script .readaloud.rec { color: var(--red); }
 .script .ja .miss { text-decoration: underline wavy var(--red); text-decoration-thickness: 1.5px; text-underline-offset: 5px; }
 .read-status { margin-top: 6px; }
@@ -83,36 +94,45 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .read { color: var(--green-ink); font-weight: 700; }
 .tts-note { margin-top: 6px; }
 
-.q { margin: 0; padding: 10px 0; border-top: 1px solid var(--line); white-space: normal; }
-.q:first-of-type { border-top: 0; }
-.tag { display: inline-block; font-size: 14px; color: var(--green-ink); font-weight: 700; margin-right: 10px; }
-.ja { font-weight: 600; margin: 4px 0 2px; }
-.tr, .basis, .reading { color: var(--muted); font-size: 15px; margin: 0; }
+/* Card hierarchy: title 17px bold → label 14px green → body 16px (Japanese 18px in the script) → note 15px grey. */
 .script { white-space: normal; }
-.script .title, .compare .title { font-weight: 700; margin: 0 0 6px; }
-.script .label, .compare .label { font-size: 14px; color: var(--green-ink); font-weight: 700; margin: 10px 0 2px; }
+.script .title, .compare .title { font-weight: 700; font-size: 17px; margin: 0 0 8px; }
+.script .label, .compare .label { font-size: 14px; color: var(--green-ink); font-weight: 700; margin: 12px 0 2px; }
 .script .ja, .script .tr, .reading { margin: 0; white-space: pre-wrap; }
-/* The model script is what the user reads aloud: 18px, generous Japanese line spacing (JLREQ). */
 .script:not(.review) .ja { font-size: 18px; line-height: 1.9; font-weight: 400; }
 .reading { letter-spacing: .02em; }
 .legend { font-size: 14px; color: var(--muted); margin: 2px 0 0; }
 .points { margin: 0; padding-left: 20px; font-size: 15px; }
-.note.msg { color: var(--warn); }
 .review .verdict { font-weight: 700; margin: 2px 0; }
 .review .verdict.no { color: var(--red); }
-.review .verdict.unclear { color: #8a6d00; }
+.review .verdict.unclear { color: #7a5f00; }
 .review .step { margin: 6px 0 0; }
 .review .step.miss { color: var(--red); }
 .review .step.tip { color: var(--warn); }
 .review .step.ok .icon, .review .verdict.yes .icon { color: var(--green-ink); }
 .review .step .icon, .review .verdict .icon, .legend > .icon, .habit .icon { margin-right: 4px; }
-.habit .icon { margin: 0 0 0 2px; color: #8a6d00; }
+.habit .icon { margin: 0 0 0 2px; color: #7a5f00; }
 .review .hint { margin: 0 0 0 20px; font-size: 15px; color: var(--muted); }
+.review .title:not(:first-child) { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+/* English summary (ui.western): readiness level, the not-a-grade line, strengths, areas to improve. */
+.review .readiness { margin: 0; font-size: 17px; font-weight: 700; }
+.review .readiness.high { color: var(--green-ink); }
+.review .readiness.low { color: var(--red); }
+.review .sum { margin: 6px 0 0; font-weight: 600; }
+.review .sum.ok .icon { color: var(--green-ink); margin-right: 6px; }
+.review .sum.miss { color: var(--red); }
+.review .sum.miss .icon { margin-right: 6px; }
+.review .sum + .verdict, .review .legend + .verdict { margin-top: 12px; }
 .review .rule { margin: 10px 0 0; font-size: 14px; color: var(--green-ink); font-weight: 700; }
-.inline-btn { margin-top: 6px; font-size: 15px; border: 1px solid #c8c8c8; color: var(--green-ink); background: #fff; border-radius: 4px; padding: 5px 12px; min-height: 44px; cursor: pointer; }
+.inline-btn { margin-top: 6px; font-size: 15px; font-weight: 600; border: 1px solid var(--field); color: var(--green-ink); background: #fff; border-radius: 999px; padding: 0 16px; min-height: 44px; cursor: pointer; }
 .inline-btn:disabled { opacity: .5; cursor: default; }
 .demo-banner { color: var(--warn); font-weight: 700; }
-.next-btn { align-self: flex-start; margin: 8px 0; font-size: 16px; padding: 8px 18px; background: var(--green-ink); color: #fff; border-color: var(--green-ink); }
+.next-btn { align-self: flex-start; margin: 8px 0; font-size: 16px; padding: 0 20px; background: var(--green-ink); color: #fff; border-color: var(--green-ink); }
+
+/* Quick replies (UIUX §11.2): 44px chips in one row that scrolls sideways. */
+.quick { display: flex; gap: 8px; max-width: calc(100% - 40px); overflow-x: auto; padding: 8px 0 4px; scrollbar-width: none; flex-shrink: 0; }
+.quick > button { flex: none; max-width: 15em; min-height: 44px; padding: 0 16px; border: 1px solid var(--green-ink); border-radius: 999px; background: #fff; color: var(--green-ink); font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.quick > button:disabled { opacity: .5; cursor: default; }
 
 /* Before/after (UIUX-SPEC (e)): one 3-column table at any width; the two answers sit side by side on desktop. */
 .compare { white-space: normal; }
@@ -122,51 +142,82 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .cmp-ok { color: var(--green-ink); }
 .cmp-miss { color: var(--red); }
 .cmp-answers { display: grid; gap: 12px; }
+/* First | latest side by side only when the card itself is wide enough: in the 3-column dashboard the chat column is
+   ~350px and two columns held about 10 characters a line (layout check 11/04). Stacked below that. */
+.compare { container-type: inline-size; }
+@container (min-width: 560px) { .cmp-answers { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 .cmp-answer { border-left: 2px solid var(--line); padding: 0 0 0 12px; min-width: 0; }
 .compare .label { margin-top: 0; }
 .compare .ja { margin: 0; font-weight: 400; white-space: pre-wrap; }
 
 /* Tutorial coach mark (UIUX-SPEC (k)): fixed above the input, never positioned next to its target. */
-.tour { position: relative; z-index: 6; background: #fff; border: 2px solid var(--green-ink); border-radius: 4px; padding: 10px 12px; margin-bottom: 8px; }
+.tour { position: relative; z-index: 6; background: #fff; border: 2px solid var(--green-ink); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
 .tour-head { margin: 0; font-size: 16px; }
 #tourStep { color: var(--green-ink); font-weight: 700; margin-right: 8px; }
 #tourBody { margin: 4px 0 8px; font-size: 15px; line-height: 1.5; }
 .tour-actions { display: flex; gap: 8px; align-items: center; }
 .tour .inline-btn { margin-top: 0; }
 #tourSkip { margin-right: auto; }
-/* The tour's dimmer: one fixed layer over the whole page (header and panel too); spotlit elements and the popup sit
-   above it. A box-shadow dimmer was clipped by the scrolling chat column (rework 11/03). */
+/* The tour's dimmer: one fixed layer over the whole page; spotlit elements and the popup sit above it. */
 .tour-dim { position: fixed; inset: 0; z-index: 4; background: rgba(0,0,0,.45); pointer-events: none; } /* dims only: the panel stays usable during the tour */
-body .spot { position: relative; z-index: 5; background: #fff; } /* body: beats later control rules (.tab: background none); #send keeps its green */
+body .spot { position: relative; z-index: 5; background-color: #fff; } /* body: beats later control rules (.tab: background none); #send keeps its green */
+.msg.me.spot { background-color: var(--me); }
+.msg.qs.spot { background-color: var(--page); }
 /* A spotlit card taller than the screen shows its head only (the point of the step), fading out at the bottom. */
 .spot.spot-head { flex-shrink: 0; max-height: 60vh; overflow: hidden; -webkit-mask-image: linear-gradient(#000 80%, transparent); mask-image: linear-gradient(#000 80%, transparent); }
 .appear { animation: appear .2s ease-out both; }
 @keyframes appear { from { opacity: 0; } }
 
-.composer { grid-column: 1; grid-row: 3; background: #fff; padding: 8px var(--gutter) 6px; border-top: 1px solid var(--line); }
-/* The input fills the chat column (%), Send sits at its right edge (UI fix 11/03). */
-.row { display: flex; gap: 8px; align-items: flex-end; width: 100%; }
-textarea { flex: 1 1 auto; min-width: 0; resize: none; border: 1px solid #c8c8c8; border-radius: 4px; padding: 9px 12px; font-size: 16px; min-height: 5.5em; max-height: 40vh; field-sizing: content; }
-#send { min-height: 56px; min-width: 112px; background: var(--green-ink); color: #fff; border: 0; border-radius: 4px; padding: 10px 16px; font-weight: 700; font-size: 17px; cursor: pointer; }
-@media (max-width: 1023px) { #send { min-width: 88px; } } /* after the base rule: a phone keeps the input wide */
-#send:disabled { opacity: .45; cursor: wait; }
-#send.spot:disabled { opacity: 1; } /* the tour disables Send to block input, but shows it as the button to press */
-#send.ready { outline: 3px solid var(--green-ink); outline-offset: 1px; }
-.send-col { display: flex; flex-direction: column; gap: 6px; }
-/* Recording = stop icon in red (icon swap + colour, no box). */
-.mic { min-height: 44px; min-width: 44px; border: 0; background: none; color: var(--green-ink); font-size: 26px; cursor: pointer; }
+/* Composer: notices (one row), then one pill bar [📎][input][🎤][Send], centred under the chat column. */
+.composer { grid-column: 1; grid-row: 3; background: #fff; border-top: 1px solid var(--line); padding: 8px max(var(--gutter), calc((100% - var(--col)) / 2)) calc(8px + env(safe-area-inset-bottom)); }
+.notices { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; margin: 0 8px 6px; }
+.notices:not(:has(> :not([hidden]))) { display: none; }
+.mic-status { margin: 0; font-size: 14px; color: var(--warn); }
+.mic-status.rec { color: var(--red); font-weight: 700; }
+.mic-status > .icon { margin-right: 4px; }
+.row { display: flex; align-items: flex-end; gap: 0; width: 100%; padding: 3px; border: 1px solid var(--field); border-radius: 26px; background: #fff; }
+.row:focus-within { border-color: var(--green-ink); box-shadow: 0 0 0 1px var(--green-ink); }
+textarea { flex: 1 1 0; min-width: 0; /* basis 0: field-sizing would make a long text's width the basis and squeeze the box */ resize: none; border: 0; background: none; padding: 10px 6px; font-size: 16px; line-height: 1.5; min-height: 44px; max-height: 40vh; field-sizing: content; }
+.row > textarea:focus { outline: none; } /* the pill shows the focus ring (.row:focus-within) */
+.attach, .mic { display: inline-flex; align-items: center; justify-content: center; flex: none; min-width: 44px; min-height: 44px; border: 0; border-radius: 50%; background: none; color: var(--green-ink); font-size: 24px; cursor: pointer; }
 .mic.rec { color: var(--red); }
 .mic.off { opacity: .45; }
-.mic-status { margin: 0 4px 6px; font-size: 14px; color: var(--warn); }
-.mic-status.rec { color: var(--red); font-weight: 700; }
-.attach { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; font-size: 24px; color: var(--green-ink); cursor: pointer; }
-.mic-status > .icon { margin-right: 4px; }
+#send { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 22px; background: var(--green-ink); color: #fff; font-size: 20px; font-weight: 700; cursor: pointer; }
+#send:disabled { opacity: .45; cursor: wait; }
+#send.spot:disabled { opacity: 1; } /* the tour disables Send to block input, but shows it as the button to press */
+#send.ready { outline: 3px solid var(--green-ink); outline-offset: 2px; }
 #chipName > .icon, .msg.me > .icon, .msg.coach > .icon, .pane .tr > .icon { margin-right: 4px; }
 .inline-btn > .icon { margin-right: 4px; } .next-btn > .icon { margin: 0 0 0 4px; }
-.chip { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 4px; padding: 0 0 0 10px; font-size: 14px; margin-bottom: 6px; }
+.chip { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 0 0 0 12px; font-size: 14px; margin-bottom: 6px; }
 .chip button { border: 0; background: none; color: var(--muted); font-size: 20px; cursor: pointer; min-width: 44px; min-height: 44px; }
-.composer .note { margin: 6px 4px 0; font-size: 14px; color: var(--muted); }
+.composer .note { margin: 6px 8px 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .composer .note a { color: var(--green-ink); }
+body:not([data-stage="code"]):not([data-stage="mail"]) .composer .note { display: none; } /* shown where mail and files are entered */
+
+/* Question rail (≥1280px only): guide before questions, then progress and one row per question. */
+.rail { display: none; }
+.rail-title { margin: 0 6px 10px; font-size: 16px; font-weight: 700; }
+.rail-steps { list-style: none; margin: 0; padding: 0; counter-reset: s; }
+.rail-steps li { counter-increment: s; display: flex; align-items: center; gap: 12px; padding: 10px 6px; font-size: 15px; }
+.rail-steps li::before { content: counter(s); display: grid; place-items: center; flex: none; width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--green-ink); color: var(--green-ink); font-size: 14px; font-weight: 700; }
+.rail-progress { margin: 0 6px 6px; font-size: 14px; color: var(--muted); }
+#railBar { display: block; width: calc(100% - 12px); height: 6px; margin: 0 6px 14px; border: 0; border-radius: 3px; background: var(--line); -webkit-appearance: none; appearance: none; }
+#railBar::-webkit-progress-bar { background: var(--line); border-radius: 3px; }
+#railBar::-webkit-progress-value { background: var(--green-ink); border-radius: 3px; }
+#railBar::-moz-progress-bar { background: var(--green-ink); border-radius: 3px; }
+.rail-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.rail-q { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; column-gap: 10px; width: 100%; min-height: 44px; padding: 9px 10px; border: 0; border-radius: 10px; background: none; text-align: left; font-size: 14px; line-height: 1.45; cursor: pointer; }
+.rail-q:hover:not(:disabled) { background: var(--page); }
+.rail-q:disabled { cursor: default; }
+.rail-q[aria-current="true"] { background: var(--tint); box-shadow: inset 3px 0 0 var(--green-ink); }
+.rail-q > .icon { grid-row: 1 / span 2; font-size: 20px; margin-top: 1px; color: #6b737c; }
+.rail-q[data-status="miss"] > .icon { color: var(--red); }
+.rail-q[data-status="ok"] > .icon { color: var(--green-ink); }
+.rail-meta { grid-column: 2; grid-row: 1; color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rail-status { grid-column: 3; grid-row: 1; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.rail-q[data-status="miss"] > .rail-status { color: var(--red); }
+.rail-q[data-status="ok"] > .rail-status { color: var(--green-ink); }
+.rail-text { grid-column: 2 / -1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* Review pane (첨삭 | 노트), a document: ① structure ② corrections ③ model script ④ first ↔ latest.
    Mobile: full-screen overlay; the chat behind it is made inert by panel.js. */
@@ -176,53 +227,108 @@ textarea { flex: 1 1 auto; min-width: 0; resize: none; border: 1px solid #c8c8c8
 .tab { font-size: 16px; min-height: 44px; min-width: 44px; padding: 0 14px; border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink); cursor: pointer; }
 .tab[aria-selected="true"] { border-bottom-color: var(--green-ink); color: var(--green-ink); font-weight: 700; }
 .panel-close { color: var(--muted); }
-.pane { flex: 1; min-height: 0; overflow-y: auto; padding: 16px var(--gutter) 24px; overflow-wrap: anywhere; }
+.pane { flex: 1; min-height: 0; overflow-y: auto; padding: 16px var(--gutter) 24px; overflow-wrap: anywhere; container-type: inline-size; }
 #reviewBox > * + * { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
+#reviewEmpty[hidden] ~ .guide { display: none; }
+.guide { margin-top: 12px; }
+.guide > .ja { font-size: 17px; }
+.guide > .title { margin: 16px 0 6px; font-size: 16px; font-weight: 700; }
+.guide-steps { margin: 0; padding-left: 22px; }
+.guide-steps li { padding: 2px 0; }
 .pane .title { font-size: 17px; }
-.pane .review .title:not(:first-child) { margin-top: 20px; }
+.pane .script { position: relative; }
+.pane .script > .listen { position: absolute; top: 0; right: 0; margin: 0; } /* out of the flow: also inside the margin-note grid */
+.pane .script > .title { padding-right: 52px; }
+/* English panel folds (details/summary): a 44px row with the section title; the open body keeps the card styles. */
+.fold > summary { display: list-item; min-height: 44px; padding: 10px 0; font-size: 17px; font-weight: 700; cursor: pointer; }
+.fold > summary::marker { color: var(--green-ink); }
+.fold > .fold-body { margin-top: 4px; }
+.fold { clear: none; }
+.pane .review > .fold, .pane .script > .fold { grid-column: 1 / -1; } /* the fold spans the margin-note grid; its body is the grid */
+#reviewBox > .review > .tr:last-child { margin-top: 12px; } /* the habits line after the steps */
 .note-box { display: flex; flex-direction: column; gap: 6px; max-width: 40em; }
 .note-box label { font-weight: 700; font-size: 15px; }
-.note-box textarea { flex: none; max-height: none; }
-@media (min-width: 1024px) {
-  :root { --gutter: 24px; }
-  /* Fluid columns across the whole viewport (gutters 24px); each text column is capped at 40em instead. */
-  .app:has(> #panel:not([hidden])) { grid-template-columns: minmax(420px, 2fr) minmax(560px, 3fr); }
-  .bar { flex-wrap: nowrap; }
-  .controls { flex-wrap: nowrap; flex: none; }
-  #dest { max-width: 240px; }
-  .cmp-answers { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .panel { position: static; z-index: auto; grid-column: 2; grid-row: 2 / 4; min-height: 0; border-left: 1px solid var(--line); }
-}
-/* Wide pane: margin notes. Body column ≤ 40em, notes column 260px; a note (correction reason, script points)
-   is auto-placed on the row of the line it explains (sparse grid placement), so no extra markup is needed. */
-@media (min-width: 1280px) {
+.note-box textarea { flex: none; max-height: none; border: 1px solid var(--field); border-radius: 8px; padding: 9px 12px; }
+.note-box textarea:focus { outline: 2px solid var(--green-ink); outline-offset: 1px; }
+/* Wide pane: margin notes. Body column ≤ 40em, notes column 200–260px; a note (correction reason, script points) is
+   auto-placed on the row of the line it explains. A container query, so a 3-column screen with a narrower pane stays single. */
+@container (min-width: 760px) {
   .pane .review, .pane .script { display: grid; grid-template-columns: minmax(0, 40em) minmax(200px, 260px); column-gap: 32px; align-items: start; }
   .pane .review > *, .pane .script > * { grid-column: 1; }
   .pane .review > .title, .pane .script > .title { grid-column: 1 / -1; }
   /* Step hints stay under their label in column 1 (they are the explanation, not a note; 11/03 layout check). */
   .pane .review > .why { grid-column: 2; margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--line); }
-  /* 🔊 out of the grid flow: float is ignored in a grid, and as a grid item it pushed the title below the points. */
-  .pane .script { position: relative; }
-  .pane .script > .listen { position: absolute; top: 0; right: 0; margin: 0; }
   .pane .script > .pts { grid-column: 2; grid-row: 2; margin-top: 0; }
   .pane .script > .points { grid-column: 2; grid-row: 3 / span 6; }
 }
 
-.mail { border: 1px solid var(--line); border-radius: 4px; padding: 20px; max-width: 420px; width: calc(100% - 32px); color: var(--ink); }
+/* Tour end, plan B (user 11/04): "next step" card in the right column; a phone has no empty half, so never there. */
+.start { display: none; }
+@media (min-width: 1024px) {
+  .app:has(> #start:not([hidden])) { grid-template-columns: minmax(420px, 2fr) minmax(560px, 3fr); }
+  .start { display: flex; flex-direction: column; justify-content: center; grid-column: 2; grid-row: 2 / 4; min-height: 0; overflow-y: auto; padding: 32px clamp(24px, 5vw, 72px); background: #fff; border-left: 1px solid var(--line); }
+  .start > * { max-width: 30em; }
+  .start h2 { margin: 0 0 8px; font-size: 24px; line-height: 1.4; }
+  .start-lead { margin: 0 0 24px; color: var(--muted); }
+  .start-gets { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--green-ink); }
+  .start-list { list-style: none; margin: 0 0 28px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .start-list li { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--page); font-weight: 600; }
+  .start-list .icon { font-size: 24px; color: var(--green-ink); }
+  .start-cta { align-self: flex-start; min-height: 48px; padding: 0 24px; border: 0; border-radius: 24px; background: var(--green-ink); color: #fff; font-size: 16px; font-weight: 700; cursor: pointer; }
+}
+@media (min-width: 1280px) {
+  .app:has(> #start:not([hidden])) { grid-template-columns: 280px minmax(420px, 5fr) minmax(520px, 6fr); }
+  .start { grid-column: 3; }
+}
+@media (min-width: 1024px) {
+  :root { --gutter: 24px; }
+  .bar { padding: 0 16px 0 var(--gutter); gap: 8px; }
+  .bar .sub { display: inline; }
+  .controls { gap: 8px; }
+  /* Desktop pickers show the chosen value: bordered select with our own chevron (14px right margin, UI fix 11/03). */
+  .picker { gap: 4px; color: var(--muted); }
+  .picker > .icon { font-size: 18px; }
+  .picker > select { position: static; opacity: 1; height: 44px; max-width: 240px; padding: 0 36px 0 12px; border: 1px solid var(--field); border-radius: 8px; background: #fff; color: var(--ink); font-size: 14px; text-overflow: ellipsis; }
+  .picker::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -6px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(45deg); pointer-events: none; }
+  .end:not(.ib) { border: 1px solid var(--field); padding: 0 14px; color: var(--ink); }
+  .end:not(.ib) > .icon { font-size: 18px; color: var(--green-ink); }
+  .composer { container-type: inline-size; }
+  #send { width: auto; padding: 0 18px 0 14px; font-size: 16px; }
+  #send > .icon { font-size: 18px; }
+}
+/* A narrow chat column (3 columns with the pane open at 1280–1440px): Send goes back to the round icon, the input keeps the room. */
+@container (max-width: 520px) {
+  #send { width: 44px; padding: 0; font-size: 20px; }
+  #send > .lbl { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (min-width: 1024px) {
+  .app:has(> #panel:not([hidden])) { grid-template-columns: minmax(420px, 2fr) minmax(560px, 3fr); }
+  .panel { position: static; z-index: auto; grid-column: 2; grid-row: 2 / 4; min-height: 0; border-left: 1px solid var(--line); }
+}
+/* Dashboard: rail | chat | pane. */
+@media (min-width: 1280px) {
+  .app { grid-template-columns: 280px minmax(0, 1fr); }
+  .app:has(> #panel:not([hidden])) { grid-template-columns: 280px minmax(420px, 5fr) minmax(520px, 6fr); } /* 1280: 455|545, 1920: 745|895 */
+  .rail { display: block; grid-column: 1; grid-row: 2 / 4; min-height: 0; overflow-y: auto; padding: 18px 12px 24px; background: #fff; border-right: 1px solid var(--line); }
+  .log, .composer { grid-column: 2; }
+  .panel { grid-column: 3; }
+}
+
+.mail { border: 1px solid var(--line); border-radius: 12px; padding: 20px; max-width: 420px; width: calc(100% - 32px); color: var(--ink); }
 dialog::backdrop { background: rgba(0,0,0,.4); }
 .mail h2 { margin: 0 0 8px; font-size: 18px; }
 .mail-body { white-space: pre-wrap; font-size: 15px; line-height: 1.6; margin: 0 0 12px; }
-.mail input[type=email] { width: 100%; padding: 9px 12px; border: 1px solid #c8c8c8; border-radius: 4px; }
+.mail input[type=email] { width: 100%; padding: 9px 12px; border: 1px solid var(--field); border-radius: 8px; }
 .consent { display: flex; gap: 6px; align-items: flex-start; font-size: 14px; color: var(--muted); margin: 10px 0 0; }
 .switch { font-size: 16px; color: var(--ink); align-items: center; min-height: 44px; }
 .switch input { width: 22px; height: 22px; accent-color: var(--green-ink); }
 .opt-group { border: 0; padding: 0; margin: 12px 0 0; }
 .opt-group legend { font-size: 16px; color: var(--ink); padding: 0; }
 .opt-group .switch { margin: 0; }
-.speed { min-height: 44px; border: 1px solid #c8c8c8; border-radius: 4px; padding: 4px 8px; background: #fff; }
+.speed { min-height: 44px; border: 1px solid var(--field); border-radius: 8px; padding: 4px 8px; background: #fff; }
 .mail-msg { min-height: 1.2em; font-size: 14px; color: var(--red); margin: 6px 0 0; }
 .mail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-.mail-actions button { min-height: 44px; border-radius: 4px; padding: 8px 14px; border: 1px solid #c8c8c8; background: #fff; cursor: pointer; }
+.mail-actions button { min-height: 44px; border-radius: 999px; padding: 0 18px; border: 1px solid var(--field); background: #fff; cursor: pointer; }
 .mail-actions .primary { background: var(--green-ink); color: #fff; border-color: var(--green-ink); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -233,3 +339,13 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
 body.doc { background: #fff; }
 .policy { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; line-height: 1.7; font-size: 16px; }
 .policy h1 { font-size: 22px; } .policy h2 { font-size: 18px; margin-top: 24px; } .policy .meta { color: var(--muted); font-size: 14px; }
+
+/* ≥1024px with the panel open: the full review lives in the panel; the chat keeps a one-glance summary (verdict +
+   steps) so the same details are never shown twice side by side (layout check 11/04, UIUX §11.3). */
+@media (min-width: 1024px) {
+  .app:has(> #panel:not([hidden])) .log > .msg.review { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
+  .app:has(> #panel:not([hidden])) .log > .msg.review > :not(.title:first-child, .readiness, .verdict, .step) { display: none; }
+  .app:has(> #panel:not([hidden])) .log > .msg.review > .title:first-child,
+  .app:has(> #panel:not([hidden])) .log > .msg.review > .readiness,
+  .app:has(> #panel:not([hidden])) .log > .msg.review > .verdict { flex-basis: 100%; }
+}

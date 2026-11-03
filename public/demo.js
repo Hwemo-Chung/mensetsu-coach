@@ -1,10 +1,19 @@
 // No-code demo and tutorial: replays a real recorded run (public/demo/demo-<lang>.json). No API, no session, no storage.
-import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
+import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { showReview, resetPanel, openByDefault, wide } from "./panel.js";
 import { addListen } from "./voice.js";
 import { compareAttempts } from "./export.js";
 
 const log = $("log"), input = $("input"), send = $("send");
+// Tour end on a wide screen (user 11/04): "a" = the demo's last review stays in the panel and its questions (with ✓/✗) in
+// the rail; "b" = a "next step" card in the right column. Default per screen language (ja → a; ko, en → b); ⚙ overrides.
+export const TOUR_END = "mensetsu-tour-end";
+export const tourEndMode = () => {
+  try { const v = localStorage.getItem(TOUR_END); if (v === "a" || v === "b") return v; } catch {}
+  return state.lang === "ja" ? "a" : "b";
+};
+const startCard = $("start");
+$("startCta").addEventListener("click", () => input.focus());
 
 // ⚙ Options: tutorial tips (default on). Unreadable storage counts as on.
 export const TOUR_TIPS = "mensetsu-tour-tips";
@@ -15,6 +24,7 @@ export const tourTipsOn = () => { try { return localStorage.getItem(TOUR_TIPS) !
 export async function startDemo(onTry) {
   const my = state.epoch;
   state.demoActive = true;
+  startCard.hidden = true;
   let d;
   try {
     d = await (await fetch(`/demo/demo-${state.lang}.json`)).json();
@@ -140,6 +150,9 @@ function startTour(d, my, onTry) {
     return bubble("me", text);
   };
   tr.scenes = tourScenes(d, say, onTry);
+  // The tour's end state (both answers reviewed) for the rail in mode "a"; during the tour the rail stays ○.
+  const q = d.questions[d.pick];
+  tr.finalRail = () => renderRail({ questions: d.questions, attempts: d.steps.map((x) => ({ question_id: q.id, ...x })) });
   state.tour = tr;
   input.readOnly = true;
   send.disabled = true;
@@ -176,8 +189,10 @@ function busy(on) {
   $("tourNext").disabled = on;
   $("tourPrev").disabled = on || state.tour.i === 0;
 }
-export function endTour() {
-  if (!state.tour) return;
+// done = the user closed or skipped the tour (not a reset, not "try it yourself").
+export function endTour(done = false) {
+  const tr = state.tour;
+  if (!tr) return;
   state.tour = null;
   tourBox.hidden = true;
   dim.hidden = true;
@@ -185,19 +200,21 @@ export function endTour() {
   input.readOnly = false;
   send.disabled = false;
   input.value = "";
+  if (done && tourEndMode() === "a") return void tr.finalRail(); // the result stays until the code is accepted (app.js onCode resets the panel)
   resetPanel(); // the demo's review must not stay in the panel once the tour is over
+  startCard.hidden = !done;
 }
 // [건너뛰기]/Esc: close the popup and leave only step 6 (the "enter your code" button).
 export function skipTour() {
   const tr = state.tour;
   if (!tr) return;
-  endTour();
+  endTour(true);
   if (tr.i < tr.scenes.length - 1) tr.scenes.at(-1)();
 }
 $("tourNext").addEventListener("click", () => {
   const tr = state.tour;
   if (!tr) return;
-  if (tr.i === tr.scenes.length - 1) return endTour();
+  if (tr.i === tr.scenes.length - 1) return endTour(true);
   play(tr.i + 1);
 });
 $("tourPrev").addEventListener("click", () => {

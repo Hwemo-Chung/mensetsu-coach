@@ -1,9 +1,9 @@
 import { LANGS } from "./i18n/index.js";
-import { sessionToMarkdown, exportFileName, compareAttempts } from "./export.js";
+import { sessionToMarkdown, exportFileName, compareAttempts, statusOf } from "./export.js";
 import { loadSession, clearSession, SESSION_KEY } from "./session.js";
-import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
-import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS } from "./demo.js";
+import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
 
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
@@ -27,6 +27,7 @@ state.lang = LANGS[stored] ? stored : LANGS[browser] ? browser : "ko";
 const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder", profile: "profilePlaceholder" };
 function setStage(next) {
   stage = next;
+  document.body.dataset.stage = next; // CSS: the privacy line shows only while the code and the mail are entered
   showMic(next === "answer");
   input.placeholder = T().chat[PLACEHOLDER[stage]];
 }
@@ -45,7 +46,7 @@ function askForMail() {
 }
 function askForPick(again) {
   setStage("pick");
-  bubble("coach", again ? T().chat.askPickAgain : T().chat.askPick({ count: state.session.questions.length }));
+  return bubble("coach", again ? T().chat.askPickAgain : T().chat.askPick({ count: state.session.questions.length }));
 }
 
 async function post(path, body, extraHeaders = {}) {
@@ -80,6 +81,7 @@ async function onCode(text) {
   if (res.ok) {
     keepCode(text);
     allowRecording(data.stt);
+    $("start").hidden = true; // the tour's next-step card has done its job
     // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
     if (state.demoActive) {
       state.demoActive = false;
@@ -98,20 +100,23 @@ async function onCode(text) {
 }
 
 // Optional career line (offered once per question set): same mail + one line as candidate material.
-function offerProfile() {
-  const b = bubble("coach note", T().chat.profileOffer);
-  const btn = el("button", "inline-btn", T().chat.profileButton);
+function profileButton(cls, text) {
+  const btn = el("button", cls, text);
   btn.type = "button";
   btn.addEventListener("click", () => {
     btn.disabled = true;
     setStage("profile");
     input.focus();
   });
-  b.append(el("br"), btn);
+  return btn;
+}
+function offerProfile() {
+  const b = bubble("coach note", T().chat.profileOffer);
+  b.append(el("br"), profileButton("inline-btn", T().chat.profileButton));
   if (packOf() === "jp") b.append(" ", reverseButton()); // reverse questions are JP-only (api/reverse returns pack_unsupported)
 }
-function reverseButton() {
-  const rev = el("button", "inline-btn", T().reverse.button);
+function reverseButton(cls = "inline-btn", text = T().reverse.button) {
+  const rev = el("button", cls, text);
   rev.type = "button";
   rev.addEventListener("click", () => { rev.disabled = true; makeReverse(); });
   return rev;
@@ -209,6 +214,7 @@ function onPick(text) {
   if (!q) return bubble("err", T().chat.badPick({ count: state.session.questions.length }));
   state.current = q;
   renderNotes();
+  renderRail();
   setStage("answer");
   bubble("coach", `Q${n}. ${withTr(q)}\n\n${T().chat.askAnswer[targetOf()]}`);
 }
@@ -243,12 +249,49 @@ async function onAnswer(text) {
     state.session.attempts.push(attempt);
     persist();
     showHabits();
+    renderRail();
   }
   const cmp = attempt.review ? compareAttempts(state.session, q.id) : null;
   if (cmp) renderCompare(cmp, bubble("coach", ""));
   if (attempt.review) showReview(attempt.review, cmp, attempt.script);
   askForPick(true);
+  quickReplies();
 }
+
+// LINE-style quick replies under the prompt (UIUX §11.2): up to 3 questions not practised yet, reverse questions (JP),
+// the career line (only while the mail is in memory). Only the latest row stays; it scrolls sideways on a phone.
+function quickReplies() {
+  for (const old of log.querySelectorAll(".quick")) old.remove();
+  const t = T(), row = el("div", "quick");
+  row.setAttribute("role", "group");
+  row.setAttribute("aria-label", t.quick.label);
+  // English UI: re-drill the question just reviewed when it still needs work (benchmark 11/04: Final Round, Huru).
+  if (t.ui.western && state.current && statusOf(state.session, state.current.id) === "miss") {
+    const b = el("button", null, t.quick.again({ n: state.current.id.slice(1) }));
+    b.type = "button";
+    b.dataset.pick = state.current.id.slice(1);
+    row.append(b);
+  }
+  state.session.questions.filter((q) => q !== state.current && statusOf(state.session, q.id) === "todo").slice(0, 3).forEach((q) => {
+    const b = el("button", null, `Q${q.id.slice(1)} ${q.question}`);
+    b.type = "button";
+    b.dataset.pick = q.id.slice(1);
+    row.append(b);
+  });
+  if (packOf() === "jp") row.append(reverseButton(null, t.quick.reverse));
+  if (lastMail) row.append(profileButton(null, t.quick.profile));
+  if (row.children.length) log.append(row);
+  log.scrollTop = log.scrollHeight;
+}
+
+// Tap = typing the number (UIUX §11.4-2): question cards, rail items and quick replies all carry data-pick.
+// Not during the tour or a pending request, and never for cards of an earlier set (renderQuestions disables those).
+document.querySelector(".app").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-pick]");
+  if (!b || !state.session || state.tour || send.disabled || !["pick", "answer", "profile"].includes(stage)) return;
+  onPick(b.dataset.pick);
+  if (wide.matches) input.focus();
+});
 
 // The label wraps a hidden input, so it is the keyboard target itself (review M4).
 document.querySelector(".attach").addEventListener("keydown", (e) => {
@@ -304,6 +347,7 @@ function applyLanguage() {
   const t = T();
   document.documentElement.lang = state.lang;
   document.title = t.ui.title;
+  document.querySelector(".bar .sub").hidden = t.ui.title === document.querySelector(".brand").firstChild.textContent.trim(); // ja: the subtitle would repeat the name
   for (const e of document.querySelectorAll("[data-i18n]")) e.textContent = label(t, e.dataset.i18n);
   for (const e of document.querySelectorAll("[data-i18n-mail]")) e.textContent = t.mail[e.dataset.i18nMail];
   for (const e of document.querySelectorAll("[data-i18n-label]")) {
@@ -432,6 +476,7 @@ function resetChat() {
   stopVoice();
   state.demoActive = false;
   endTour();
+  $("start").hidden = true;
   log.replaceChildren();
   state.session = state.current = null;
   lastMail = lastAttachment = attachment = null;
@@ -448,7 +493,13 @@ document.addEventListener("keydown", (e) => {
   else if (state.tour) skipTour();
 });
 
-$("opts").addEventListener("click", () => { $("tourTips").checked = tourTipsOn(); $("options").showModal(); });
+const tourEndRadios = document.querySelectorAll("input[name=tourEnd]");
+$("opts").addEventListener("click", () => {
+  $("tourTips").checked = tourTipsOn();
+  for (const r of tourEndRadios) r.checked = r.value === tourEndMode();
+  $("options").showModal();
+});
+for (const r of tourEndRadios) r.addEventListener("change", () => { try { localStorage.setItem(TOUR_END, r.value); } catch {} });
 $("tourTips").addEventListener("change", (e) => { try { localStorage.setItem(TOUR_TIPS, e.target.checked ? "1" : "0"); } catch {} });
 $("options").addEventListener("close", () => $("opts").focus());
 
