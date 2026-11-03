@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-Hackathon workspace for **Built with Claude: Japan 2026** (solo). Product: 일본 이직 면접 스크립트 코치 (가칭 멘세츠 코치).
+Hackathon workspace for **Built with Claude: Japan 2026** (solo). Product: 日本転職面接スクリプトコーチ (仮称 メンセツ・コーチ).
 Public GitHub repo. Only publicly shareable data is committed; secrets and personal data live outside the repo (see Layout).
 
 ## Commands
@@ -24,7 +24,7 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - `public/` — static chat UI (no inline script; CSP `script-src 'self' 'wasm-unsafe-eval'`, COOP/COEP for threaded WASM). Answer 🎤 = open-source Whisper-small in the browser: `stt-local.js` (decode + worker; MOCK swaps in `test/fixtures/stt-local.mock.js`), `stt-worker.js`, `stt-whisper.js` (shared with Node: language fixed to the pack target, filler prompt, 30 s chunks, `speechQuality`), runtime vendored in `public/vendor/`, model from huggingface.co (`research/STT-OSS-EVAL.md`). Stages code → mail → pick ⇄ answer, plus an optional `profile` stage (one-line career summary that regenerates the questions), entered from the offerProfile button. Enter = newline, Ctrl/Cmd+Enter = send (keep). `public/i18n/{ko,en,ja}.js` + `index.js`; `test/i18n.test.js` fails on a missing key. Session JSON lives in browser localStorage only.
 - Deploy: Vercel, `outputDirectory: public`. `.vercelignore` excludes `01_설계문서/`, `02_로컬원본/`.
 
-Deadline: **11/8 (일) 20:00 submit, target 17:00** (킥오프 공지, 비공개 폴더). DESIGN-KAKAOTALK-INTERVIEW-COACH.md still says 11/10 — that date is stale.
+Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非公開フォルダ). DESIGN-KAKAOTALK-INTERVIEW-COACH.md still says 11/10 — that date is stale.
 
 ## Layout
 
@@ -48,16 +48,16 @@ Deadline: **11/8 (일) 20:00 submit, target 17:00** (킥오프 공지, 비공개
 - **Country pack** separation: all rules/prompts for Japan live in `packs/jp.json` (interview target language from the pack (ja or ko); explanation language = one of `EXPLAIN_LANGS` ko/en/ja, chosen by the UI language; correction rules, model-answer format, question categories, culture notes). Two packs exist: `packs/jp.json` and `packs/kr.json` (marked `beta`); `PACKS = ["jp", "kr"]`. Reverse questions are JP-only. Structure must allow adding other packs without code changes.
   - Rule = `{ pattern, type: delete|replace|structure, replacement, reason, example_before, example_after }`
   - Session (local JSON, no names/contacts stored) = `{ company_context, questions[], attempts[{ question_id, answer, feedback{ structure, corrections[], model_answer } }] }`
-- System prompt = coach role + pack rules injected + company context + fixed output order: ① structure check (4문형 復唱→結論→基準·数字→選択肢) ② Japanese corrections (before/after + 1-line reason) ③ 60-second model answer (Japanese + pronunciation + Korean).
+- System prompt = coach role + pack rules injected + company context + fixed output order: ① structure check (4文型 復唱→結論→基準・数字→選択肢) ② Japanese corrections (before/after + 1-line reason) ③ 60-second model answer (Japanese + pronunciation + Korean).
 - Prompt principle: no corrections outside the rule DB; if unsure, ask a clarifying question instead of guessing.
 
 ## Acceptance checks (PRD §5)
 
 - F1/F2: one sample agent email → 10 company-specific questions, categorized.
-- F3: a deliberately off-target answer gets the missing 4문형 step flagged correctly.
+- F3: a deliberately off-target answer gets the missing 4文型 step flagged correctly.
 - F4: every rule example in DESIGN-KAKAOTALK §5 is reproduced.
 - F6: session Q&A exports as Markdown.
 
 ## Design principle
 
-단순·명료·직관: first screen shows one action; labels understandable without prior knowledge (demo must be understandable to a child).
+シンプル・明瞭・直感的: first screen shows one action; labels understandable without prior knowledge (demo must be understandable to a child).

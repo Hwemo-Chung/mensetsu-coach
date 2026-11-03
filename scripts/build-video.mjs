@@ -3,8 +3,8 @@
 // ⑤ roadmap → closing.
 // Screens are the live app (MOCK server, recorded real outputs, 0 AI calls); captions use the ③ caption band. Scene
 // lengths follow reading time (~8 Japanese chars/s, at least 2.5 s) until the narration is decided.
-// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): Japanese narration from DEMO-SCRIPT.md read by Gemini TTS for the still
-// scenes (no personal data in the lines, free tier OK); each scene lasts as long as its line. ③ keeps its own captions.
+// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): Japanese narration (scripts/narration.mjs) for the still scenes; each scene
+// lasts as long as its line. The ③ take brings its own narration when it was recorded with NARRATE=1.
 // Usage: [NARRATE=1 ENV_FILE=…] node scripts/build-video.mjs <section3.mp4> <out.mp4>   (needs system Chrome and ffmpeg)
 import { readFileSync, writeFileSync, mkdtempSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -91,14 +91,15 @@ const before = shots.length;
 // ③' what Claude does (storyboard v2, PRESENTATION-BENCHMARK 11/03): winners' videos say how Claude is used; ours did not.
 // Facts: lib/questions.js, lib/review.js (corrections that quote text not in the answer are dropped by code), lib/script.js.
 const mid = [];
-await card(blank, "Claude が、することは 3つ。", 6, `<div style="display:inline-block;text-align:left;line-height:1.9">① この会社だけの質問を作る<br>② 答えを採点して、ルールで直す<br>③ 自分の答えから、話せる台本を作る</div><div style="margin-top:22px;color:#fff">ルールにない添削は、プログラムが捨てる。</div>`, "Claudeがすることは三つ。この会社だけの質問を作る。答えを採点して、ルールで直す。自分の答えから、話せる台本を作る。ルールにない添削は、プログラムが捨てます。");
+await card(blank, "Claude がすることは、3つ。", 6, `<div style="display:inline-block;text-align:left;line-height:1.9">① この会社だけの質問を作る<br>② 答えを採点して、ルールで直す<br>③ 自分の答えから、話せる台本を作る</div><div style="margin-top:22px;color:#fff">ルールにない添削は、プログラムが取り除く。</div>`, "Claudeがすることは三つ。この会社だけの質問を作る。答えを採点して、ルールで直す。自分の答えから、話せる台本を作る。ルールにない添削は、プログラムが取り除きます。");
 mid.push(shots.pop());
 // ④ the same review explained in each screen language, then the destination menu
 const four = [];
 for (const [lang, label] of [["ko", "韓国語"], ["en", "English"], ["ja", "日本語"]]) {
   const { ctx, page } = await reviewIn(lang);
   await caption(page, "説明は、あなたの言葉で。", `画面の言語: ${label}`);
-  await shoot(page, 3, lang === "ko" ? "説明は、韓国語・英語・日本語で。読み方も、その人の文字で書きます。" : "");
+  // Every still has a line, so the narrated cut has no silent gap (11/03: en/ja were 7 s of silence).
+  await shoot(page, 3, { ko: "説明は、韓国語・英語・日本語で。読み方も、その言語の文字で示します。", en: "英語の画面なら、英語で。", ja: "日本語の画面なら、日本語で。" }[lang]);
   four.push(shots.pop());
   await ctx.close();
 }
@@ -111,20 +112,20 @@ for (const [lang, label] of [["ko", "韓国語"], ["en", "English"], ["ja", "日
   await page.selectOption("#dest", "kr");
   await page.waitForTimeout(500);
   await caption(page, "日本人の、韓国での転職にも。", "行き先「韓国で就職」はベータ版です");
-  await shoot(page, 3.5, "韓国で働きたい日本人のための版も、ベータで動いています。");
+  await shoot(page, 3.5, "韓国で働きたい日本人向けの版も、ベータ版として公開しています。");
   four.push(shots.pop());
   await ctx.close();
 }
 // ⑤ roadmap and closing
 const tail = [];
-for (const [t, s, say] of [["国を増やす", "ルールは国ごとのパック", "ルールは国ごとに分かれているので、国も言葉も足していけます。"], ["発音チェック", "読み上げた発音を確かめる（準備中）", "読み上げた発音のチェックも、準備しています。"], ["毎朝1問", "メールで届く練習", "毎朝1問、メールで届く練習も。"]]) { await card(blank, t, 2.5, s, say); tail.push(shots.pop()); }
+for (const [t, s, say] of [["国を増やす", "ルールは国ごとのパック", "ルールは国ごとに分かれているので、国も言葉も足していけます。"], ["発音チェック", "音読した発音を確かめる（準備中）", "音読した発音のチェックも、準備中です。"], ["毎朝1問", "メールで届く練習", "毎朝1問、メールで届く練習も。"]]) { await card(blank, t, 2.5, s, say); tail.push(shots.pop()); }
 {
   const ctx = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 1.5, locale: "ja" });
   await ctx.addInitScript(() => { try { localStorage.setItem("mensetsu-lang", "ja"); } catch {} });
   const page = await ctx.newPage();
   await page.goto(server.url);
   await page.locator(".msg.coach").first().waitFor();
-  await caption(page, "あの時、欲しかったコーチ。", "転職活動のときの、自分のために");
+  await caption(page, "あのとき、欲しかったコーチ。", "転職活動のときの、自分のために");
   await shoot(page, 3.5, "転職活動のとき、私自身が欲しかったコーチです。"); tail.push(shots.pop());
   await ctx.close();
 }
@@ -136,36 +137,18 @@ server.stop();
 const seg = (i) => join(dir, `seg${String(i).padStart(2, "0")}.mp4`);
 const enc = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", "-crf", "20", "-c:a", "aac", "-ar", "48000", "-ac", "1"];
 const NARRATE = process.env.NARRATE === "1";
-let synth = null;
-if (NARRATE) {
-  try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
-  if (!process.env.GEMINI_API_KEY) throw new Error("NARRATE=1 needs GEMINI_API_KEY (ENV_FILE)");
-  synth = (await import("../lib/tts.js")).synthesize;
-}
-let spoke = 0;
-// One narration line → WAV (s16le mono PCM from Gemini); spaced 21 s apart for the free tier (~3 TTS requests/min).
-async function narration(text, i) {
-  if (spoke++) await new Promise((r) => setTimeout(r, 21_000));
-  let a;
-  for (let k = 0; ; k++) { // free tier answers 503 tts_busy now and then: wait a minute, up to 3 tries
-    try { a = await synth({ text, voice: "Kore", apiKey: process.env.GEMINI_API_KEY }); break; }
-    catch (e) { if (k >= 2 || e?.status !== 503) throw e; console.log(`tts busy, retry in 60 s: ${text.slice(0, 12)}…`); await new Promise((r) => setTimeout(r, 60_000)); }
-  }
-  const pcm = Buffer.isBuffer(a.body) ? a.body : Buffer.concat(await Array.fromAsync(a.body, (c) => Buffer.from(c)));
-  const raw = join(dir, `n${i}.pcm`), wav = join(dir, `n${i}.wav`);
-  writeFileSync(raw, pcm);
-  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "s16le", "-ar", String(a.rate), "-ac", "1", "-i", raw, wav]);
-  return { wav, sec: pcm.length / 2 / a.rate };
-}
+const { narrate } = NARRATE ? await import("./narration.mjs") : {};
 async function still(s, i) {
-  const n = NARRATE && s.say ? await narration(s.say, i) : null;
+  const n = NARRATE && s.say ? await narrate(s.say) : null;
   const sec = n ? Math.max(s.sec, n.sec + 0.8) : s.sec;
   const audio = n ? ["-i", n.wav, "-af", "adelay=300|300,apad"] : ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono"];
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-loop", "1", "-t", String(sec), "-i", s.file, ...audio, "-t", String(sec), "-vf", "scale=1920:1080:flags=lanczos,fade=t=in:st=0:d=0.25", ...enc, seg(i)]);
 }
 let i = 0;
 for (const s of shots.slice(0, before)) await still(s, i++);
-execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", take, "-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-shortest", "-vf", "scale=1920:1080:flags=lanczos,fps=30", ...enc, seg(i++)]);
+// The ③ take keeps its own narration track when record-video.mjs ran with NARRATE=1; otherwise silence.
+const takeAudio = execFileSync("ffprobe", ["-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", take]).toString().trim() !== "";
+execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", take, ...(takeAudio ? ["-map", "0:v", "-map", "0:a"] : ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-shortest"]), "-vf", "scale=1920:1080:flags=lanczos,fps=30", ...enc, seg(i++)]);
 for (const s of [...mid, ...four, ...tail]) await still(s, i++);
 writeFileSync(join(dir, "list.txt"), Array.from({ length: i }, (_, k) => `file '${seg(k)}'`).join("\n"));
 execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-c", "copy", "-movflags", "+faststart", join(dir, "full.mp4")]);

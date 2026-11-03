@@ -5,7 +5,7 @@
 // narration is added in editing).
 // Frames come from the Chrome DevTools screencast at 1.5× device pixels (crisp 1920×1080 text) and are joined by the
 // system ffmpeg with their real timings — no Playwright ffmpeg download (the 10/21 presentation pipeline, wiki).
-// Usage: node scripts/record-video.mjs [ja|ko|en] [out.mp4]   (needs system Chrome and ffmpeg)
+// Usage: [NARRATE=1 ENV_FILE=…] node scripts/record-video.mjs [ja|ko|en] [out.mp4]   (needs system Chrome and ffmpeg)
 import { readFileSync, writeFileSync, mkdtempSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,7 +18,7 @@ const demo = JSON.parse(readFileSync(new URL(`../public/demo/demo-${lang}.json`,
 const pack = JSON.parse(readFileSync(new URL("../packs/jp.json", import.meta.url), "utf8"));
 // What the viewer sees of each generation (real: 10–20 s). Over 3 s so the app's own wait label ("checking your
 // answer…") shows up next to the dots: dots alone read as a hang (user, 11/03).
-const GEN_MS = 4500;
+const GEN_MS = 3600; // 4.5 → 3.6 s (11/03, narrated cut under 3:00): still past 3 s, so the wait label shows briefly
 const HOLD_MS = 3000; // each "stop and explain" pause
 // Explanation captions (storyboard approved 11/03): one big line + one note. Japanese is the video's language.
 // Every caption states only what the recorded data shows (demo review 11/03): counts are computed, "all ✓" only if true.
@@ -27,7 +27,7 @@ const CAPTIONS = {
   questions: ["この会社だけの質問、10問", `${demo.specificity.referenced}問が、メールの言葉をそのまま使っています`],
   verdict: ["質問に、答えていない", "最初に見るのは、聞かれたことに答えたかどうか"],
   steps: ["足りない部分が、赤で分かる", "直し方も、となりに出ます"],
-  rule: ["直すのは、ルール表の項目だけ", "どのルールかを、番号で示します"],
+  rule: ["直すのは、ルール表の項目だけ", "どのルールかを、ルールIDで示します"],
   script: ["自分の答えをもとにした台本", "数字は［空欄］。自分の事実で埋めます"],
   retry: ["空欄を埋めて、答え直す", "デモでは、空欄に架空の数字を入れています"],
   compare: [allOk ? "答え直したら、すべて ✓" : "答え直したら、✗ が ✓ に", "最初の答えと並べて比べます"],
@@ -35,6 +35,27 @@ const CAPTIONS = {
   voice: ["声で答えても、いい", "話したそのままが、文字になる（端末の中で）"],
   habit: ["口ぐせまで、見つける", "声で答えると、「なんか」もそのまま残るから"],
 };
+// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): each caption is also spoken (user 11/03: "the explaining captions become
+// narration"). The line says the caption in full sentences (no ✓/［］ symbols for the voice); the caption stays on screen
+// for muted viewers. Lines are made before recording, so each hold lasts as long as its line.
+const SAY = {
+  questions: `この会社だけの質問を、10問作ります。そのうち${demo.specificity.referenced}問が、メールの言葉をそのまま使っています。`,
+  voice: "声で答えても大丈夫です。話したそのままが、端末の中で文字になります。",
+  verdict: "質問に、答えていません。最初に見るのは、聞かれたことに答えたかどうかです。",
+  steps: "足りない部分が、赤で分かります。直し方も、となりに出ます。",
+  rule: "直すのは、ルール表の項目だけ。どのルールかを、ルールIDで示します。",
+  habit: "口ぐせまで、見つけます。声で答えると、「なんか」もそのまま残るからです。",
+  script: "自分の答えをもとにした台本です。数字は空欄のまま。自分の事実で埋めます。",
+  retry: "空欄を埋めて、答え直します。このデモでは、空欄に架空の数字を入れています。",
+  compare: `${allOk ? "答え直したら、すべてにチェックがつきました。" : "答え直したら、バツがチェックに変わりました。"}最初の答えと並べて比べます。`,
+};
+const NARRATE = process.env.NARRATE === "1";
+const lines = {};
+if (NARRATE) {
+  const { narrate } = await import("./narration.mjs");
+  for (const [k, t] of Object.entries(SAY)) lines[k] = await narrate(t);
+}
+const cues = []; // { wav, t } — t = wall clock when the caption appears (same clock as the screencast timestamps)
 // The spoken answer is the in-browser recogniser's real output for the TTS voice, replayed like the API answers (0 calls).
 const spoken = demo.steps[0].spoken === true;
 // Only a filler rule the recorded review actually returned gets the habit caption (captions state only what the data shows).
@@ -104,7 +125,9 @@ const click = async (sel) => { await pointer(sel); await page.click(sel); };
 // Stop and explain: scroll the target's own scroller (chat log or panel) so it comes up near the top (0.8 s, visible),
 // dim the rest, frame the target in green above a caption band, hold, then put the layout back. CSSOM only.
 // top: caption band at the top of the screen (the target sits at the bottom, e.g. the input).
-async function explain(sels, [title, note], hold = HOLD_MS, during, top = false) {
+async function explain(sels, caption, hold = HOLD_MS, during, top = false) {
+  const [title, note] = caption, line = lines[Object.keys(CAPTIONS).find((k) => CAPTIONS[k] === caption)];
+  if (line) hold = Math.max(hold, Math.round(line.sec * 1000) + 400);
   await page.evaluate(async (sels) => {
     const el = document.querySelector(sels[0]);
     let sc = el.parentElement;
@@ -141,6 +164,7 @@ async function explain(sels, [title, note], hold = HOLD_MS, during, top = false)
     document.body.append(hl);
     requestAnimationFrame(() => { cap.style.opacity = "1"; hl.style.opacity = "1"; });
   }, { sels, title, note, top });
+  if (line) cues.push({ wav: line.wav, t: now() + 0.15 }); // starts as the caption fades in
   await pause(hold);
   await page.evaluate(() => {
     for (const id of ["rec-hl", "rec-cap"]) document.getElementById(id)?.remove();
@@ -180,7 +204,7 @@ await click("#send");
 await pause(1200);
 if (spoken) { // ③-a: answer by voice; the transcript lands in the box (fillers kept), checked, then sent
   await click("#mic");
-  await pause(5000); // the recording timer runs while the "user" speaks (~13 s of speech, shortened)
+  await pause(3500); // the recording timer runs while the "user" speaks (~13 s of speech, shortened)
   await click("#mic");
   await page.waitForFunction(() => document.querySelector("#input").value.length > 20);
   await pause(600);
@@ -202,7 +226,7 @@ if (spoken && habitRule) { // ③-b: the spoken filler is caught by the pack's r
 await explain(["#reviewBox > .script:not(.review)"], CAPTIONS.script, 4500, () => click("#reviewBox > .script:not(.review) .listen"));
 await type(String(demo.pick + 1), 150); // the app is back at "pick": the same question again, as a user would
 await click("#send");
-await pause(1500);
+await pause(800);
 // The corrected answer is pasted (no human types 200 characters in 4 s) and labelled as filled with fictional numbers.
 await pointer("#input");
 await page.fill("#input", demo.steps[1].answer);
@@ -222,5 +246,10 @@ const shots = frames.filter((f) => f.t >= start - 1 && f.t <= end);
 const list = shots.map((f, i) => `file '${f.file}'\nduration ${((shots[i + 1]?.t ?? end) - f.t).toFixed(3)}`).join("\n");
 writeFileSync(join(dir, "list.txt"), `${list}\nfile '${shots.at(-1).file}'\n`);
 execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1920:1080:flags=lanczos,fps=30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", join(dir, "out.mp4")]);
-copyFileSync(join(dir, "out.mp4"), out);
-console.log(`${out}: ${(end - start).toFixed(1)} s, ${shots.length} frames (one take, ${reviews} reviews${spoken ? `, spoken; habit caption: ${habitRule ?? "none"}` : ""})`);
+if (cues.length) { // mix the lines in at their caption times (video t = 0 is the first kept frame)
+  const t0 = shots[0].t, n = cues.length;
+  const filter = cues.map((c, k) => `[${k + 1}:a]aresample=48000,adelay=${Math.max(0, Math.round((c.t - t0) * 1000))}:all=1[a${k}]`).join(";") + `;${cues.map((_, k) => `[a${k}]`).join("")}amix=inputs=${n}:normalize=0:duration=longest[aout]`;
+  execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", join(dir, "out.mp4"), ...cues.flatMap((c) => ["-i", c.wav]), "-filter_complex", filter, "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-ar", "48000", "-ac", "1", "-t", String(end - t0), join(dir, "narrated.mp4")]);
+  copyFileSync(join(dir, "narrated.mp4"), out);
+} else copyFileSync(join(dir, "out.mp4"), out);
+console.log(`${out}: ${(end - start).toFixed(1)} s, ${shots.length} frames (one take, ${reviews} reviews${spoken ? `, spoken; habit caption: ${habitRule ?? "none"}` : ""}${cues.length ? `, ${cues.length} narrated captions` : ""})`);
