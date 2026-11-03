@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, READINGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk, buildTranslationRequest } from "../lib/coach.js";
+import { explainLang, loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, READINGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk, buildTranslationRequest } from "../lib/coach.js";
 import { kanaToHangul } from "../lib/kana.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
@@ -142,7 +142,8 @@ const krJaScript = { text: "네, 일정이 밀렸을 때는 먼저 영향 범위
 test("explain languages: ko, en, ja are registered; prompts name the language and its reading script", () => {
   assert.deepEqual(Object.keys(EXPLAIN_LANGS).sort(), ["en", "ja", "ko"]);
   for (const lang of Object.keys(EXPLAIN_LANGS)) {
-    const L = EXPLAIN_LANGS[lang];
+    // Intent unchanged; the name now follows the (destination, screen) pair (PRD §16-17: jp + ja = plain 日本語).
+    const L = explainLang(lang, "ja");
     const R = READINGS.ja[lang];
     const s = buildScriptRequest(pack, { question: "Q", answer: "A", lang });
     assert.ok(s.system.includes(L.name), `${lang} script system names ${L.name}`);
@@ -704,4 +705,14 @@ test("prompts call the user a foreign job seeker only when the screen language d
   }
   assert.ok(!buildScriptRequest(kr, { question: "Q", answer: "A", lang: "ko" }).system.includes("外国人"), "kr pack + Korean screen");
   assert.ok(buildScriptRequest(kr, { question: "Q", answer: "A", lang: "ja" }).system.includes("外国人求職者"), "kr pack + Japanese screen");
+});
+
+// PRD §16-17: やさしい日本語 is for a foreign reader. Japanese screen + Japan = a Japanese candidate at home → plain 日本語;
+// a Japanese screen for another destination (kr) is the foreign case and keeps やさしい日本語.
+test("Japanese explanations: plain for jp + ja screen, やさしい日本語 only when the screen language differs from the destination's", () => {
+  const jpJa = [buildQuestionRequest(pack, "MAIL", [], "ja").system, buildScriptRequest(pack, { question: "Q", answer: "A", lang: "ja" }).system,
+    buildReviewRequest(pack, { question: "Q", answer: "A", lang: "ja" }).system, buildReverseRequest(pack, { context: "C", lang: "ja" }).system];
+  for (const s of jpJa) assert.ok(!s.includes("やさしい日本語") && s.includes("日本語"), s.slice(0, 60));
+  assert.ok(buildScriptRequest(kr, { question: "Q", answer: "A", lang: "ja" }).system.includes("やさしい日本語"), "kr + Japanese screen keeps it");
+  assert.ok(buildReviewRequest(kr, { question: "Q", answer: "A", lang: "ja" }).system.includes("やさしい日本語"));
 });
