@@ -13,13 +13,14 @@ export const scriptKana = "はい、 /みつもりが 《ずれた》 ばあい�
 export const asModelScript = ({ text, ...rest }, key = "ja") => ({ [key]: text, ...rest, ...(rest.reading === scriptFixture.reading && { reading: scriptKana }) });
 
 // responses: one result per call, in order (for retry tests); otherwise every call returns `result`.
-export function fakeClient({ result = fixture, responses, stop = "end_turn", fail } = {}) {
+// stops: one stop_reason per call (C2 truncation retry); otherwise every call ends with `stop`.
+export function fakeClient({ result = fixture, responses, stop = "end_turn", stops, fail } = {}) {
   let calls = 0;
   const finalMessage = async () => {
     if (fail) throw fail;
     const r = responses ? responses[calls] : result;
     calls++;
-    return { stop_reason: stop, content: [{ type: "text", text: typeof r === "string" ? r : JSON.stringify(r) }] };
+    return { stop_reason: stops?.[calls - 1] ?? stop, content: [{ type: "text", text: typeof r === "string" ? r : JSON.stringify(r) }] };
   };
   const requests = [];
   return { beta: { messages: { stream: (req) => (requests.push(req), { finalMessage }) } }, calls: () => calls, requests };

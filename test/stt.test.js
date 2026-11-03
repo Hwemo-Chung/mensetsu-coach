@@ -3,7 +3,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { POST } from "../api/stt.js";
-import { MODELS, wavDurationMs, speechQuality, MIN_CHARS_PER_SEC } from "../lib/stt.js";
+import { MODELS, wavDurationMs, speechQuality, MIN_CHARS_PER_SEC, sttEnabled } from "../lib/stt.js";
+import { POST as access } from "../api/access.js";
 
 // Primary = gemini-3.5-flash-lite in JSON mode (keeps できるです; the transcribe model corrected it, PoC 11/03).
 const fixture = JSON.parse(readFileSync(new URL("./fixtures/stt.json", import.meta.url), "utf8"));
@@ -32,7 +33,7 @@ const ok = (j = fixture) => Response.json(j);
 const said = (o) => ok({ candidates: [{ content: { parts: [{ text: JSON.stringify({ language: "ja", ...o }) }] } }] });
 const heard = (text) => ok({ candidates: [{ content: { parts: [{ audioTranscription: { text } }] } }] });
 const OK_BODY = { text: FIXTURE_TEXT, quality: "ok" };
-const deps = (fetch = fakeFetch(ok())) => ({ fetch, apiKey: "k" });
+const deps = (fetch = fakeFetch(ok())) => ({ fetch, apiKey: "k", enabled: true });
 const check = async (res, status, body) => {
   assert.equal(res.status, status);
   assert.deepEqual(await res.json(), body);
@@ -50,11 +51,36 @@ test("wrong access code → 401, Gemini not called", async () => {
   assert.equal(f.calls.length, 0);
 });
 
+// Decision 11/03: the Gemini free tier forbids personal data, and a recorded answer carries names and companies.
+// Recording stays off until STT_ENABLED=1 (paid tier); the route refuses before reading the audio, so a direct POST
+// cannot reach Gemini either. /api/access tells the UI whether to show 🎤.
+test("STT_ENABLED unset → 503 stt_unavailable before any Gemini call, even with a key", async () => {
+  const saved = process.env.STT_ENABLED;
+  delete process.env.STT_ENABLED;
+  const f = fakeFetch(ok());
+  await check(await POST(req(), { fetch: f, apiKey: "k" }), 503, { code: "stt_unavailable" });
+  assert.equal(f.calls.length, 0);
+  assert.equal(sttEnabled({}), false);
+  assert.equal(sttEnabled({ STT_ENABLED: "0" }), false);
+  assert.equal(sttEnabled({ STT_ENABLED: "1" }), true);
+  if (saved !== undefined) process.env.STT_ENABLED = saved;
+});
+
+test("/api/access reports stt so the UI shows 🎤 only when recording is allowed", async () => {
+  const saved = process.env.STT_ENABLED;
+  const call = () => access(new Request("http://x/api/access", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `10.9.0.${++ipN}` } })).then((r) => r.json());
+  delete process.env.STT_ENABLED;
+  assert.deepEqual(await call(), { ok: true, stt: false });
+  process.env.STT_ENABLED = "1";
+  assert.deepEqual(await call(), { ok: true, stt: true });
+  if (saved === undefined) delete process.env.STT_ENABLED; else process.env.STT_ENABLED = saved;
+});
+
 test("no GEMINI key → 503 stt_unavailable (fail closed)", async () => {
   const saved = process.env.GEMINI_API_KEY;
   delete process.env.GEMINI_API_KEY;
   const f = fakeFetch(ok());
-  await check(await POST(req(), { fetch: f }), 503, { code: "stt_unavailable" });
+  await check(await POST(req(), { fetch: f, enabled: true }), 503, { code: "stt_unavailable" });
   assert.equal(f.calls.length, 0);
   if (saved !== undefined) process.env.GEMINI_API_KEY = saved;
 });

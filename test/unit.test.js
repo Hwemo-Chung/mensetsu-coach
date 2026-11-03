@@ -27,7 +27,8 @@ test("every rule has the PRD shape", () => {
 });
 
 test("4文型 has the four steps in order", () => {
-  assert.deepEqual(pack.answer_structure.steps.map((s) => s.label), ["復唱", "結論", "基準・数字", "選択肢"]);
+  // Label 選択肢 → 締め 11/03 (PRD §16-15: the last step closes by question type); intent unchanged.
+  assert.deepEqual(pack.answer_structure.steps.map((s) => s.label), ["復唱", "結論", "基準・数字", "締め"]);
 });
 
 test("pack id is validated", () => assert.throws(() => loadPack("../x")));

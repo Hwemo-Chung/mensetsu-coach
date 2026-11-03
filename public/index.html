@@ -12,8 +12,8 @@
     <header class="bar">
       <span class="brand">面接コーチ <span class="sub" data-i18n="title"></span></span>
       <div class="controls">
-        <select id="dest" class="lang"></select>
-        <select id="lang" class="lang" data-i18n-label="language"></select>
+        <span class="picker"><svg class="icon" aria-hidden="true"><use href="/icons.svg#flag"></use></svg><select id="dest" class="lang"></select></span>
+        <span class="picker"><svg class="icon" aria-hidden="true"><use href="/icons.svg#globe"></use></svg><select id="lang" class="lang" data-i18n-label="language"></select></span>
         <button type="button" id="panelToggle" class="end" aria-controls="panel" aria-expanded="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#panel"></use></svg><span data-i18n="panel"></span></button>
         <button type="button" id="opts" class="end ib" aria-haspopup="dialog" aria-controls="options" data-i18n-label="opts.button"><svg class="icon" aria-hidden="true"><use href="/icons.svg#settings"></use></svg></button>
         <button type="button" id="end" class="end" data-i18n="end"></button>
@@ -34,7 +34,7 @@
       <p id="micStatus" class="mic-status" aria-live="polite" hidden></p>
       <p id="micNote" class="mic-status" hidden></p>
       <div class="row">
-        <label class="attach" data-i18n-label="attach"><svg class="icon" aria-hidden="true"><use href="/icons.svg#attach"></use></svg><input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
+        <label class="attach" tabindex="0" role="button" data-i18n-label="attach"><svg class="icon" aria-hidden="true"><use href="/icons.svg#attach"></use></svg><input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
         <textarea id="input" rows="2" required></textarea>
         <div class="send-col">
           <button type="button" id="mic" class="mic" aria-pressed="false" hidden><svg class="icon" aria-hidden="true"><use href="/icons.svg#mic"></use></svg></button>

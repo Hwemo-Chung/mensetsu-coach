@@ -37,7 +37,7 @@ export async function POST(request, deps = {}) {
 
   try {
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang }));
+    return json(200, await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang, category: text(body?.category) }));
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("script failed:", e?.status ?? "", e?.message); // never log the answer

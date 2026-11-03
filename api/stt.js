@@ -1,6 +1,6 @@
 import { loadPack, PACKS, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
-import { transcribe, SttError, AUDIO_TYPES, speechQuality, wavDurationMs } from "../lib/stt.js";
+import { transcribe, SttError, AUDIO_TYPES, speechQuality, wavDurationMs, sttEnabled } from "../lib/stt.js";
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024; // 90 s of opus/aac is ~1 MB; under Vercel's 4.5 MB request body limit
 const MAX_TEXT_CHARS = 2000; // same as the answer limit in /api/script
@@ -36,7 +36,7 @@ export async function POST(request, deps = {}) {
   if (!rateLimit(`stt:${ip}`, { limit: 20 })) return json(429, { code: "rate_limited" });
   if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
   const apiKey = deps.apiKey ?? process.env.GEMINI_API_KEY;
-  if (!apiKey) return json(503, { code: "stt_unavailable" }); // fail closed, before reading the audio
+  if (!(deps.enabled ?? sttEnabled()) || !apiKey) return json(503, { code: "stt_unavailable" }); // fail closed, before reading the audio
 
   const q = new URL(request.url).searchParams;
   const pack = q.get("pack") ?? request.headers.get("x-pack") ?? "jp";

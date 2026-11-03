@@ -51,9 +51,13 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
     const script = page.locator("#log > .msg.script:not(.review):not(.reverse)");
     await review.waitFor();
     await script.waitFor();
-    // F3: review.json marks all four steps missing.
-    // Intent unchanged (each missing step is flagged); the ✗ glyph became the x-circle sprite icon (ICON-DUOTONE §4).
-    for (const s of ["復唱", "結論", "基準・数字", "選択肢"]) await review.locator(".step.miss", { hasText: s }).locator('svg.icon > use[href="/icons.svg#x"]').waitFor();
+    // F3: review.json marks all four steps missing; the ✗ glyph is the x-circle sprite icon (ICON-DUOTONE §4).
+    // Intent changed 11/03 (PRD §16-15): 復唱 is recommended, so a missing one is a tip (not ✗), and the last step is
+    // 「締め」 named by the question's closing (選択肢 / 貢献 / 改善 / 質問) instead of always 選択肢.
+    for (const s of ["結論", "基準・数字", "締め"]) await review.locator(".step.miss", { hasText: s }).locator('svg.icon > use[href="/icons.svg#x"]').waitFor();
+    await review.locator(".step.tip", { hasText: `復唱 ${t.steps.fukusho} (${t.review.recommended})` }).locator('svg.icon > use[href="/icons.svg#tip"]').waitFor();
+    assert.equal(await review.locator(".step.miss", { hasText: "復唱" }).count(), 0);
+    assert.match(await review.locator(".step.miss", { hasText: "締め" }).textContent(), new RegExp(Object.values(t.closings).join("|")));
     // F4: the correction quoting the answer stays; the one not in the answer (del-chanto) is dropped by the gate.
     await review.locator(".rule", { hasText: "【str-ketsuron】" }).waitFor();
     assert.equal(await review.locator(".rule", { hasText: "del-chanto" }).count(), 0);

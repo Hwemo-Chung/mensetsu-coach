@@ -7,7 +7,7 @@ const SALUTATION = /^[ \t　]*[^\s　、。,.]{1,12}?[ \t　]*(様|さん|殿|�
 export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE, "[phone]").replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
 
 // JP labels are the fallback for sessions saved before the server sent pack meta.
-const JP_STEPS = [{ key: "fukusho", label: "復唱" }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "選択肢" }];
+const JP_STEPS = [{ key: "fukusho", label: "復唱", optional: true }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "締め" }];
 
 export function sessionToMarkdown(session, t) {
   const c = session.company_context;
@@ -27,10 +27,12 @@ export function sessionToMarkdown(session, t) {
       const r = a.review;
       // The screen shows icons; the Markdown file keeps text marks (the i18n sentence itself has none).
       out.push(`### ${t.review.title}`, "", `- ${{ yes: "✓", no: "⚠" }[r.answers_question] ?? "?"} ${t.review.answers[r.answers_question]} — ${r.answers_question_reason}`);
-      for (const { key, label } of session.pack?.steps ?? JP_STEPS) {
+      const steps = session.pack?.steps ?? JP_STEPS;
+      steps.forEach(({ key, label, optional }, i) => {
         const v = r.steps[key];
-        out.push(`- ${v.present ? "✓" : "✗"} ${label} ${t.steps[key]}${v.present ? "" : ` → ${v.note}`}`);
-      }
+        const name = `${label} ${t.steps[key]}${i === steps.length - 1 && r.closing ? ` · ${t.closings[r.closing]}` : ""}`;
+        out.push(`- ${v.present ? "✓" : optional ? "·" : "✗"} ${name}${v.present ? "" : optional ? ` (${t.review.recommended}) → ${v.note}` : ` → ${v.note}`}`);
+      });
       out.push("", `### ${t.review.corrections}`, "");
       if (!r.corrections.length) out.push(t.review.noCorrections);
       for (const x of r.corrections) out.push(`- 【${x.rule_id}】 ${x.before} → ${x.after} — ${x.reason}`);
@@ -83,7 +85,7 @@ export function compareAttempts(session, qid) {
   return {
     n: qid.slice(1),
     answered: [first.review.answers_question, last.review.answers_question],
-    steps: (session.pack?.steps ?? JP_STEPS).map(({ key, label }) => ({ key, label, first: !!first.review.steps[key]?.present, last: !!last.review.steps[key]?.present })),
+    steps: (session.pack?.steps ?? JP_STEPS).map(({ key, label, optional }) => ({ key, label, ...(optional && { optional }), first: !!first.review.steps[key]?.present, last: !!last.review.steps[key]?.present })),
     answers: [first.answer, last.answer],
   };
 }

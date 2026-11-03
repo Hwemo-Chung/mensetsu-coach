@@ -518,3 +518,111 @@ test("translation-only retry: one small call for the translation, never more tha
   assert.deepEqual(await generateScript(full, pack, { question: "Q", answer: "A", lang: "ko" }), scriptOut);
   assert.equal(full.requests[1].output_config.format.schema.required.join(), "ja,reading,translation,points");
 });
+
+// YC review 11/03: 「五名」「三割」 slipped past the number gate (it only read Arabic digits). Kanji numerals before a
+// counter are compared as numbers on both sides; idioms (一般・一緒・もう一度・一つ) and a lone 一 are not numbers.
+test("number gate reads kanji numerals before a counter, not idioms", async () => {
+  const { groundedNumbers } = await import("../lib/script.js");
+  assert.equal(groundedNumbers("チームを五名で回しました。", "チームで回しました"), false);
+  assert.equal(groundedNumbers("手戻りを三割減らしました。", "手戻りを減らしました"), false);
+  assert.equal(groundedNumbers("手戻りを三割減らしました。", "手戻りを3割減らした"), true);
+  assert.equal(groundedNumbers("5名のチームです。", "チームは五名でした"), true);
+  assert.equal(groundedNumbers("十二件、三万円です。", "12件で30000円"), true);
+  assert.equal(groundedNumbers("一般的に、一緒に、もう一度、一つの基準で、一人で決めました。", "決めました"), true);
+});
+
+// Decision 11/03 (PRD §16-15): 復唱 is recommended, not required; the 4th step closes by question type, decided by code
+// (category + question text, packs/jp.json closing_rules) and shared by review and script so both judge the same way.
+test("closingOf: category + question text pick the closing; a pack without rules returns null", async () => {
+  const { closingOf } = await import("../lib/pack.js");
+  const c = (question, category) => closingOf(pack, { question, category });
+  assert.equal(c("見積もりがずれたら、どうしますか。", "技術"), "options");
+  assert.equal(c("優先順位はどう判断しますか。", "マネジメント"), "options");
+  assert.equal(c("あなたの弱みを教えてください。", "経歴・志望動機"), "improvement");
+  assert.equal(c("当社を志望する理由を教えてください。", "経歴・志望動機"), "contribution");
+  assert.equal(c("チームをまとめた経験を教えてください。", "マネジメント"), "contribution");
+  assert.equal(c("困ったときの経験を教えてください。", "技術"), "contribution", "an experience question is not a judgment question");
+  // Past tense = what you did (experience → contribution); present = what you would do (judgment → options).
+  assert.equal(c("チームで意見が対立したとき、どう対応しましたか。", "マネジメント"), "contribution");
+  assert.equal(c("見積もりがずれたとき、どのように判断しましたか。", "技術"), "contribution");
+  assert.equal(c("障害が起きたとき、どう対応しますか。", "技術"), "options");
+  assert.equal(c("機能を止めずに新しい仕組みへ移行するには、どのように進めますか。", "技術"), "options");
+  assert.equal(c("見積もりがずれたとき、どのような基準で判断しますか。", "技術"), "options");
+  assert.equal(c("最後に、何か質問はありますか。", "逆質問"), "question");
+  assert.equal(c("何か質問はありますか。"), "question", "no category: the text rule still applies");
+  assert.equal(closingOf(kr, { question: "약점은 무엇인가요?" }), null);
+});
+
+test("review prompt: 復唱 recommended, 4th step uses the question's closing; the result carries it", async () => {
+  const cl = pack.answer_structure.closings;
+  const r = buildReviewRequest(pack, { question: "当社を志望する理由を教えてください。", answer: "A", category: "経歴・志望動機" });
+  assert.ok(r.system.includes(cl.contribution.rule));
+  assert.ok(!r.system.includes(cl.options.rule));
+  assert.match(r.system, /復唱[^\n]*推奨/);
+  assert.ok(buildReviewRequest(pack, { question: "見積もりがずれたらどうしますか。", answer: "A" }).system.includes(cl.options.rule));
+  assert.equal((await generateReview(fakeClient({ result: reviewFixture }), pack, B)).closing, "contribution");
+});
+
+test("script prompt closes by the question's type, not always with 選択肢", () => {
+  const cl = pack.answer_structure.closings;
+  const s = buildScriptRequest(pack, { question: "当社を志望する理由を教えてください。", answer: "A", category: "経歴・志望動機" }).system;
+  assert.ok(s.includes(cl.contribution.rule));
+  assert.ok(!s.includes("選択肢で結ぶ"));
+  assert.ok(buildScriptRequest(pack, { question: "見積もりがずれたらどうしますか。", answer: "A" }).system.includes(cl.options.rule));
+});
+
+test("/api/review and /api/script pass category to the closing decision", async () => {
+  let ip = 1;
+  const req = (path, body) => new Request(`http://x${path}`, { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `7.7.1.${ip++}`, "content-type": "application/json" }, body: JSON.stringify(body) });
+  const q = { question: "最後に伺いたいことはありますか。", answer: B.answer, category: "逆質問" };
+  const rc = fakeClient({ result: reviewFixture });
+  await reviewPOST(req("/api/review", q), { client: rc });
+  assert.ok(rc.requests[0].system.includes(pack.answer_structure.closings.question.rule));
+  const sc = fakeClient({ result: asModelScript(scriptFixture) });
+  await scriptPOST(req("/api/script", q), { client: sc });
+  assert.ok(sc.requests[0].system.includes(pack.answer_structure.closings.question.rule));
+});
+
+test("questions result marks 復唱 optional so the UI shows a tip, not ✗", async () => {
+  const out = await generateQuestions(fakeClient(), pack, "MAIL", []);
+  assert.deepEqual(out.pack.steps.map((s) => s.optional ?? false), [true, false, false, false]);
+});
+
+// Consistency PR-1 (research/CONSISTENCY-PLAN.md C1·C2·C6): code-side levers, since Sonnet 5.5 rejects sampling params.
+test("C1: the script prompt carries each step's example (last step = the question's closing example)", () => {
+  const q = { question: "見積もりがずれたらどうしますか。", answer: "A" };
+  const sys = buildScriptRequest(pack, q).system;
+  const s = pack.answer_structure;
+  for (const st of s.steps.slice(0, -1)) assert.ok(sys.includes(`例: 「${st.example}」`), st.key);
+  assert.ok(sys.includes(`例: 「${s.closings.options.example}」`));
+});
+
+test("C1/T2: pack step and closing examples carry no Arabic digits (the number gate would retry on a copied 3)", () => {
+  for (const p of [pack, kr]) {
+    const s = p.answer_structure;
+    const ex = [...s.steps.map((x) => x.example), ...Object.values(s.closings ?? {}).map((x) => x.example)];
+    for (const e of ex) assert.ok(!/[0-9０-９]/.test(e), `${p.id}: ${e}`);
+  }
+});
+
+test("C2: a truncated script response is retried once; two truncations still fail", async () => {
+  const good = asModelScript(scriptFixture);
+  const c = fakeClient({ responses: [good, good], stops: ["max_tokens", "end_turn"] });
+  const out = await generateScript(c, pack, { question: "見積もりは？", answer: "手戻りを減らしました" });
+  assert.equal(out.text, scriptFixture.text);
+  assert.equal(c.calls(), 2);
+  await assert.rejects(generateScript(fakeClient({ responses: [good, good], stops: ["max_tokens", "max_tokens"] }), pack, { question: "Q", answer: "A" }), /truncated/);
+  await assert.rejects(generateScript(fakeClient({ stop: "refusal" }), pack, { question: "Q", answer: "A" }), /refusal/);
+});
+
+test("C6: review rule ids and verdict are lower-cased; corrections follow their order in the answer", async () => {
+  const answer = "なんか、課題が多かったです。ちゃんと確認しました。";
+  const r = { ...reviewFixture, answers_question: "YES", corrections: [
+    { rule_id: "DEL-CHANTO", before: "ちゃんと確認しました", after: "確認しました", reason: "어린 인상" },
+    { rule_id: "del-nanka", before: "なんか、課題が多かった", after: "課題が多かった", reason: "의미 없음" },
+  ] };
+  const out = await generateReview(fakeClient({ result: r }), pack, { question: "Q", answer });
+  assert.equal(out.answers_question, "yes");
+  assert.deepEqual(out.corrections.map((c) => c.rule_id), ["del-nanka", "del-chanto"]);
+  assert.equal(out.corrections[1].pattern, "ちゃんと");
+});

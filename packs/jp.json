@@ -7,12 +7,25 @@
   "answer_structure": {
     "name": "4文型",
     "steps": [
-      { "key": "fukusho", "label": "復唱", "label_native": "질문 확인", "rule": "最初の1文で、聞かれた質問を短く言い直す。", "example": "見積もりがずれたときの判断、ですね。" },
-      { "key": "ketsuron", "label": "結論", "label_native": "결론", "rule": "復唱の直後（復唱がなければ最初の1文）で結論を言い切る。前置きをしない。", "example": "止める・縮小する・続けるの3つで判断します。" },
+      { "key": "fukusho", "label": "復唱", "label_native": "질문 확인", "optional": true, "rule": "最初の1文で、聞かれた質問を短く言い直す。", "example": "見積もりがずれたときの判断、ですね。" },
+      { "key": "ketsuron", "label": "結論", "label_native": "결론", "rule": "復唱の直後（復唱がなければ最初の1文）で結論を言い切る。前置きをしない。", "example": "止める・縮小する・続けるの三つで判断します。" },
       { "key": "kijun", "label": "基準・数字", "label_native": "근거 하나", "rule": "根拠は基準か数字を1つだけ。複数並べない。", "example": "基準は、残りのコストと、残りのリターンです。" },
-      { "key": "sentakushi", "label": "選択肢", "label_native": "상대에게 반환", "rule": "最後に、相手が判断できる選択肢の形で返す。", "example": "事業側には、止める場合の損失も含めて選択肢で出します。" }
+      { "key": "sentakushi", "label": "締め", "label_native": "맺음", "rule": "最後は、質問の種類に合った形で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。" }
     ],
-    "core_principle": "質問されたことに答える。準備した隣の質問に答えない。"
+    "core_principle": "質問されたことに答える。準備した隣の質問に答えない。",
+    "closings": {
+      "options": { "label": "選択肢", "rule": "判断・状況の質問なので、最後は相手が判断できる選択肢の形で返す。", "example": "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。" },
+      "contribution": { "label": "貢献", "rule": "経験・志望の質問なので、最後は応募先でどう活かすか（入社後の貢献）で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。" },
+      "improvement": { "label": "改善", "rule": "弱みの質問なので、最後は改善の取り組みを続けて応募先で貢献することで締める。", "example": "御社でも、確認の手順を続けながら、早めに共有します。" },
+      "question": { "label": "質問", "rule": "逆質問なので、自分の経験と考えを一言添えて、質問を一つだけ聞く。", "example": "前職では導入初期の定着に苦労しました。御社では、導入後の定着をどのように支えていますか。" }
+    },
+    "closing_rules": [
+      { "category": "逆質問", "closing": "question" },
+      { "match": "質問はありますか|伺いたいこと|聞きたいこと", "closing": "question" },
+      { "match": "判断(?:します|する)|どう(?:します|対応します|進めます)|どのように(?:判断し|対応し|進め)ます|場合|としたら", "closing": "options" },
+      { "match": "弱み|短所|苦手", "closing": "improvement" },
+      { "closing": "contribution" }
+    ]
   },
   "correction_rules": [
     { "id": "del-katachi", "pattern": "〜の形 / 〜という形で", "type": "delete", "replacement": "", "reason": "意味がない。1回も言わない。文が短くなる。", "example_before": "チームで共有する形で進めました。", "example_after": "チームで共有して進めました。" },

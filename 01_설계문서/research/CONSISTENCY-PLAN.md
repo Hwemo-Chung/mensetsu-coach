@@ -4,6 +4,8 @@
 입력: `EVIDENCE-V3.md`(§5 강제 방식 초안), `jp-draft-v3.json`(answer_templates·consistency 초안), `lib/script.js`·`lib/review.js`·`lib/questions.js`·`lib/claude.js`.
 이 문서는 설계만 담습니다. 레포 코드와 `packs/`는 고치지 않았고, 실호출은 0회입니다. 코드 조각은 제안이며 줄 수는 대략적인 추정입니다.
 
+> **구현 상태 (11/03 10시)**: PR-1 = C1(단계 예문 주입, 팩 「3つ」→「三つ」)·C2(truncated 1회 재시도)·C6(review 소문자 정규화·답변 순 정렬) 구현, 오프라인 테스트 T1·T2·T3·T15 통과. C4는 질문 유형별 맺음(PRD §16-15)으로 먼저 들어갔습니다(`lib/pack.js` `closingOf`, 템플릿 전체 병합은 아님). C3·C5와 재측정은 남았습니다. 기준선(`consistency-baseline-2026-11-03.json`)은 맺음 규칙 변경 전 측정이라, 재측정과 직접 비교할 수 없습니다.
+
 ## 0. 결론 — 줄당 일관성 이득 순위
 
 | 순위 | id | 무엇을 | 어디 | 코드 줄 수(추정) | 기대 이득 | 신뢰도 |

@@ -223,6 +223,8 @@ async function playDevice(me, hl, card, text, cleanups) {
 // ---- 🎤 answer / read-aloud recording ----
 const mic = $("mic"), status = $("micStatus"), freeNote = $("micNote"), input = $("input"), send = $("send");
 const MAX_REC_S = 90;
+let recording = false; // /api/access says whether STT is allowed (off on the Gemini free tier, decision 11/03)
+export const allowRecording = (on) => { recording = on === true; };
 let rec = null; // { recorder, stream, timer, t0, cancelled, ui }: one recording at a time, answer or read-aloud
 let warned = false; // free-tier line (decision 11/03): first recording of this page session only
 const micSupported = () => Boolean(navigator.mediaDevices?.getUserMedia && window.MediaRecorder);
@@ -333,7 +335,7 @@ function askAgain() {
 // ---- V4: read the model script aloud → recognition-based check against its hiragana reading (readcheck.js) ----
 // Live scripts with a kana reading only: none for a same-language screen (jp + ja), the kr pack, or the demo/tutorial.
 export function addReadAloud(card, script) {
-  if (state.demoActive || !script?.kana) return;
+  if (!recording || state.demoActive || !script?.kana) return;
   const t = T().read;
   const btn = el("button", "readaloud"), line = el("p", "read-status legend");
   btn.type = "button";
@@ -422,7 +424,7 @@ async function speakSentence(card, text) {
 // Visible only at the answer stage. Leaving it stops a recording without sending it.
 export function showMic(on) {
   if (!on && rec?.ui === answerUi) stopRec(true); // a read-aloud check on the script card keeps going
-  mic.hidden = !on;
+  mic.hidden = !(on && recording);
   setMic(rec?.ui === answerUi);
   mic.classList.toggle("off", !micSupported());
 }

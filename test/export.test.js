@@ -80,7 +80,8 @@ test("compareAttempts: null below two reviewed attempts; first vs latest per ste
   assert.equal(c.n, "3");
   assert.deepEqual(c.answered, ["no", "yes"]);
   assert.deepEqual(c.answers, ["first", "last"]);
-  assert.deepEqual(c.steps.map((x) => x.label), ["復唱", "結論", "基準・数字", "選択肢"], "JP labels when the session has no pack meta");
+  // Label 選択肢 → 締め 11/03 (PRD §16-15: the last step closes by question type); intent unchanged.
+  assert.deepEqual(c.steps.map((x) => x.label), ["復唱", "結論", "基準・数字", "締め"], "JP labels when the session has no pack meta");
   assert.ok(c.steps.every((x) => x.last));
   assert.deepEqual(c.steps.map((x) => x.first), Object.values(miss.steps).map((v) => v.present));
   const kr = compareAttempts({ ...s, pack: { steps: [{ key: "ketsuron", label: "결론" }] } }, "q3");

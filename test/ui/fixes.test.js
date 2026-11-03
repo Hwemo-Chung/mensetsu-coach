@@ -175,8 +175,9 @@ test("header: one row at 1440x900, at most two rows and no overflow at 390x844 (
   for (const lang of ["ko", "en", "ja"]) for (const vp of ["desktop", "mobile"]) {
     const { context, page, errors } = await open(VIEWPORTS[vp], lang);
     await page.evaluate(() => { document.getElementById("panelToggle").hidden = false; }); // widest state: all controls shown
-    const tops = await page.evaluate(() => [".brand", ...[...document.querySelectorAll(".controls > *")].map((e) => `#${e.id}`)]
-      .map((s) => { const r = document.querySelector(s).getBoundingClientRect(); return Math.round(r.top + r.height / 2); })); // row = vertical centre (text and 44px buttons differ in height)
+    // Elements, not #ids: the pickers (icon + select, review M1 11/03) have no id; intent unchanged.
+    const tops = await page.evaluate(() => [document.querySelector(".brand"), ...document.querySelectorAll(".controls > *")]
+      .map((e) => { const r = e.getBoundingClientRect(); return Math.round(r.top + r.height / 2); })); // row = vertical centre (text and 44px buttons differ in height)
     const rows = new Set(tops).size;
     if (vp === "desktop") assert.equal(rows, 1, `${lang} desktop rows ${tops}`);
     else assert.ok(rows <= 2, `${lang} mobile rows ${tops}`);

@@ -101,7 +101,8 @@ test("mobile: panel opens only by button as a full-screen overlay; Esc and Close
   await page.click("#panelClose");
   await panel.waitFor({ state: "hidden" });
   assert.equal(await focused(page), "panelToggle");
-  assert.equal(await page.evaluate(() => localStorage.getItem("mensetsu-panel-closed")), null, "closing the phone overlay must not turn off the desktop default");
+  // Review minor 1 (11/03): the flag moved to sessionStorage (a desktop close lasts one tab, not every later session).
+  assert.equal(await page.evaluate(() => sessionStorage.getItem("mensetsu-panel-closed")), null, "closing the phone overlay must not turn off the desktop default");
   assert.deepEqual(errors, []);
   await context.close();
 });
@@ -326,5 +327,38 @@ test("layout B 390: one column, review inline in the chat, panel only as an over
   assert.ok(await noHorizontalOverflow(page));
   await shot(page, "redesign-390-panel");
   assert.deepEqual(errors, []);
+  await context.close();
+});
+
+// Review M4 (11/03): the 📎 label wrapped a hidden input, so Tab skipped it. Now it is focusable and Enter/Space open the picker.
+test("keyboard: Tab reaches 📎 attach, Enter and Space open the file chooser", async () => {
+  const { context, page } = await openApp(browser, server.url, VIEWPORTS.desktop);
+  await page.focus("#input");
+  await page.keyboard.press("Shift+Tab");
+  assert.equal(await page.evaluate(() => document.activeElement.className), "attach");
+  for (const key of ["Enter", " "]) {
+    const chooser = page.waitForEvent("filechooser", { timeout: 2000 });
+    await page.keyboard.press(key === " " ? "Space" : key);
+    await chooser;
+  }
+  await context.close();
+});
+
+// Review minors (11/03): a desktop close is remembered for this tab only; Korean wraps at word gaps, Japanese stays normal;
+// the Send-ready ring meets 3:1 against white (WCAG 1.4.11).
+test("panel close lasts the tab; ko keep-all except Japanese lines; Send-ready ring contrast", async () => {
+  const { context, page } = await openApp(browser, server.url, VIEWPORTS.desktop);
+  await page.evaluate(() => document.querySelector(".msg.coach").insertAdjacentHTML("beforeend", '<p class="ja">日本語の行</p>'));
+  const wb = (sel) => page.locator(sel).first().evaluate((e) => getComputedStyle(e).wordBreak);
+  assert.equal(await wb(".msg.coach"), "keep-all");
+  assert.equal(await wb(".msg.coach .ja"), "normal");
+  await send(page, CODE);
+  await bubbles(page, "coach").filter({ hasText: LANGS.ko.chat.askMail.split("\n")[0] }).waitFor();
+  await send(page, MAIL);
+  await page.locator("#panel").waitFor();
+  await page.click("#panelClose");
+  assert.deepEqual(await page.evaluate(() => [sessionStorage.getItem("mensetsu-panel-closed"), localStorage.getItem("mensetsu-panel-closed")]), ["1", null]);
+  await page.evaluate(() => document.querySelector("#send").classList.add("ready"));
+  assert.equal(await page.locator("#send").evaluate((e) => getComputedStyle(e).outlineColor), "rgb(4, 122, 53)");
   await context.close();
 });

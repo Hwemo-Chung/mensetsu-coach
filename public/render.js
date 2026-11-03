@@ -78,10 +78,10 @@ export function waiting(label) {
 
 // Display order and labels of the 4 steps: the session's pack (from /api/questions), else packs/jp.json.
 const JP_STEPS = [
-  { key: "fukusho", label: "復唱" },
+  { key: "fukusho", label: "復唱", optional: true },
   { key: "ketsuron", label: "結論" },
   { key: "kijun", label: "基準・数字" },
-  { key: "sentakushi", label: "選択肢" },
+  { key: "sentakushi", label: "締め" },
 ];
 
 export function renderQuestions({ company_context: c, questions, specificity }) {
@@ -116,11 +116,15 @@ export function renderReview(r, slot) {
   const b = fill(slot, "coach script review");
   b.append(el("p", "title", t.title));
   b.append(iel("p", `verdict ${r.answers_question}`, VERDICT_ICON[r.answers_question] ?? "question", t.answers[r.answers_question]), el("p", "tr", r.answers_question_reason));
-  for (const step of state.session?.pack?.steps ?? JP_STEPS) {
+  // PRD §16-15: an optional step (復唱) that is missing is a tip, not ✗; the last step is named by r.closing.
+  const steps = state.session?.pack?.steps ?? JP_STEPS;
+  steps.forEach((step, i) => {
     const v = r.steps[step.key];
-    b.append(iel("p", `step ${v.present ? "ok" : "miss"}`, v.present ? "check" : "x", `${step.label} ${T().steps[step.key]}`));
-    if (!v.present) b.append(el("p", "hint", `→ ${v.note}`));
-  }
+    const name = `${step.label} ${T().steps[step.key]}${i === steps.length - 1 && r.closing ? ` · ${T().closings[r.closing]}` : ""}`;
+    if (v.present) b.append(iel("p", "step ok", "check", name));
+    else if (step.optional) b.append(iel("p", "step tip", "tip", `${name} (${t.recommended})`), el("p", "hint", `${t.tip}: ${v.note}`));
+    else b.append(iel("p", "step miss", "x", name), el("p", "hint", `→ ${v.note}`));
+  });
   b.append(el("p", "title", t.corrections));
   if (!r.corrections.length) b.append(el("p", "tr", t.noCorrections));
   for (const c of r.corrections) {
@@ -140,7 +144,8 @@ export function renderCompare(c, slot) {
   const head = el("thead"), body = el("tbody"), table = el("table", "cmp");
   head.append(row("", el("th", null, t.first), el("th", null, t.last)));
   body.append(row(t.answered, ...c.answered.map((v) => cell(v === "yes", VERDICT_ICON[v] ?? "question"))));
-  for (const s of c.steps) body.append(row(`${s.label} ${T().steps[s.key]}`, cell(s.first, s.first ? "check" : "x"), cell(s.last, s.last ? "check" : "x")));
+  const mark = (ok, s) => cell(ok, ok ? "check" : s.optional ? "tip" : "x");
+  for (const s of c.steps) body.append(row(`${s.label} ${T().steps[s.key]}`, mark(s.first, s), mark(s.last, s)));
   table.append(head, body);
   const answers = el("div", "cmp-answers");
   c.answers.forEach((a, i) => { const box = el("div", "cmp-answer"); box.append(el("p", "label", i ? t.last : t.first), el("p", "ja", a)); answers.append(box); });

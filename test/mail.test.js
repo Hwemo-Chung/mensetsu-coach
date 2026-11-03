@@ -33,7 +33,8 @@ test("daily tip: rotates by JST date; contains question, 4-step hint, one rule b
   const ko = dailyTip(pack, d1, "ko", "https://app.example/u?id=X");
   assert.ok(pack.daily_questions.includes(ko.question));
   assert.ok(ko.text.includes(ko.question));
-  assert.ok(ko.text.includes("復唱") && ko.text.includes("選択肢"));
+  // Label 選択肢 → 締め 11/03 (PRD §16-15: the last step closes by question type); intent unchanged.
+  assert.ok(ko.text.includes("復唱") && ko.text.includes("締め"));
   const rule = pack.correction_rules.find((r) => ko.text.includes(`【${r.id}】`));
   assert.ok(rule && ko.text.includes(rule.example_before) && ko.text.includes(rule.example_after));
   assert.ok(ko.text.includes("https://app.example/u?id=X"));

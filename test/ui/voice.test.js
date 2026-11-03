@@ -245,3 +245,18 @@ test("loader: three dots right away, the stage label after 3 s, static with redu
   await context.close();
 });
 
+
+// Review M3 (11/03): the panel's ③ copy is the readable one (18px) but had no 🔊; it now has its own, reading along there.
+test("🔊 on the panel's ③ script copy plays and highlights inside the panel (desktop)", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop);
+  const reqs = ttsRequests(page);
+  await toScript(page);
+  const copy = page.locator("#reviewBox > .script:not(.review)");
+  const btn = copy.getByRole("button", { name: ko.tts.play });
+  await btn.click();
+  await page.waitForFunction(() => (document.querySelector("#reviewBox > .script:not(.review) .ja .read")?.textContent.length ?? 0) > 0, null, { timeout: 4000 });
+  assert.equal(await page.locator("#log .msg.script .ja .read").count(), 0, "the chat card is not the one highlighted");
+  assert.equal(reqs.length, 1);
+  assert.deepEqual(errors, []);
+  await context.close();
+});

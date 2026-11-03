@@ -4,7 +4,7 @@ import { loadSession, clearSession, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS } from "./demo.js";
-import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts } from "./voice.js";
+import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
 
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
 let attachment = null;
@@ -79,6 +79,7 @@ async function onCode(text) {
   if (my !== state.epoch) return;
   if (res.ok) {
     keepCode(text);
+    allowRecording(data.stt);
     // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
     if (state.demoActive) {
       state.demoActive = false;
@@ -233,8 +234,8 @@ async function onAnswer(text) {
     }
   };
   await Promise.all([
-    run("/api/review", { question: q.question, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
-    run("/api/script", { question: q.question, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text); addReadAloud(slot, d); }, "script", scriptSlot),
+    run("/api/review", { question: q.question, category: q.category, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
+    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text); addReadAloud(slot, d); }, "script", scriptSlot),
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);
@@ -249,6 +250,12 @@ async function onAnswer(text) {
   askForPick(true);
 }
 
+// The label wraps a hidden input, so it is the keyboard target itself (review M4).
+document.querySelector(".attach").addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  e.preventDefault();
+  fileInput.click();
+});
 fileInput.addEventListener("change", () => {
   const f = fileInput.files[0];
   fileInput.value = "";

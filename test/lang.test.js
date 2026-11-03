@@ -194,7 +194,8 @@ test("export: renamed fields, pack step labels (JP fallback), reading/translatio
   const base = { company_context: fixture.company_context, questions, attempts: [{ question_id: "q1", answer: "A", review, script: scriptFixture }] };
   const md = sessionToMarkdown(base, LANGS.ko);
   assert.ok(md.includes(questions[0].question) && md.includes(scriptFixture.text) && md.includes(scriptFixture.reading));
-  assert.ok(md.includes("✗ 復唱"), "no pack meta → JP step labels");
+  // 復唱 is optional since 11/03 (PRD §16-15): a missing one exports as "·" (recommended), not ✗; intent unchanged.
+  assert.ok(md.includes("· 復唱"), "no pack meta → JP step labels");
   const krSession = { ...base, pack: { id: "kr", target: "ko", steps: kr.answer_structure.steps.map(({ key, label }) => ({ key, label })) }, attempts: [{ question_id: "q1", answer: "A", review, script: { text: "네, 확인합니다.", points: ["결론 먼저"] } }] };
   const md2 = sessionToMarkdown(krSession, LANGS.ko);
   assert.ok(md2.includes("✗ 질문 확인") && !md2.includes("復唱"));

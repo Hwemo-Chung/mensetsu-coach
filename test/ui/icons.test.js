@@ -13,8 +13,8 @@ after(async () => { await browser?.close(); server?.stop(); });
 const IDS = ["attach", "check", "compare", "download", "file", "flag", "globe", "habits", "mic", "notes", "panel", "play", "question", "record", "send", "settings", "speaker", "stop", "tip", "warning", "x"];
 const ICON_ONLY = ["#opts", "#chipX", ".attach", "#mic", ".listen"];
 
-// UI chrome only: model/user content (.ja .tr .reading .points .basis .q, the user's bubbles) and <option> text are
-// excluded. Kept notation is outside the ranges: arrows U+2190–21FF (→ ↗ ↘), ①② U+2460–24FF, × U+00D7 (0.8×, "2×").
+// UI chrome only: model/user content (.ja .tr .reading .points .basis .q, the user's bubbles) is excluded. The header
+// <option>s (destination, language) are chrome too: since review M1 (11/03) the flags are sprite icons beside them. Kept notation is outside the ranges: arrows U+2190–21FF (→ ↗ ↘), ①② U+2460–24FF, × U+00D7 (0.8×, "2×").
 async function chromeGlyphs(page) {
   return page.evaluate(() => {
     const RE = /[⌀-⏿■-➿⬀-⯿\u{1F000}-\u{1FAFF}]/u;
@@ -25,6 +25,7 @@ async function chromeGlyphs(page) {
       for (const x of c.querySelectorAll("option, select, .ja, .tr, .reading, .points, .basis, .q")) x.remove();
       check(e.id || e.className || e.tagName, c.textContent);
     }
+    for (const o of document.querySelectorAll(".bar option")) check("option", o.text);
     // The app's own sentences sit directly in coach/note bubbles (askMail, saved, habits line).
     for (const b of document.querySelectorAll("#log > .msg.coach, #log > .msg.note")) {
       for (const n of b.childNodes) if (n.nodeType === 3) check("bubble", n.data);
@@ -158,5 +159,13 @@ test("live flow: attach chip, mic/record, listen/stop, panel open — icon swap 
   await page.locator('#panelToggle[aria-expanded="false"] > svg.icon > use[href="/icons.svg#panel"]').waitFor();
   assert.equal(await toggle.evaluate((b) => getComputedStyle(b).backgroundColor), bg, "open/closed differ by icon, not background");
   assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("header: destination and language pickers carry the flag / globe sprite icons (review M1)", async () => {
+  const { context, page } = await openApp(browser, server.url, { width: 1440, height: 900 });
+  for (const [sel, id] of [["#dest", "flag"], ["#lang", "globe"]]) {
+    assert.equal(await page.locator(`.picker:has(${sel}) > svg.icon > use[href="/icons.svg#${id}"]`).count(), 1, sel);
+  }
   await context.close();
 });

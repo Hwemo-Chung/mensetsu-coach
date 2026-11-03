@@ -1,11 +1,12 @@
 // Side panel (첨삭 | 노트) re-draws the latest review; chat bubbles stay the source. Desktop: beside the chat.
 // Mobile: full-screen overlay, opened only by the button, with the chat behind it inert.
 import { $, el, state, T, persist, renderReview, renderCompare, renderScript, habitsLine } from "./render.js";
+import { addListen } from "./voice.js";
 
 export const panel = $("panel");
 const toggle = $("panelToggle");
 export const wide = matchMedia("(min-width: 1024px)");
-const PANEL_CLOSED = "mensetsu-panel-closed"; // the user closed it once: no more auto-open
+const PANEL_CLOSED = "mensetsu-panel-closed"; // the user closed it once in this tab: no more auto-open (sessionStorage)
 function syncInert() {
   const cover = !panel.hidden && !wide.matches;
   for (const e of [document.querySelector(".bar"), $("log"), $("composer")]) e.inert = cover;
@@ -24,7 +25,7 @@ function openPanel() {
 }
 export function closePanel() {
   // Only a desktop close counts: closing the phone overlay is just the way back to the chat.
-  if (wide.matches) try { localStorage.setItem(PANEL_CLOSED, "1"); } catch {}
+  if (wide.matches) try { sessionStorage.setItem(PANEL_CLOSED, "1"); } catch {}
   panel.hidden = true;
   expanded(false);
   syncInert();
@@ -49,11 +50,11 @@ for (const x of tabs) {
 // review), unless the user closed it once. Called right after renderQuestions(); a phone never opens it by itself.
 export function openByDefault() {
   let closedByUser = false;
-  try { closedByUser = localStorage.getItem(PANEL_CLOSED) === "1"; } catch {}
+  try { closedByUser = sessionStorage.getItem(PANEL_CLOSED) === "1"; } catch {}
   if (wide.matches && panel.hidden && !closedByUser) openPanel();
 }
 // 첨삭 tab = one document of the latest attempt: ①② review, ③ model script (when there is one), ④ first ↔ latest.
-// Copies of the chat cards without bubble styling and without the listen button (voice.js drives the chat card).
+// Copies of the chat cards without bubble styling; ③ gets its own 🔊 (review M3: the panel copy is the readable one).
 export function showReview(r, cmp, script) {
   const rv = el("div");
   renderReview(r, rv);
@@ -61,7 +62,7 @@ export function showReview(r, cmp, script) {
   const habits = habitsLine();
   if (habits) { const p = el("p", "tr"); p.append(...habits); rv.append(p); }
   const parts = [rv];
-  if (script) { const s = el("div"); renderScript(script, s); s.className = "script"; parts.push(s); }
+  if (script) { const s = el("div"); renderScript(script, s); s.className = "script"; addListen(s, script.text); parts.push(s); }
   if (cmp) {
     const c = renderCompare(cmp, el("div"));
     c.className = "compare";
