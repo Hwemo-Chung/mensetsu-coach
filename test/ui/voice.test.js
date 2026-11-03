@@ -258,6 +258,13 @@ test("🔊 on the panel's ③ script copy plays and highlights inside the panel 
   await btn.click();
   await page.waitForFunction(() => (document.querySelector("#reviewBox > .script:not(.review) .ja .read")?.textContent.length ?? 0) > 0, null, { timeout: 4000 });
   assert.equal(await page.locator("#log .msg.script .ja .read").count(), 0, "the chat card is not the one highlighted");
+  // The panel card is a grid on desktop, where float is ignored: 🔊 must not take a grid cell and push the title down.
+  const m = await copy.evaluate((c) => {
+    const r = (s) => c.querySelector(s).getBoundingClientRect();
+    return { title: r(".title"), pts: r(".pts"), btn: r(".listen"), card: c.getBoundingClientRect() };
+  });
+  assert.ok(m.title.top < m.pts.top, `title above the points (${m.title.top} vs ${m.pts.top})`);
+  assert.ok(m.btn.bottom <= m.title.bottom + 1 && m.card.right - m.btn.right < 20, "🔊 at the card's top-right");
   assert.equal(reqs.length, 1);
   assert.deepEqual(errors, []);
   await context.close();

@@ -12,7 +12,7 @@ import { readFileSync } from "node:fs";
 // V4: the script response also carries the model's raw hiragana reading as `kana` (read-aloud check compares on it).
 const scriptOut = { ...scriptFixture, kana: scriptKana };
 // C3·C5 (11/03) add parts/closing/issues to every script result; whole-output comparisons check the earlier fields only.
-const core = ({ parts, closing, issues, ...x }) => x;
+const core = ({ parts, closing, issues, ttsSig, ...x }) => x; // ttsSig: API only (11/03)
 const MAIL = readFileSync(new URL("../samples/agent-mail-sample.txt", import.meta.url), "utf8");
 
 const pack = loadPack("jp");
@@ -551,6 +551,11 @@ test("closingOf: category + question text pick the closing; a pack without rules
   assert.equal(c("見積もりがずれたとき、どのように判断しましたか。", "技術"), "contribution");
   assert.equal(c("障害が起きたとき、どう対応しますか。", "技術"), "options");
   assert.equal(c("機能を止めずに新しい仕組みへ移行するには、どのように進めますか。", "技術"), "options");
+  // Review 11/03: present-tense judgment verbs beyond します, and 苦手 as an adjective about others.
+  for (const q of ["技術的な優先順位をどう決めますか。", "障害が起きたらどう対処しますか。", "トラブルがあったらどうされますか。", "納期とのバランスをどう考えますか。", "メンバーの負荷をどう管理しますか。"]) assert.equal(c(q, "技術"), "options", q);
+  assert.equal(c("優先順位をどう決めましたか。", "技術"), "contribution", "past tense stays an experience question");
+  assert.equal(c("お客様が苦手とする作業を、どう改善しましたか。", "技術"), "contribution");
+  assert.equal(c("苦手なことは何ですか。", "経歴・志望動機"), "improvement");
   assert.equal(c("見積もりがずれたとき、どのような基準で判断しますか。", "技術"), "options");
   assert.equal(c("最後に、何か質問はありますか。", "逆質問"), "question");
   assert.equal(c("何か質問はありますか。"), "question", "no category: the text rule still applies");
@@ -714,4 +719,70 @@ test("Japanese explanations are plain 日本語 for every pack (no やさしい�
       buildReviewRequest(p, { question: "Q", answer: "A", lang: "ja" }).system, buildReverseRequest(p, { context: "C", lang: "ja" }).system];
     for (const x of sys) assert.ok(!x.includes("やさしい") && x.includes("日本語"), `${p.id}: ${x.slice(0, 60)}`);
   }
+});
+
+// Product review 11/03: the gate compared substrings — 「3,000万円」 in the answer vs 「3000万円」 in the script failed (a
+// correct answer ended in 502), and 「15%」 passed because the source had 「2015年」. Numbers are now whole tokens.
+test("number gate compares whole numbers: thousands commas match, digits inside another number do not", async () => {
+  const { groundedNumbers } = await import("../lib/script.js");
+  assert.equal(groundedNumbers("3000万円の予算を管理しました。", "前職で3,000万円の予算を管理しました。"), true);
+  assert.equal(groundedNumbers("3,000万円の予算を管理しました。", "前職で3000万円の予算"), true);
+  assert.equal(groundedNumbers("売上を15%伸ばしました。", "2015年に入社しました"), false);
+  assert.equal(groundedNumbers("5名のチームです。", "2025年から"), false);
+  assert.equal(groundedNumbers("2025年から5名のチームです。", "2025年から5名で"), true);
+});
+
+// Security review 11/03: a non-JSON reply made JSON.parse throw a message quoting the model output ("私の名前は山田太郎…"),
+// which the API handlers log. The error must not carry the content.
+test("askJson: a non-JSON reply fails without quoting the model text", async () => {
+  const { askJson } = await import("../lib/claude.js");
+  const client = fakeClient({ result: "私の名前は山田太郎です。連絡先は秘密です。" });
+  await assert.rejects(askJson(client, {}), (e) => e.message === "bad_json" && !String(e.message).includes("山田"));
+});
+
+// Product review 11/03: a step the answer already has shows no note in the UI, yet an empty note there failed the
+// language check and the whole review ended in 502.
+test("review language check ignores notes of steps that are present (they are never shown)", async () => {
+  const r = { ...reviewFixture, steps: { ...reviewFixture.steps, kijun: { present: true, note: "" } } };
+  const out = await generateReview(fakeClient({ result: r }), pack, B);
+  assert.equal(out.steps.kijun.present, true);
+});
+
+// Demo review 11/03: a recorded question began with a stray quote marker (">プロジェクトの見積もりが…").
+test("generated questions lose a leading quote marker (> ＞ 》) before they are shown", async () => {
+  const q = { ...fixture, questions: fixture.questions.map((x, i) => (i === 1 ? { ...x, question: `>${x.question}` } : i === 2 ? { ...x, question: `＞ ${x.question}` } : x)) };
+  const out = await generateQuestions(fakeClient({ result: q }), pack, "MAIL", []);
+  assert.equal(out.questions[1].question, fixture.questions[1].question);
+  assert.equal(out.questions[2].question, fixture.questions[2].question);
+});
+
+// Demo re-record 11/03: the 結論 example was a frame (「三つで判断します」); the script copied it and the review then
+// failed the script's own conclusion. The example states an actual decision, and the rule says so.
+test("結論 rule and example ask for the content of the conclusion, not a frame", () => {
+  const k = pack.answer_structure.steps.find((s) => s.key === "ketsuron");
+  assert.match(k.rule, /中身/);
+  assert.doesNotMatch(k.example, /で判断します。$/);
+});
+
+// Product review 11/03: only the rule ID was checked, so a 資産 (rep-shisan) correction on 「残りのコスト」 passed.
+// Vocabulary rules carry a token that the quoted part must contain; structure rules (str-*) have none.
+test("vocabulary corrections must quote their rule's expression; structure rules are not token-checked", async () => {
+  const answer = "残りのコストを基準に判断しました。ちゃんと確認しました。前職では成功しました。";
+  const r = { ...reviewFixture, corrections: [
+    { rule_id: "rep-shisan", before: "残りのコスト", after: "残りの工数", reason: "자산이 아님" },
+    { rule_id: "del-chanto", before: "ちゃんと確認しました", after: "確認しました", reason: "유치하게 들림" },
+    { rule_id: "str-ketsuron", before: "前職では成功しました", after: "［結論］と判断しました", reason: "결론을 먼저" },
+  ] };
+  const out = await generateReview(fakeClient({ result: r }), pack, { question: "Q", answer });
+  assert.deepEqual(out.corrections.map((c) => c.rule_id), ["del-chanto", "str-ketsuron"]);
+  assert.equal(out.dropped, 1);
+  for (const rule of pack.correction_rules) assert.equal("token" in rule, rule.type !== "structure", rule.id);
+});
+
+test("/api/script returns a TTS signature for exactly the script text", async () => {
+  const { sign } = await import("../lib/guard.js");
+  process.env.ACCESS_CODE = "c0de";
+  const res = await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": "6.6.9.1", "content-type": "application/json" }, body: JSON.stringify({ question: "見積もりは？", answer: "手戻りを減らしました" }) }), { client: fakeClient({ result: asModelScript(scriptFixture) }) });
+  const d = await res.json();
+  assert.equal(d.ttsSig, sign(d.text));
 });

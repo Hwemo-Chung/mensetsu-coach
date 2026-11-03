@@ -62,7 +62,7 @@ export function showReview(r, cmp, script) {
   const habits = habitsLine();
   if (habits) { const p = el("p", "tr"); p.append(...habits); rv.append(p); }
   const parts = [rv];
-  if (script) { const s = el("div"); renderScript(script, s); s.className = "script"; addListen(s, script.text); parts.push(s); }
+  if (script) { const s = el("div"); renderScript(script, s); s.className = "script"; addListen(s, script.text, script.ttsSig); parts.push(s); }
   if (cmp) {
     const c = renderCompare(cmp, el("div"));
     c.className = "compare";

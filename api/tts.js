@@ -1,5 +1,5 @@
 import { loadPack, PACKS, TARGET_LANGS, maskInput } from "../lib/coach.js";
-import { checkAccess, rateLimit } from "../lib/guard.js";
+import { checkAccess, rateLimit, signed } from "../lib/guard.js";
 import { synthesize, TtsError, VOICES, MAX_TTS_CHARS } from "../lib/tts.js";
 
 // A cached script is ~6 MB: stream it too, since Vercel caps non-streamed responses at 4.5 MB.
@@ -31,6 +31,7 @@ export async function POST(request, deps = {}) {
   const text = typeof body?.text === "string" ? body.text.trim() : "";
   if (!text) return json(400, { code: "bad_request" });
   if (text.length > MAX_TTS_CHARS) return json(400, { code: "text_too_long", max: MAX_TTS_CHARS });
+  if (!signed(text, body?.sig)) return json(400, { code: "bad_request" }); // only scripts /api/script signed
   const target = loadPack(pack).language_pair.target;
   if (!TARGET_LANGS[target].is(text)) return json(400, { code: "bad_request" }); // the client only sends model scripts
   // ［blanks］ are read with their inner text; dropping them would cut the sentence.

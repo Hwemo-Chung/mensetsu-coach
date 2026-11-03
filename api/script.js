@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { loadPack, generateScript, EXPLAIN_LANGS, PACKS, maskInput } from "../lib/coach.js";
-import { checkAccess, rateLimit } from "../lib/guard.js";
+import { checkAccess, rateLimit, sign } from "../lib/guard.js";
 
 const MAX_ANSWER_CHARS = 2000;
 const MAX_QUESTION_CHARS = 1000;
@@ -37,7 +37,8 @@ export async function POST(request, deps = {}) {
 
   try {
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang, category: text(body?.category) }));
+    const out = await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang, category: text(body?.category) });
+    return json(200, { ...out, ttsSig: sign(out.text) }); // 🔊 may read exactly this text (api/tts.js)
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("script failed:", e?.status ?? "", e?.message); // never log the answer

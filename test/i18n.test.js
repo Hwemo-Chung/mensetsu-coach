@@ -49,6 +49,11 @@ test("script/answer labels exist for every pack target; reading names the native
 
 // Decision 11/03 (PRD §16-16): who the coach is for comes from the (destination, screen language) pair — e.g. Japanese
 // screen + Japan = a Japanese candidate at home — so destination labels never name an audience.
+// The pack name goes into the prompts ("${pack.name}で転職する…"): same rule as the menu (PRD §16-16, review 11/03).
+test("pack names name the country only, never an audience", () => {
+  for (const id of PACKS) assert.doesNotMatch(loadPack(id).name, /向け|求職者|외국인|for non/i, id);
+});
+
 test("destination labels name the country only, never an audience (外国人向け / 日本人向け / 외국인용 / for non-…)", () => {
   for (const [code, t] of Object.entries(LANGS)) for (const d of ["jp", "kr", "anglo", "other"]) {
     assert.doesNotMatch(t.dest[d], /向け|외국인|내국인|용\)|for non|foreign/i, `${code}.dest.${d}: ${t.dest[d]}`);

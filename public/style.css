@@ -200,6 +200,9 @@ textarea { flex: 1 1 auto; min-width: 0; resize: none; border: 1px solid #c8c8c8
   .pane .review > *, .pane .script > * { grid-column: 1; }
   .pane .review > .title, .pane .script > .title { grid-column: 1 / -1; }
   .pane .review > .hint, .pane .review > .why { grid-column: 2; margin: 6px 0 0; padding-left: 12px; border-left: 2px solid var(--line); }
+  /* 🔊 out of the grid flow: float is ignored in a grid, and as a grid item it pushed the title below the points. */
+  .pane .script { position: relative; }
+  .pane .script > .listen { position: absolute; top: 0; right: 0; margin: 0; }
   .pane .script > .pts { grid-column: 2; grid-row: 2; margin-top: 0; }
   .pane .script > .points { grid-column: 2; grid-row: 3 / span 6; }
 }

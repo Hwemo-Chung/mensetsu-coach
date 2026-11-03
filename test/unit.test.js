@@ -117,6 +117,17 @@ test("access check: wrong code 401, right code 200, no AI call", async () => {
   assert.equal((await checkCode(req("c0de"))).status, 200);
 });
 
+// Reviews 11/03: every code check counted, so a judging venue behind one IP was locked out after 20 page loads even
+// with the right code. Only wrong codes count now; after 20 wrong ones the IP is locked (right code too: no oracle).
+test("access check counts only wrong codes; a shared IP entering the right code is never locked out by that", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const req = (code, ip) => new Request("http://x/api/access", { method: "POST", headers: { "x-access-code": code, "x-forwarded-for": ip } });
+  for (let i = 0; i < 30; i++) assert.equal((await checkCode(req("c0de", "7.7.7.7"))).status, 200, `right code #${i + 1}`);
+  for (let i = 0; i < 20; i++) assert.equal((await checkCode(req("bad", "7.7.7.8"))).status, 401);
+  assert.equal((await checkCode(req("bad", "7.7.7.8"))).status, 429);
+  assert.equal((await checkCode(req("c0de", "7.7.7.8"))).status, 429, "locked after 20 wrong codes, right code included");
+});
+
 // Minimal zip writer for tests: one deflated entry, real sizes in the central directory.
 import { deflateRawSync, crc32 } from "node:zlib";
 function zipOne(name, content) {
@@ -153,7 +164,54 @@ test("SEC-5: a zip whose central directory LIES about the size is still caught (
   await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
 });
 
+// Security review 11/03: with the EOCD entry count forged to 0 the size check walked nothing (total 0), while jszip
+// (mammoth) reads every central-directory record anyway and inflates them all (local repro: RSS 72MB → 1.19GB).
+test("SEC-5b: a zip whose end record LIES about the entry count (0) is still caught", async () => {
+  const bomb = zipOne("word/document.xml", "A".repeat(25 * 1024 * 1024));
+  const eocd = bomb.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+  bomb.writeUInt16LE(0, eocd + 8);
+  bomb.writeUInt16LE(0, eocd + 10);
+  await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
+});
+
+test("SEC-5b: a normal zip still gets its real inflated size (no false rejection)", async () => {
+  const { unzippedSize } = await import("../lib/attachment.js");
+  assert.equal(unzippedSize(zipOne("word/document.xml", "<w:document>こんにちは</w:document>")), Buffer.byteLength("<w:document>こんにちは</w:document>"));
+  assert.equal(unzippedSize(Buffer.from("not a zip")), Infinity);
+});
+
 test("P2: personal data in an attached text resume is masked", async () => {
   const out = await toContentBlocks({ name: "cv.txt", type: "text/plain", data: Buffer.from("連絡先 taro@example.com 090-1234-5678").toString("base64") });
   assert.ok(!out[0].text.includes("taro@example.com") && !out[0].text.includes("090-1234-5678"), out[0].text);
+});
+
+// Product review 11/03: common Japanese mail formats slipped through the mask before Claude.
+test("masking covers spaced names, full-width ＠ and digits, and dotted phone numbers", async () => {
+  const { maskInput } = await import("../lib/privacy.js");
+  assert.equal(maskInput("山田 太郎 様"), "[氏名]様");
+  assert.equal(maskInput("山田　太郎　様"), "[氏名]様");
+  assert.equal(maskInput("連絡先 taro＠example.co.jp"), "連絡先 [email]");
+  assert.equal(maskInput("TEL：０９０－１２３４－５６７８"), "TEL：[phone]");
+  assert.equal(maskInput("090.1234.5678"), "[phone]");
+  assert.equal(maskInput("株式会社サンプル様より書類選考通過のご連絡"), "株式会社サンプル様より書類選考通過のご連絡", "mid-sentence names stay");
+});
+
+// Résumé dates (2019.04.01〜2023.03.31, 2020-04-01) were masked as phone numbers; a date is not contact data.
+test("masking keeps dates (yyyy.mm.dd / yyyy-mm-dd) and still masks phones", async () => {
+  const { maskInput } = await import("../lib/privacy.js");
+  const { mask } = await import("../public/export.js");
+  for (const f of [maskInput, mask]) {
+    assert.equal(f("在籍 2019.04.01〜2023.03.31"), "在籍 2019.04.01〜2023.03.31");
+    assert.equal(f("2020-04-01〜2024-03-31"), "2020-04-01〜2024-03-31");
+    assert.equal(f("電話 090-1234-5678"), "電話 [phone]");
+  }
+});
+
+// Security review 11/03: a PDF is sent whole and the specificity retry sends it twice, so page count is capped
+// (a résumé is 1–4 pages). shortcut: pages inside compressed object streams (PDF 1.5+) are not counted.
+test("attachments: a PDF over 10 pages is refused; a short one passes", async () => {
+  const pdf = (n) => Buffer.from(`%PDF-1.4\n${Array.from({ length: n }, (_, i) => `${i + 3} 0 obj << /Type /Page /Parent 2 0 R >> endobj\n`).join("")}2 0 obj << /Type /Pages /Count ${n} >> endobj\n%%EOF`).toString("base64");
+  await assert.rejects(toContentBlocks({ name: "cv.pdf", type: "application/pdf", data: pdf(11) }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
+  const ok = await toContentBlocks({ name: "cv.pdf", type: "application/pdf", data: pdf(3) });
+  assert.equal(ok[0].type, "document");
 });

@@ -9,3 +9,6 @@ sessions/
 !.env.example
 .playwright-mcp/
 *.raw.json
+
+# private notes with personal data (contest PREP), never public
+01_설계문서/BUILT-WITH-CLAUDE-JAPAN-2026-PREP.md

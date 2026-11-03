@@ -29,12 +29,12 @@ function setListen(btn, on) {
 }
 
 // Live scripts read with Gemini; in the demo/tutorial the same button reads with the device voice (0 AI calls).
-export function addListen(card, text) {
+export function addListen(card, text, sig) {
   if (!text) return;
   const btn = el("button", "listen");
   btn.type = "button";
   setListen(btn, false);
-  btn.addEventListener("click", () => (current?.btn === btn ? stopTts() : play(btn, card, text)));
+  btn.addEventListener("click", () => (current?.btn === btn ? stopTts() : play(btn, card, text, sig)));
   card.prepend(btn);
 }
 
@@ -71,7 +71,7 @@ function note(card, text) {
   card.append(el("p", "tts-note legend", text));
 }
 
-function play(btn, card, text) {
+function play(btn, card, text, sig) {
   stopTts();
   const AC = window.AudioContext || window.webkitAudioContext;
   // Created and resumed inside the tap, before any await: autoplay rules need the user gesture.
@@ -95,12 +95,13 @@ function play(btn, card, text) {
   current = me;
   setListen(btn, true);
   card.querySelector(".tts-note")?.remove();
-  (state.demoActive ? Promise.reject(new Error("demo: device voice")) : playCloud(me, hl, text, cleanups)).catch(() => { if (!me.stopped) return playDevice(me, hl, card, text, cleanups); }).catch(() => me.stop());
+  // No signature (demo/tutorial, a session saved before 11/03) → straight to the device voice.
+  (state.demoActive || !sig ? Promise.reject(new Error("device voice")) : playCloud(me, hl, text, cleanups, sig)).catch(() => { if (!me.stopped) return playDevice(me, hl, card, text, cleanups); }).catch(() => me.stop());
 }
 
 // Web Audio playbackRate changes pitch with speed (0.8× lower, 1.2× higher). Chosen over <audio>+preservesPitch, which
 // needs the whole file first (no streaming start) and a blob: media CSP; the ⚙ hint says so.
-async function playCloud(me, hl, text, cleanups) {
+async function playCloud(me, hl, text, cleanups, sig) {
   if (!audio) throw new Error("no Web Audio");
   const voice = voiceOf(), speed = speedOf(), key = `${voice}|${text}`;
   let source = pcmCache.get(key), rate = source?.rate, keep = null;
@@ -111,7 +112,7 @@ async function playCloud(me, hl, text, cleanups) {
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "content-type": "application/json", "x-access-code": opts.code() ?? "" },
-      body: JSON.stringify({ text, voice, pack: opts.pack() }),
+      body: JSON.stringify({ text, voice, pack: opts.pack(), sig }),
       signal: ctl.signal,
     });
     if (!res.ok) throw new Error("tts failed");

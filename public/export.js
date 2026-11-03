@@ -1,10 +1,11 @@
 // F6: turns the browser session into one Markdown document. Pure function, so tests run it in Node.
 // Same patterns and order as lib/privacy.js maskInput (public/ cannot import lib/; test/export.test.js keeps them equal).
-const EMAIL = /[\w.+-]+@[\w-]+(\.[\w-]+)+/g;
-const PHONE = /\+?\d[\d \t-]{8,}\d/g;
-const POSTAL = /(?:〒\s?)?\d{3}-\d{4}/g;
-const SALUTATION = /^[ \t　]*[^\s　、。,.]{1,12}?[ \t　]*(様|さん|殿|님)[ \t　]*$/gm;
-export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE, "[phone]").replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
+const EMAIL = /[\w.+-]+[@＠][\w-]+(\.[\w-]+)+/g;
+const PHONE = /\+?[\d０-９][\d０-９ \t.\-－‐]{8,}[\d０-９]/g;
+const DATE = /^\d{4}[.\-/－]\d{1,2}[.\-/－]\d{1,2}$/;
+const POSTAL = /(?:〒\s?)?[\d０-９]{3}[-－][\d０-９]{4}/g;
+const SALUTATION = /^[ \t　]*[^\s　、。,.]{1,12}?(?:[ \t　][^\s　、。,.]{1,12}?)?[ \t　]*(様|さん|殿|님)[ \t　]*$/gm;
+export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE, (m) => (DATE.test(m) ? m : "[phone]")).replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
 
 // JP labels are the fallback for sessions saved before the server sent pack meta.
 const JP_STEPS = [{ key: "fukusho", label: "復唱", optional: true }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "締め" }];

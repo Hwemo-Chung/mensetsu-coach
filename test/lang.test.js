@@ -15,7 +15,7 @@ import { fakeClient, fixture, scriptFixture, reviewFixture, reverseFixture, asMo
 const EXPECTED_READING = { ja: { ko: /ハングル/, en: /ヘボン/ }, ko: { ja: /カタカナ/, en: /Revised Romanization/ }, en: { ko: /IPA/, ja: /IPA/ } };
 
 // C3·C5 (11/03) add parts/closing/issues to every script result; whole-output comparisons check the earlier fields only.
-const core = ({ parts, closing, issues, ...x }) => x;
+const core = ({ parts, closing, issues, ttsSig, ...x }) => x; // ttsSig: API only (11/03)
 test("registries: packs jp/kr, target languages ja/ko/en, reading table follows the rule", () => {
   assert.deepEqual(PACKS, ["jp", "kr"]);
   assert.deepEqual(Object.keys(TARGET_LANGS).sort(), ["en", "ja", "ko"]);
@@ -237,4 +237,14 @@ test("Hangul reading comes from hiragana: もっとも → 못토모, ルール 
   const mixed = { ...asModelScript(scriptFixture), reading: "젠쇼쿠데 《모ッ토모》" };
   await assert.rejects(generateScript(fakeClient({ responses: [mixed, mixed] }), jp, { question: "Q", answer: "A", lang: "ko" }), /language check/);
   assert.equal("fixHangulReading" in await import("../lib/lang.js"), false);
+});
+
+// Product review 11/03: isJapanese only rejected Hangul, so Chinese and mostly-English lines passed as Japanese.
+// A long line without kana is Chinese; Latin letters outnumbering Japanese characters is English. Short kanji-only
+// words (a correction like 「理解」) still count as Japanese.
+test("isJapanese rejects Chinese sentences and mostly-English lines, keeps short kanji words", async () => {
+  const { isJapanese } = await import("../lib/lang.js");
+  assert.equal(isJapanese("请介绍一下你在团队管理方面的经验。"), false);
+  assert.equal(isJapanese("Please describe your 経験 in teams."), false);
+  for (const ok of ["理解", "承知いたしました。", "Python / AWSの環境で進めるとしたら、最初に何を確認しますか。", "見積もりがずれたときの判断、ですね。"]) assert.equal(isJapanese(ok), true, ok);
 });

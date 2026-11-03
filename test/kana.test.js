@@ -114,9 +114,11 @@ test("ん: ㄴ batchim; romaji n, n' before a vowel or y; n (not m) before b/m/p
   check("ん", "응", "n");
 });
 
-test("particles: を → 오/o; は and へ are read as written (the prompt asks the model for わ/え)", () => {
+// Intent changed 11/03: the prompt still asks for わ, but live output wrote は (1 of 3, 「젠쇼쿠데하」), so a word-final は
+// is now read わ in code; へ is still read as written.
+test("particles: を → 오/o; word-final は → 와/wa; へ is read as written", () => {
   check("ほんを", "혼오", "hon'o");
-  check("わたしは", "와타시하", "watashiha");
+  check("わたしは", "와타시와", "watashiwa");
   check("わたしわ", "와타시와", "watashiwa");
 });
 
@@ -136,4 +138,13 @@ test("non-kana text is returned unchanged (idempotent)", () => {
   }
   assert.equal(kanaToHangul(kanaToHangul("もっとも")), "못토모");
   assert.equal(kanaToRomaji(kanaToRomaji("もっとも")), "mottomo");
+});
+
+// Product review 11/03: the model writes the topic particle は as は in hiragana, and the table read it 「하/ha」
+// (「젠쇼쿠데하」). The model separates words with spaces, so a word-final は is the particle and reads わ.
+test("particle は at the end of a word reads wa; は inside a word stays ha", () => {
+  assert.equal(kanaToHangul("ぜんしょくでは /きじゅんは"), kanaToHangul("ぜんしょくでわ /きじゅんわ"));
+  assert.equal(kanaToRomaji("わたしは、"), kanaToRomaji("わたしわ、"));
+  assert.equal(kanaToRomaji("はなし"), "hanashi");
+  assert.equal(kanaToRomaji("こんにちは"), kanaToRomaji("こんにちわ"));
 });

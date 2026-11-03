@@ -3,14 +3,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { POST } from "../api/tts.js";
+import { sign } from "../lib/guard.js";
 import { PRIMARY_MODEL, FALLBACK_MODEL } from "../lib/tts.js";
 import { highlightLength, weight, totalSeconds, estimateSeconds, fromBoundary } from "../public/tts-timing.js";
 
 process.env.ACCESS_CODE = "test-code";
 let ipSeq = 0;
 // Unique IP per request: rate-limit memory is module-global and shared with other test files.
+// Like the real client, a body carries the signature /api/script returned for that text (security review 11/03);
+// a test that sets `sig` itself (null, forged) keeps it.
 const call = (body, { ip = `10.9.0.${++ipSeq}`, code = "test-code", raw } = {}) =>
-  new Request("http://x/api/tts", { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": ip, ...(code ? { "x-access-code": code } : {}) }, body: raw ?? JSON.stringify(body) });
+  new Request("http://x/api/tts", { method: "POST", headers: { "content-type": "application/json", "x-forwarded-for": ip, ...(code ? { "x-access-code": code } : {}) }, body: raw ?? JSON.stringify(body && typeof body.text === "string" && !("sig" in body) ? { ...body, sig: sign(body.text) } : body) });
 
 const PCM = Buffer.from(Array.from({ length: 960 }, (_, i) => i % 256));
 // Gemini SSE: CRLF-separated "data:" events, audio split over several events, then a text-only STOP event.
@@ -259,4 +262,16 @@ test("fixture WAV is a valid tiny silence file", () => {
   assert.equal(w.toString("ascii", 0, 4), "RIFF");
   assert.equal(w.readUInt32LE(40), w.length - 44);
   assert.ok(w.length < 1024);
+});
+
+
+// Security review 11/03: /api/tts read any text with a kana in it, on the free Gemini quota every user shares. It
+// now reads only text that /api/script signed (HMAC, server secret); missing or forged signatures never reach Gemini.
+test("TTS reads only scripts the server signed: missing or forged signature → 400 before any Gemini call", async () => {
+  const f = fakeFetch();
+  for (const sig of [undefined, null, "x".repeat(32), sign("別の文です。")]) {
+    const r = await POST(call({ text: "はい、承知いたしました。", voice: "Kore", pack: "jp", sig }), deps(f));
+    assert.equal(r.status, 400, String(sig));
+  }
+  assert.equal(f.calls ? f.calls.length : 0, 0);
 });

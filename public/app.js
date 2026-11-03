@@ -235,7 +235,7 @@ async function onAnswer(text) {
   };
   await Promise.all([
     run("/api/review", { question: q.question, category: q.category, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
-    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text); addReadAloud(slot, d); }, "script", scriptSlot),
+    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text, d.ttsSig); addReadAloud(slot, d); }, "script", scriptSlot),
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);

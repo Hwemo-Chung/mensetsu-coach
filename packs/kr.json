@@ -2,7 +2,7 @@
   "id": "kr",
   "version": 0,
   "beta": true,
-  "name": "韓国（日本人求職者向け）",
+  "name": "韓国",
   "country": "韓国",
   "note": "BETA. Source: 01_설계문서/research/kr-draft.json and KR-SUMMARY.md. Assumptions: the 4-step answer structure and the model-answer format are carried over from the jp pack (no Korean-specific source yet); stages 1차 실무면접 → 2차 임원면접 follow one private-sector column (KR-SUMMARY.md, K1-06/07: 직무면접→임원면접; take-home task and 3rd round vary by company), no official source. Rules and notes are not yet reviewed by a native speaker.",
   "language_pair": {

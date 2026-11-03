@@ -24,7 +24,7 @@ test("F6 markdown: company, all 10 questions, each attempt with ① review ② c
 
 // m5: public/ cannot import lib/, so export.js carries a copy of lib/privacy.js maskInput; this keeps the two in step.
 test("F6 masking: export mask equals the server maskInput on the same samples (postal code in a memo included)", () => {
-  const samples = ["〒100-0001 東京都千代田区", "100-0001", "連絡先 03-1234-5678 / +81 90 1234 5678", "mail: a.b+c@example.co.jp", "山田様", "  홍길동 님", "〒100-0001\n090-1234-5678", "株式会社サンプル 様式 3-4"];
+  const samples = ["〒100-0001 東京都千代田区", "100-0001", "連絡先 03-1234-5678 / +81 90 1234 5678", "mail: a.b+c@example.co.jp", "山田様", "  홍길동 님", "〒100-0001\n090-1234-5678", "株式会社サンプル 様式 3-4", "山田 太郎 様", "taro＠example.co.jp", "TEL：０９０－１２３４－５６７８", "090.1234.5678"];
   for (const s of samples) assert.equal(mask(s), maskInput(s), s);
   const md = sessionToMarkdown({ ...session, notes: { q1: "面接会場 〒100-0001\n担当 山田様" } }, LANGS.ko);
   assert.ok(!md.includes("100-0001"), "postal code in a memo is masked");
