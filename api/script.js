@@ -37,7 +37,7 @@ export async function POST(request, deps = {}) {
 
   try {
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    const out = await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang, category: text(body?.category) });
+    const out = await generateScript(c, loadPack(pack), { question, answer: maskInput(answer), context: maskInput(context), lang, category: text(body?.category), ...(body?.basis_type === "research" && { basis_type: "research" }) });
     return json(200, { ...out, ttsSig: sign(out.text) }); // 🔊 may read exactly this text (api/tts.js)
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded

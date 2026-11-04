@@ -1,7 +1,7 @@
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts } from "./export.js";
-import { loadSession, clearSession, SESSION_KEY } from "./session.js";
-import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
+import { loadSession, clearSession, forgetBrief, SESSION_KEY } from "./session.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
 import { renderConfirm, renderBrief } from "./brief.js";
@@ -173,6 +173,9 @@ async function startResearch(names, unlock) {
     // A failed re-run must not cost the user the paid brief they already have.
     const c = state.session.company_context;
     const kept = data.research_status !== "ok" && c.research_brief?.research_status === "ok";
+    const replaced = !kept && c.research_brief?.research_status === "ok";
+    const hadReverse = replaced && forgetBrief(state.session);
+    if (replaced) retireBriefMarks();
     if (!kept) {
       c.research_brief = data;
       state.session.research_names = names;
@@ -181,6 +184,7 @@ async function startResearch(names, unlock) {
     const card = renderBrief(data, names, () => offerResearch(names), kept);
     if (!kept) {
       const top = log.scrollTop; // a long card is read from its top; what follows it must not move the view
+      if (hadReverse) offerReverseAgain();
       followBrief(data, card);
       log.scrollTop = top;
     }
@@ -195,11 +199,15 @@ async function startResearch(names, unlock) {
 
 // Stage R step 4: the questions follow the brief. Practice already done is never wiped without asking.
 function followBrief(brief, card) {
-  if (!briefFacts(brief).length) return; // nothing sourced to add: the first questions stay
+  const facts = briefFacts(brief).length > 0;
+  if (!facts && !state.session.questions.some((q) => q.stale)) return; // nothing sourced to add and nothing old to clear: the questions stay
   if (!lastMail) return bubble("coach note", T().research.noRegen); // restored session: the mail was never stored
   const { attempts, notes } = state.session;
   if (!send.disabled && !state.current && stage !== "profile" && !attempts.length && !Object.values(notes ?? {}).some((n) => n?.trim())) return regenerate({ card });
-  const b = bubble("coach note", T().research.regenOffer), btn = el("button", "inline-btn research-ctl", T().research.regenButton);
+  offerRegen(facts);
+}
+function offerRegen(facts) {
+  const r = T().research, b = bubble("coach note", facts ? r.regenOffer : r.staleOffer), btn = el("button", "inline-btn research-ctl", facts ? r.regenButton : r.staleButton);
   btn.type = "button";
   btn.addEventListener("click", () => {
     if (send.disabled) return;
@@ -219,6 +227,10 @@ async function regenerate({ card }) {
   }
 }
 
+function offerReverseAgain() {
+  bubble("coach note", T().research.reverseDropped).append(el("br"), reverseButton());
+}
+
 // F10: reverse questions from the company summary already in the session (no mail re-sent).
 async function makeReverse() {
   const wait = waiting(T().reverse.wait);
@@ -230,6 +242,8 @@ async function makeReverse() {
     const { res, data } = await post("/api/reverse", { context, lang: state.lang, pack: packOf(), ...(brief.length ? { brief } : {}) });
     if (my !== state.epoch) return;
     if (!res.ok) return failed(res, data);
+    // Their ids and wording come from a brief the user has since replaced.
+    if (brief.length && research_brief !== state.session.company_context.research_brief) return offerReverseAgain();
     const t = T().reverse;
     const b = bubble("coach script reverse", null);
     b.append(el("p", "title", t.title));
@@ -273,20 +287,24 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
   card?.firstChild.after(wait);
   const my = state.epoch, run = researchRun;
   try {
-    const brief = regen && researchOn ? briefFacts(state.session.company_context.research_brief) : [];
+    const sentBrief = regen ? state.session.company_context.research_brief : undefined;
+    const brief = regen && researchOn ? briefFacts(sentBrief) : [];
     const { res, data } = await post("/api/questions", { mail, attachment: file, lang: state.lang, pack: destPack, ...(profile ? { profile } : {}), ...(brief.length ? { brief } : {}) });
     if (my !== state.epoch || (fromBrief && run !== researchRun)) return;
     if (!res.ok) return failed(res, data);
     const top = log.scrollTop;
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
-    // A regenerated set (career line, brief) starts fresh, notes included; it is the same company, so a paid brief and reverse questions stay.
+    // A regenerated set (career line, brief) starts fresh, notes and reverse questions included; it is the same company, so a paid brief stays.
     const prev = regen ? state.session : null, research_brief = prev?.company_context.research_brief;
     if (!regen) endResearch();
     lastProfile = profile;
     // A set made with the brief keeps the mail-only summary: these facts reach the script call, which must not receive research (L6).
     const summary = brief.length ? prev.company_context : data.company_context;
-    state.session = { pack: data.pack, company_context: research_brief ? { ...summary, research_brief } : summary, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(data.research_basis && { research_basis: data.research_basis }), ...(prev?.research_names && { research_names: prev.research_names }), ...(researchOn && prev?.reverse && { reverse: prev.reverse }) };
+    state.session = { pack: data.pack, company_context: research_brief ? { ...summary, research_brief } : summary, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(data.research_basis && { research_basis: data.research_basis }), ...(prev?.research_names && { research_names: prev.research_names }) };
     state.current = null;
+    // A re-run finished while this set was being made: its ids point into the brief that was replaced.
+    const outrun = brief.length > 0 && research_brief !== sentBrief;
+    if (outrun) forgetBrief(state.session);
     persist();
     renderNotes();
     attachment = null;
@@ -295,6 +313,7 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
     openByDefault();
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
     if (data.research_basis && !data.research_basis.passed) bubble("coach note", T().chat.lowResearch(data.research_basis));
+    if (outrun && !briefFacts(research_brief).length) offerRegen(false);
     if (!regen && researchOn) offerResearch();
     if (!regen) offerProfile();
     // A 401 elsewhere or a career line being typed keeps its stage: the new set must not take over the composer.
@@ -339,7 +358,7 @@ async function onAnswer(text) {
   };
   await Promise.all([
     run("/api/review", { question: q.question, category: q.category, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
-    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf() }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text, d.ttsSig); addReadAloud(slot, d); }, "script", scriptSlot),
+    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf(), ...(q.basis_type === "research" && { basis_type: "research" }) }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text, d.ttsSig); addReadAloud(slot, d); }, "script", scriptSlot),
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);

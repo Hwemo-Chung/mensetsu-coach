@@ -36,7 +36,7 @@ const FULL = {
     gaps: [{ point: "業界経験（架空）", basis: "company_info", quote: "物流の経験を歓迎（架空）", source_ids: ["s1"] }],
     needs_user_confirmation: ["夜間対応の有無を確認しますか（架空）"],
   },
-  mismatch_flags: [{ topic: "職種の内容（架空）", side_a: { origin: "mail", quote: "プロダクトマネジメント（架空）", source_ids: [] }, side_b: { origin: "research", quote: "デリバリー管理（架空）", source_ids: ["s1"] }, verify_prompt: "担当業務の割合を確認しましょう（架空）" }],
+  mismatch_flags: [{ topic: "職種の内容（架空）", side_a: { origin: "mail", quote: "プロダクトマネジメント（架空）", source_ids: [] }, side_b: { origin: "research", quote: "デリバリー管理（架空）", source_ids: ["s1"] }, verify_prompt: "担当業務の割合を確認しましょう（架空）", ask: "interview" }],
   company_checkpoints: [{ question: "残業の実態を確認できますか（架空）", ask: "agent", source_ids: ["s1"] }],
   sources: [
     { id: "s1", title: `採用情報（架空）${HOSTILE}`, url: LONG_URL, accessed_date: "2026-11-04", published_date: "2026-10-01", entity_match: "exact", position_match: "exact", source_type: "official_careers" },
@@ -459,6 +459,165 @@ test("a practice in progress is not wiped: the button asks first, then the set i
   await page.locator("#log > .msg.qs").nth(1).waitFor();
   assert.equal(bodies.length, 1);
   assert.equal(await page.getAttribute("#input", "placeholder"), ko.chat.pickPlaceholder, "back to picking from the new set");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+// A re-run replaces the brief and restarts its source ids at s1, so nothing from the old brief may keep citing.
+const REVERSE = { questions: [{ question: "新製品の狙いは何でしょうか（架空）", intent: "의도（架空）", source_ids: ["s1"] }, { question: "評価の基準は何でしょうか（架空）", intent: "의도（架空）", source_ids: [] }, { question: "意思決定はどう進みますか（架空）", intent: "의도（架空）", source_ids: [] }], research_basis: { referenced: 1, required: 1, passed: true } };
+const rerun = async (page) => {
+  await briefCard(page).getByRole("button", { name: ko.research.rerun }).click();
+  await start(page);
+};
+const stored = (page) => page.evaluate(() => JSON.parse(localStorage.getItem("mensetsu-session")));
+const citedTags = async (page) => (await page.locator("#log .q .tag").allInnerTexts()).filter((x) => /\bs\d/.test(x));
+
+test("re-run to an honest empty brief with practice under way: no old id anywhere, and the old questions are offered for regeneration", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL, EMPTY);
+  await toQuestions(page);
+  const bodies = await regenRoute(page, (r) => r.fulfill({ json: bodies.length === 1 ? labelled() : questions }));
+  await page.route("**/api/reverse", (r) => r.fulfill({ json: REVERSE }));
+  await start(page);
+  const sets = page.locator("#log > .msg.qs"), r = ko.research, c = ko.chat;
+  await sets.nth(1).waitFor();
+  await page.getByRole("button", { name: ko.reverse.button }).first().click();
+  await page.locator("#log > .msg.reverse").waitFor();
+  assert.ok((await citedTags(page)).length > 0, "the set cites before the re-run");
+  await send(page, "4");
+  await page.locator("#mic").waitFor();
+  await rerun(page);
+  const go = page.getByRole("button", { name: r.staleButton });
+  await go.waitFor();
+  assert.ok((await bubbles(page, "coach.note").filter({ has: go }).innerText()).includes(r.staleOffer));
+  assert.equal(bodies.length, 1, "a practice under way is not replaced by itself");
+  assert.deepEqual(await citedTags(page), [], "no tag points into a source list that lost it");
+  const items = sets.nth(1).locator(".q");
+  assert.ok((await items.nth(0).innerText()).includes(c.basisType.stale));
+  assert.ok((await items.nth(1).innerText()).includes(c.basisType.reported), "a candidate report stays unverified");
+  assert.equal(await page.locator("#log > .msg.reverse").count(), 0);
+  assert.ok(!(await sets.nth(1).innerText()).includes(c.researchRefs({ n: 2, total: 10 })));
+  await bubbles(page, "coach.note").filter({ hasText: r.reverseDropped }).getByRole("button", { name: ko.reverse.button }).waitFor();
+  const s = await stored(page);
+  assert.deepEqual([s.questions[0].source_ids, s.questions[0].stale, s.questions[0].basis_type, s.questions[1].reported], [undefined, true, "research", true]);
+  assert.ok(!("research_basis" in s) && !("reverse" in s));
+  await go.click();
+  await sets.nth(2).waitFor();
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[1].brief, undefined, "the empty brief has nothing to send");
+  assert.ok(!(await stored(page)).questions.some((q) => q.stale), "the new set comes from the mail alone");
+  const [download] = await Promise.all([page.waitForEvent("download"), page.click("#end")]);
+  const md = await readFile(await download.path(), "utf8");
+  assert.ok(md.includes(r.empty) && !md.includes(c.basisType.research) && !md.includes(`${ko.reverse.source}:`));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("re-run to a new list of sources with practice under way: the old tags say so; the offer is the usual one", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL, FULL);
+  await toQuestions(page);
+  await regenRoute(page, (r) => r.fulfill({ json: labelled() }));
+  await start(page);
+  await page.locator("#log > .msg.qs").nth(1).waitFor();
+  await send(page, "4");
+  await page.locator("#mic").waitFor();
+  await rerun(page);
+  await page.getByRole("button", { name: ko.research.regenButton }).waitFor();
+  assert.deepEqual(await citedTags(page), []);
+  assert.ok((await page.locator("#log > .msg.qs").nth(1).locator(".q").nth(0).innerText()).includes(ko.chat.basisType.stale));
+  const [download] = await Promise.all([page.waitForEvent("download"), page.click("#end")]);
+  const md = await readFile(await download.path(), "utf8");
+  assert.ok(md.includes(`(${ko.chat.basisType.stale})`) && !md.includes(`${ko.chat.basisType.research} · s1`));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("re-run to an honest empty brief with nothing practised: the set is rebuilt from the mail, once", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL, EMPTY);
+  await toQuestions(page);
+  const bodies = await regenRoute(page, (r) => r.fulfill({ json: bodies.length === 1 ? labelled() : questions }));
+  await start(page);
+  const sets = page.locator("#log > .msg.qs");
+  await sets.nth(1).waitFor();
+  await rerun(page);
+  await sets.nth(2).waitFor();
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[1].brief, undefined);
+  assert.ok(!(await stored(page)).questions.some((q) => q.stale || q.source_ids));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("a regeneration answered after a re-run: its ids belong to the old brief, so they are not kept", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL, EMPTY);
+  await toQuestions(page);
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  await regenRoute(page, async (r) => { await gate; return r.fulfill({ json: labelled() }); });
+  await start(page);
+  const first = briefCard(page);
+  const wait = first.getByText(ko.research.regenWait);
+  await wait.waitFor();
+  await rerun(page);
+  await page.locator("#log > .msg.brief:not(.brief-confirm)").nth(1).waitFor();
+  release();
+  await wait.waitFor({ state: "detached" });
+  await page.locator("#log > .msg.qs").nth(1).waitFor();
+  assert.deepEqual(await citedTags(page), []);
+  const s = await stored(page);
+  assert.equal(s.questions[0].source_ids, undefined);
+  assert.equal(s.questions[0].stale, true);
+  assert.ok(!("research_basis" in s));
+  await page.getByRole("button", { name: ko.research.staleButton }).waitFor();
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("reverse questions answered after a re-run are not kept; the note offers new ones", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL, FULL);
+  await toQuestions(page);
+  await regenRoute(page, (r) => r.fulfill({ json: labelled() }));
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  await page.route("**/api/reverse", async (r) => { await gate; return r.fulfill({ json: REVERSE }); });
+  await start(page);
+  await page.locator("#log > .msg.qs").nth(1).waitFor();
+  await page.getByRole("button", { name: ko.reverse.button }).first().click();
+  await bubbles(page, "coach.typing").filter({ hasText: ko.reverse.wait }).waitFor();
+  await send(page, "4");
+  await page.locator("#mic").waitFor();
+  await rerun(page);
+  await page.getByRole("button", { name: ko.research.regenButton }).waitFor();
+  release();
+  await bubbles(page, "coach.note").filter({ hasText: ko.research.reverseDropped }).getByRole("button", { name: ko.reverse.button }).waitFor();
+  assert.equal(await page.locator("#log > .msg.reverse").count(), 0);
+  assert.ok(!("reverse" in (await stored(page))));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("the model answer call is told which questions came from research; the others send what they sent before", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  await regenRoute(page, (r) => r.fulfill({ json: labelled() }));
+  const sent = [];
+  await page.route("**/api/script", (r) => { sent.push(r.request().postDataJSON()); return r.continue(); });
+  await start(page);
+  await page.locator("#log > .msg.qs").nth(1).waitFor();
+  for (const n of ["1", "3"]) {
+    await send(page, n);
+    await page.locator("#mic").waitFor();
+    await page.fill("#input", ANSWER);
+    await page.press("#input", "Control+Enter");
+    await bubbles(page, "coach").filter({ hasText: ko.chat.askPickAgain }).nth(sent.length - 1).waitFor();
+  }
+  assert.equal(sent[0].basis_type, "research");
+  assert.ok(!("basis_type" in sent[1]));
   assert.deepEqual(errors, []);
   await context.close();
 });

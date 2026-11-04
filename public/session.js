@@ -57,3 +57,16 @@ export function migrateSession(s) {
   if (Array.isArray(s.reverse)) out.reverse = s.reverse.filter(isObj).map(({ question_ja, ...r }) => ({ ...r, question: r.question ?? question_ja }));
   return out;
 }
+
+// Source ids restart per run, so the old brief's output stops citing; the research label stays (figures out of model answers, reports unverified) and objects stay in place for state.current.
+export function forgetBrief(session) {
+  for (const q of session.questions) {
+    if (q.basis_type !== "research") continue;
+    delete q.source_ids;
+    q.stale = true;
+  }
+  const hadReverse = !!session.reverse?.length;
+  delete session.research_basis;
+  delete session.reverse;
+  return hadReverse;
+}

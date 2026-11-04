@@ -1,9 +1,10 @@
 // Stage R step 4: the brief as question context (SUPPLEMENT-AUTO-RESEARCH §4). Offline, fake client, synthetic data only.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, buildQuestionRequest, generateQuestions, buildReverseRequest, generateReverse, buildScriptRequest, buildReviewRequest, readBriefFacts, readReverseFacts, MIN_RESEARCH, researchHits } from "../lib/coach.js";
+import { loadPack, buildQuestionRequest, generateQuestions, buildReverseRequest, generateReverse, generateScript, reverseQuestionOk, buildScriptRequest, buildReviewRequest, readBriefFacts, readReverseFacts, MIN_RESEARCH, researchHits } from "../lib/coach.js";
+import { fitSchema } from "../lib/research.js";
 import { briefFacts, reverseFacts, basisTag, sessionToMarkdown } from "../public/export.js";
-import { migrateSession } from "../public/session.js";
+import { migrateSession, forgetBrief } from "../public/session.js";
 import { LANGS } from "../public/i18n/index.js";
 import { POST as questionsPOST } from "../api/questions.js";
 import { POST as reversePOST } from "../api/reverse.js";
@@ -46,13 +47,13 @@ const BRIEF = {
   interview_intelligence: { selection_stages: [found("面接2回（架空）", { label: "reported_unverified" })], reported_questions: [found("改善点を問う質問（架空）", { source_ids: ["s3"], label: "reported_unverified" })] },
   fit_evaluation: { matches: [{ point: "希望の一致（架空）", basis: "user_material", quote: "希望プロフィールの文面（架空）", source_ids: [] }], gaps: [], needs_user_confirmation: ["希望の確認（架空）"] },
   mismatch_flags: [
-    { topic: "職種の内容（架空）", side_a: { origin: "mail", quote: "プロダクト担当（架空）", source_ids: [] }, side_b: { origin: "research", quote: "進行管理（架空）", source_ids: ["s1"] }, verify_prompt: "割合を確認（架空）" },
-    { topic: "除外職種（架空）", side_a: { origin: "desired_profile", quote: "希望プロフィールの除外（架空）", source_ids: [] }, side_b: { origin: "research", quote: "進行管理（架空）", source_ids: ["s1"] }, verify_prompt: "希望との差（架空）" },
+    { topic: "職種の内容（架空）", side_a: { origin: "mail", quote: "プロダクト担当（架空）", source_ids: [] }, side_b: { origin: "research", quote: "進行管理（架空）", source_ids: ["s1"] }, verify_prompt: "割合を確認（架空）", ask: "interview" },
+    { topic: "除外職種（架空）", side_a: { origin: "desired_profile", quote: "希望プロフィールの除外（架空）", source_ids: [] }, side_b: { origin: "research", quote: "進行管理（架空）", source_ids: ["s1"] }, verify_prompt: "希望との差（架空）", ask: "interview" },
   ],
   company_checkpoints: [
-    { question: "開発体制の決め方を確認できますか（架空）", ask: "interview", source_ids: ["s1"] },
-    { question: "残業の実態を確認できますか（架空）", ask: "agent", source_ids: ["s1"] },
-    { question: "希望だけに基づく確認（架空）", ask: "interview", source_ids: [] },
+    { question: "開発体制の決め方を確認できますか（架空）", ask: "interview", origin: "research", source_ids: ["s1"] },
+    { question: "残業の実態を確認できますか（架空）", ask: "agent", origin: "research", source_ids: ["s1"] },
+    { question: "希望だけに基づく確認（架空）", ask: "interview", origin: "desired_profile", source_ids: [] },
   ],
   sources: [{ id: "s1", title: "採用情報（架空）", url: "https://example.com/careers" }],
 };
@@ -353,4 +354,155 @@ test("session: the new fields survive a reload; old sessions need no migration",
   assert.equal(s.questions[0].basis_type, "research");
   assert.deepEqual(s.research_basis, { referenced: 3, required: 3, passed: true });
   assert.deepEqual(s.reverse[0].source_ids, ["s1"]);
+});
+
+const REPORT = "前職でのDX支援の失敗談を教えてください";
+const WITH_REPORT = [{ kind: "company", text: "物流向けDX支援を提供（架空）", source_ids: ["s1"] }, { kind: "reported_question", text: REPORT, source_ids: ["s3"] }];
+const asking = (...overrides) => ({ ...fixture, questions: fixture.questions.map((q, i) => ({ ...q, ...overrides[i] })) });
+
+test("reported label: one candidate report among the facts is enough; refs are not needed for wording taken from it", async () => {
+  const out = await generateQuestions(fakeClient({ result: asking(
+    { question: REPORT, refs: ["DX支援"] }, // the ref is also in a company fact
+    { question: REPORT, refs: [] },
+    { question: `前職でのDX支援の失敗談について伺います。${fixture.questions[2].question}`, refs: fixture.questions[2].refs }, // front half, mail phrase as ref
+    { question: "DX支援の失敗談を教えてください。", refs: [] }, // back half
+    { question: "開発体制について教えてください。", refs: [] }, // shares only a polite ending
+  ) }), pack, MAIL, [], "ja", WITH_REPORT);
+  const [mixed, noRefs, front, back, other] = out.questions;
+  assert.equal(mixed.reported, true);
+  assert.deepEqual(mixed.source_ids, ["s1", "s3"]);
+  for (const q of [noRefs, front, back]) {
+    assert.equal(q.basis_type, "research");
+    assert.equal(q.reported, true);
+    assert.deepEqual(q.source_ids, ["s3"]);
+  }
+  assert.equal(other.basis_type, "pack", "a shared ending proves nothing");
+  assert.equal(researchHits({ question: REPORT, refs: [] }, WITH_REPORT, REPORT, GENERIC).length, 1, "even wording the mail also has: over-labelling is the safe side");
+});
+
+const profileBrief = (flags, checks, sources = [{ id: "s1", title: "x", url: "https://example.com" }]) => ({ research_status: "ok", company_snapshot: {}, position_analysis: {}, interview_intelligence: {}, mismatch_flags: flags, company_checkpoints: checks, sources });
+const researchSide = { origin: "research", quote: "進行管理（架空）", source_ids: ["s1"] };
+
+test("reverseFacts: the desired profile cannot leave through a model label: origin, ask and real sources are all required", () => {
+  const facts = reverseFacts(profileBrief([
+    { topic: "除外職種", side_a: { origin: "research", quote: "私はデリバリー専任を除外したい（希望プロフィール）", source_ids: [] }, side_b: researchSide, ask: "interview" },
+    { topic: "除外職種", side_a: { origin: "desired_profile", quote: "除外職種（架空）", source_ids: [] }, side_b: researchSide, ask: "interview" },
+    { topic: "業務の割合", side_a: { origin: "mail", quote: "企画（架空）", source_ids: [] }, side_b: researchSide },
+    { topic: "業務の割合", side_a: { origin: "mail", quote: "企画（架空）", source_ids: [] }, side_b: researchSide, ask: "agent" },
+  ], [
+    { question: "口コミでは進行管理が中心とありますが、私の希望するプロダクト専任・デリバリー除外と合いますか", ask: "interview", source_ids: ["s99"] },
+    { question: "希望プロフィールの除外職種デリバリー専任に当たるか確認できますか", ask: "interview", source_ids: ["s1"] },
+    { question: "希望プロフィールの除外職種に当たりますか", ask: "interview", origin: "desired_profile", source_ids: ["s1"] },
+    { question: "架空の出典だけを挙げた確認", ask: "interview", origin: "research", source_ids: ["s99"] },
+  ]));
+  assert.deepEqual(facts, []);
+});
+
+test("reverseFacts: a sourced checkpoint from the research or the mail still goes; only the research side cites", () => {
+  const facts = reverseFacts(profileBrief([
+    { topic: "業務の割合", side_a: { origin: "mail", quote: "企画（架空）", source_ids: ["s1"] }, side_b: { ...researchSide, source_ids: ["s1", "s99"] }, ask: "interview" },
+  ], [
+    { question: "意思決定の流れを確認できますか", ask: "interview", origin: "research", source_ids: ["s1"] },
+    { question: "企画の範囲を確認できますか", ask: "interview", origin: "mail", source_ids: ["s1"] },
+  ]));
+  assert.deepEqual(facts.map((f) => f.source_ids), [["s1"], ["s1"], ["s1"]]);
+  assert.deepEqual(facts[0].held, ["業務の割合", "企画（架空）"], "topic and mail side are context, not research");
+  assert.ok(!("held" in facts[1]));
+  assert.deepEqual(facts[2].held, ["企画の範囲を確認できますか"]);
+});
+
+test("schema: the fit call says which flags are for the interview and where each checkpoint comes from", () => {
+  assert.deepEqual(fitSchema.properties.mismatch_flags.items.properties.ask.enum, ["agent", "interview"]);
+  assert.deepEqual(fitSchema.properties.company_checkpoints.items.properties.origin.enum, ["mail", "research", "desired_profile"]);
+});
+
+test("readReverseFacts: conditions are filtered in every screen language; the question gate stays Japanese-only", () => {
+  const kept = { kind: "news", text: "New demand forecast engine (fictional)", source_ids: ["s1"] };
+  const facts = readReverseFacts([
+    ...["Annual pay: 8M yen / 6M yen", "How much overtime do reviews report?", "Remote work is allowed twice a week", "Bonus twice a year", "연봉 차이: 800만 엔 / 600만 엔", "잔업 실태를 확인할 수 있습니까", "재택근무 주 2회", "働き方の実態", "yearly payment of"].map((text) => ({ kind: "check", text, source_ids: ["s1"] })),
+    kept,
+    { kind: "news", text: "수요 예측 엔진을 발표(가상)", source_ids: ["s1"] },
+  ]);
+  assert.deepEqual(facts.map((f) => f.text), ["yearly payment of", kept.text, "수요 예측 엔진을 발표(가상)"], "whole words only for English");
+  assert.equal(reverseQuestionOk("働き方の実態はどうでしょうか。"), true, "§5-7: the existing gate is unchanged");
+});
+
+test("readBriefFacts: held is read for a check only, strings only, masked and capped", () => {
+  const [check] = readReverseFacts([{ kind: "check", text: "確認", source_ids: ["s1"], held: ["メール a@b.jp", 3, " ", "長".repeat(500)] }]);
+  assert.deepEqual(check.held, ["メール [email]", "長".repeat(400)]);
+  const [news] = readReverseFacts([{ kind: "news", text: "報道", source_ids: ["s1"], held: ["x"] }]);
+  assert.deepEqual(Object.keys(news), ["kind", "text", "source_ids"]);
+});
+
+test("F10 grounding: a question from the mail side of a flag is not research and shows no source; the research side is", async () => {
+  const brief = readReverseFacts(reverseFacts(profileBrief([{ topic: "職種の内容", side_a: { origin: "mail", quote: "プロダクト戦略の立案", source_ids: [] }, side_b: { origin: "research", quote: "進行管理の担当", source_ids: ["s1"] }, ask: "interview" }], [])));
+  const ask = (q, ref) => ({ questions: [{ question: q, intent: "役割を確認", refs: [ref] }, { question: "評価はどう決まりますか", intent: "評価を確認", refs: [] }, { question: "意思決定はどう進みますか", intent: "進め方を確認", refs: [] }] });
+  const context = { company: "株式会社サンプルテック（仮）", position: "PM", facts: ["PM募集"] };
+  const mail = await generateReverse(fakeClient({ result: ask("プロダクト戦略の立案はどの部門が決めますか", "プロダクト戦略の立案") }), pack, { context, lang: "ja", brief });
+  assert.deepEqual(mail.questions[0].source_ids, []);
+  assert.equal(mail.research_basis.passed, false);
+  const topic = await generateReverse(fakeClient({ result: ask("職種の内容はどの部門が決めますか", "職種の内容") }), pack, { context, lang: "ja", brief });
+  assert.equal(topic.research_basis.passed, false, "the topic is the model's wording, not research");
+  const research = await generateReverse(fakeClient({ result: ask("進行管理の担当はどの部門ですか", "進行管理の担当") }), pack, { context, lang: "ja", brief });
+  assert.deepEqual(research.questions[0].source_ids, ["s1"]);
+  assert.equal(research.research_basis.passed, true);
+  assert.ok(!JSON.stringify(buildReverseRequest(pack, { context, lang: "ja", brief }).messages).includes("held"), "code's field is not sent to the model");
+});
+
+const FIGURE = "売上300億円を支える物流の経験はありますか。";
+const echoing = asModelScript({ ...scriptFixture, text: "売上300億円を支える物流の経験は、はい、あります。" });
+const scriptBody = { question: FIGURE, category: "経歴・志望動機", answer: "はい、物流システムの開発を担当しました。", lang: "ko", pack: "jp" };
+
+test("L6: a figure in a research question is not the user's fact: the model answer gate rejects it", async () => {
+  const research = fakeClient({ result: echoing });
+  const denied = await call(scriptPOST, "/api/script", { ...scriptBody, basis_type: "research" }, "9.4.0.1", { client: research });
+  assert.equal(denied.status, 502);
+  assert.equal(research.calls(), 2);
+  const mail = fakeClient({ result: echoing });
+  assert.equal((await call(scriptPOST, "/api/script", scriptBody, "9.4.0.2", { client: mail })).status, 200, "a question from the mail is what the user gave us");
+  const bogus = fakeClient({ result: echoing });
+  assert.equal((await call(scriptPOST, "/api/script", { ...scriptBody, basis_type: "x" }, "9.4.0.3", { client: bogus })).status, 200);
+  assert.equal(JSON.stringify(bogus.requests), JSON.stringify(mail.requests), "an unknown label changes nothing");
+  const clean = fakeClient({ result: asModelScript(scriptFixture) });
+  assert.ok(!(await generateScript(clean, pack, { ...scriptBody, basis_type: "research" })).text.includes("300"), "an answer that leaves the figure out passes");
+  assert.match(clean.requests[0].messages[0].content, /質問の中の数字/);
+  assert.doesNotMatch(mail.requests[0].messages[0].content, /質問の中の数字/);
+});
+
+test("L6: a figure only the research holds marks the question as research even when no ref claims it", async () => {
+  const facts = [{ kind: "company", text: "売上300億円（架空）", source_ids: ["s1"] }, { kind: "company", text: "拠点3か所（架空）", source_ids: ["s2"] }];
+  const out = await generateQuestions(fakeClient({ result: asking(
+    { question: FIGURE, refs: fixture.questions[0].refs },
+    { question: "3年後の目標は何ですか。", refs: [] },
+  ) }), pack, MAIL, [], "ko", facts);
+  assert.equal(out.questions[0].basis_type, "research");
+  assert.deepEqual(out.questions[0].source_ids, ["s1"]);
+  assert.equal(out.questions[1].basis_type, "pack", "a one-digit number is too common to prove anything");
+  const inMail = await generateQuestions(fakeClient({ result: asking({ question: FIGURE, refs: [] }) }), pack, `${MAIL}、売上300億円`, [], "ko", facts);
+  assert.notEqual(inMail.questions[0].basis_type, "research");
+  assert.match(buildQuestionRequest(pack, MAIL, [], "ko", facts).messages[0].content, /数字を question/);
+});
+
+test("labels: a question from a replaced brief cites nothing, says so, and a report stays unverified", () => {
+  for (const t of Object.values(LANGS)) {
+    assert.equal(basisTag({ basis_type: "research", stale: true }, t), t.chat.basisType.stale);
+    assert.equal(basisTag({ basis_type: "research", stale: true, reported: true }, t), t.chat.basisType.reported);
+    assert.notEqual(t.chat.basisType.stale, t.chat.basisType.research);
+  }
+});
+
+test("forgetBrief: nothing keeps an id of the old brief; figures stay marked as research; the question objects stay the same", () => {
+  const q1 = { id: "q1", question: "質問", basis_type: "research", source_ids: ["s1"], reported: false }, q2 = { id: "q2", question: "質問", basis_type: "research", source_ids: ["s3"], reported: true }, q3 = { id: "q3", question: "質問", basis_type: "mail" };
+  const session = { company_context: { company: "C", position: "P", facts: [] }, attempts: [], questions: [q1, q2, q3], research_basis: { referenced: 2, required: 3, passed: false }, reverse: [{ question: "逆", intent: "狙い", source_ids: ["s1"] }] };
+  assert.equal(forgetBrief(session), true, "tells the caller the reverse questions are gone");
+  assert.deepEqual(session.questions.map((q) => q.source_ids), [undefined, undefined, undefined]);
+  assert.ok(session.questions[0] === q1, "state.current keeps pointing at it");
+  assert.deepEqual([q1.basis_type, q1.stale, q2.reported, q3.stale], ["research", true, true, undefined]);
+  assert.ok(!("research_basis" in session) && !("reverse" in session));
+  const t = LANGS.ja;
+  const md = sessionToMarkdown({ ...session, company_context: { ...session.company_context, research_brief: { research_status: "ok", research_date: "2026-11-04", sources: [{ id: "s1", title: "新しいページ", url: "https://example.com/new" }] } } }, t);
+  assert.ok(md.includes(`(${t.chat.basisType.stale})`) && md.includes(`(${t.chat.basisType.reported})`));
+  assert.ok(!md.includes(`${t.chat.basisType.research} · s1`) && !md.includes(`${t.reverse.source}:`));
+  assert.equal(forgetBrief(session), false);
+  assert.ok(migrateSession({ ...session, version: 3 }).questions[0].stale, "survives a reload");
 });

@@ -93,11 +93,14 @@ export function renderQuestions(data) {
   const b = bubble("coach qs", t.chat.questionsMade({ company: c.company, position: c.position, count: questions.length }));
   // F7: always shown (also on the demo and a restored session), not only when the gate fails.
   if (specificity) b.append(el("p", "legend", t.chat.specificity({ n: specificity.referenced, total: questions.length })));
-  if (research_basis) b.append(el("p", "legend", t.chat.researchRefs({ n: research_basis.referenced, total: questions.length })));
+  if (research_basis) b.append(el("p", "legend research-refs", t.chat.researchRefs({ n: research_basis.referenced, total: questions.length })));
   for (const q of questions) {
     const item = el("div", "q");
     item.append(el("span", "tag", t.stages[q.stage] ?? q.stage), el("span", "tag", t.categories[q.category] ?? q.category));
-    if (basisTag(q, t)) item.append(el("span", "tag", basisTag(q, t)));
+    if (basisTag(q, t)) {
+      const tag = item.appendChild(el("span", "tag", basisTag(q, t)));
+      if (q.basis_type === "research") tag.dataset.afterRerun = q.reported ? "reported" : "stale";
+    }
     item.append(el("p", "ja", `${q.id.slice(1)}. ${q.question}`));
     if (q.question_tr) item.append(el("p", "tr", q.question_tr));
     item.append(el("p", "basis", `${t.chat.basis}: ${q.basis}`));
@@ -112,6 +115,12 @@ export function renderQuestions(data) {
   $("panelToggle").hidden = false;
   log.scrollTop = log.scrollHeight;
   return b;
+}
+
+// The log is history, but a source id on it would now point into the new brief's list.
+export function retireBriefMarks() {
+  for (const tag of log.querySelectorAll("[data-after-rerun]")) tag.textContent = T().chat.basisType[tag.dataset.afterRerun];
+  for (const e of log.querySelectorAll(".research-refs, .msg.reverse")) e.remove();
 }
 
 // Question rail (≥1280px, UIUX §11.3): progress and ○/✗/✓ per question; no question set → the 3-step guide.

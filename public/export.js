@@ -95,19 +95,26 @@ export function briefFacts(b) {
   ];
 }
 
-// For reverse questions: the facts minus candidate reports, plus what to verify at the interview. Agent items and anything from the desired profile stay out.
+// For reverse questions: facts minus candidate reports, plus interview checks; an unlabelled item or a research side without a real source stays out, so the desired profile cannot leave that way.
+// shortcut: profile wording labelled research with a real source still passes, until S5 compares it with the stored profile.
 export function reverseFacts(b) {
   if (b?.research_status !== "ok") return [];
-  const quotable = (s) => ["mail", "research"].includes(s?.origin) && typeof s.quote === "string";
-  const flags = objects(b.mismatch_flags).filter((f) => quotable(f.side_a) && quotable(f.side_b)).map((f) => ({ text: `${f.topic ?? ""}: ${f.side_a.quote} / ${f.side_b.quote}`, source_ids: [...citedIds(f.side_a), ...citedIds(f.side_b)] }));
-  const checks = objects(b.company_checkpoints).filter((c) => c.ask === "interview" && typeof c.question === "string").map((c) => ({ text: c.question, source_ids: citedIds(c) }));
+  const known = new Set(objects(b.sources).map((s) => s.id));
+  const cited = (x) => citedIds(x).filter((id) => known.has(id));
+  const quotable = (s) => typeof s?.quote === "string" && (s.origin === "mail" || (s.origin === "research" && cited(s).length > 0));
+  const flags = objects(b.mismatch_flags).filter((f) => f.ask === "interview" && quotable(f.side_a) && quotable(f.side_b)).map((f) => {
+    const sides = [f.side_a, f.side_b];
+    // held: in the text as context for the model, but no proof of research (lib/reverse.js).
+    return { text: `${f.topic ?? ""}: ${f.side_a.quote} / ${f.side_b.quote}`, source_ids: [...new Set(sides.flatMap((s) => (s.origin === "research" ? cited(s) : [])))], held: [f.topic, ...sides.filter((s) => s.origin === "mail").map((s) => s.quote)].filter((h) => typeof h === "string" && h) };
+  });
+  const checks = objects(b.company_checkpoints).filter((c) => c.ask === "interview" && ["mail", "research"].includes(c.origin) && typeof c.question === "string").map((c) => ({ text: c.question, source_ids: cited(c), ...(c.origin === "mail" && { held: [c.question] }) }));
   return [...briefFacts(b).filter((f) => f.kind !== "reported_question"), ...[...flags, ...checks].filter((c) => c.source_ids.length).map((c) => ({ kind: "check", ...c }))];
 }
 
 // Label from the fields code computed (lib/questions.js); a session without them gets none.
 export function basisTag(q, t) {
   const research = q.basis_type === "research";
-  const label = t.chat.basisType[research && q.reported ? "reported" : q.basis_type];
+  const label = t.chat.basisType[research ? (q.reported ? "reported" : q.stale ? "stale" : "research") : q.basis_type];
   return label ? [label, ...(research ? citedIds(q) : [])].join(" · ") : "";
 }
 
