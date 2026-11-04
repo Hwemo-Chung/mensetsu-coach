@@ -29,6 +29,9 @@ const n = demo.specificity.referenced;
 const CAPTIONS = {
   paste: ["メールを\n貼るだけ", "求人やエージェントのメールを、そのまま"],
   questions: ["この会社だけの\n質問、10問", `${n}問が、メールの言葉をそのまま使っています`],
+  research: ["この会社を\n調べる", "検索に送るのは、企業名と職種名だけ"],
+  brief: ["メールとの\n違いが分かる", "判定はしません。実際の調査は約1分、デモは架空の会社です"],
+  checkpoint: ["面接で\n確かめる", "違いを、確認する質問にします"],
   pick: ["練習する質問を\n選ぶ", "ボタンを押すだけ"],
   voice: ["声で\n答える", "話したそのままが、端末の中で文字になる"],
   verdict: ["質問に、\n答えていない", "最初に見るのは、聞かれたことに答えたかどうか"],
@@ -41,13 +44,16 @@ const CAPTIONS = {
 };
 // What each caption walks through while it is spoken (user 11/04: arrows and interaction, not still screens). A selector
 // starting with * takes every match, otherwise the first one. Set after R/SC exist, see WALK below.
-const STEP = { paste: 1, questions: 1, pick: 2, voice: 3, verdict: 3, steps: 3, rule: 3, habit: 3, script: 3, retry: 4, compare: 4 };
+const STEP = { paste: 1, questions: 1, research: 2, brief: 2, checkpoint: 2, pick: 3, voice: 4, verdict: 4, steps: 4, rule: 4, habit: 4, script: 4, retry: 5, compare: 5 };
 const TONE = { verdict: "alert", compare: "peak" };
 // NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): each caption is also spoken. Lines say it in full sentences (no ✓/［］ for
 // the voice). Lines are made before recording, so each hold lasts as long as its line.
 const SAY = {
   paste: "使い方は、かんたんです。求人メールを貼るだけ。",
   questions: `その会社だけの質問を、10問作ります。${n}問が、メールの言葉をそのまま使っています。`,
+  research: "会社も調べます。検索に送るのは、企業名と職種名だけです。",
+  brief: "メールと公開情報の違いが、確認すべき点として分かります。判定はしません。",
+  checkpoint: "その違いを、面接で確かめる質問にします。",
   pick: "練習する質問を、ボタンで選びます。",
   voice: "声で答えます。話したそのままが、端末の中で文字になります。",
   verdict: "質問に、答えていません。まず見るのは、聞かれたことに答えたかどうかです。",
@@ -100,10 +106,12 @@ cdp.on("Page.screencastFrame", ({ data, metadata, sessionId }) => {
 const now = () => Date.now() / 1000;
 
 // Recorded answers instead of Claude: the order of /api/review calls is first answer, then the corrected one.
-let reviews = 0, scripts = 0;
+let reviews = 0, scripts = 0, questionCalls = 0;
 const steps = pack.answer_structure.steps.map(({ key, label, optional }) => ({ key, label, ...(optional && { optional }) }));
 const answers = {
-  "/api/access": () => ({ ok: true, stt: false }),
+  "/api/access": () => ({ ok: true, stt: false, research: true }),
+  "/api/research": () => demo.brief,
+  "/api/fit": () => ({ fit_evaluation: demo.brief.fit_evaluation, mismatch_flags: demo.brief.mismatch_flags, company_checkpoints: demo.brief.company_checkpoints }),
   "/api/questions": () => ({ company_context: demo.company_context, questions: demo.questions, specificity: demo.specificity, pack: { id: "jp", target: "ja", steps } }),
   "/api/review": () => demo.steps[Math.min(reviews++, 1)].review,
   "/api/script": () => (demo.steps[Math.min(scripts++, 1)].script ?? demo.steps[0].script), // 2nd answer → its own script
@@ -111,7 +119,8 @@ const answers = {
 await page.route("**/api/**", async (route) => {
   const path = new URL(route.request().url()).pathname;
   if (!answers[path]) return route.continue(); // /api/tts → the MOCK stream
-  if (path !== "/api/access") await new Promise((r) => setTimeout(r, GEN_MS));
+  // The first research wait shows its label; the follow-up calls are shortened (the caption states the real time).
+  if (path !== "/api/access") await new Promise((r) => setTimeout(r, path === "/api/fit" || (path === "/api/questions" && questionCalls++) ? 400 : GEN_MS));
   await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(answers[path]()) });
 });
 
@@ -211,6 +220,9 @@ const start = now();
 const R = "#log .msg.review", SC = "#log .msg.script:not(.review)";
 const WALK = {
   paste: ["#input", "#send"],
+  research: [".brief-confirm input", ".brief-confirm .inline-btn"],
+  brief: ["#rec-flag-a", "#rec-flag-b", "#rec-flag-c"],
+  checkpoint: ["#rec-check"],
   questions: ["*#log .q"],
   pick: ["#rec-pick", "#rec-pick button"],
   voice: ["#mic", "#input"],
@@ -230,8 +242,22 @@ await click("#send");
 await page.locator("#log .q").first().waitFor({ timeout: 15000 });
 await pause(250);
 await explain(["#log .q:nth-of-type(1)", "#log .q:nth-of-type(3)"], CAPTIONS.questions);
-const pick = `#log .q button[data-pick="${demo.pick + 1}"]`;
-await page.evaluate((s) => { document.querySelector(s).closest(".q").id = "rec-pick"; }, pick);
+// Stage R with the tour's fictional sample (0 AI calls): confirm, brief, the mismatch, then the question to ask.
+await page.locator(".brief-confirm .inline-btn").waitFor({ timeout: 15000 });
+await explain([".brief-confirm"], CAPTIONS.research);
+await click(".brief-confirm .inline-btn");
+const flag = demo.brief.mismatch_flags[0], check = demo.brief.company_checkpoints[0].question;
+await page.waitForFunction((q) => document.querySelector("#log").innerText.includes(q), flag.side_b.quote, { timeout: 15000 });
+await page.waitForFunction(() => !document.querySelector("#send").disabled, null, { timeout: 15000 });
+await pause(250);
+await page.evaluate(({ a, b, c, q }) => {
+  const find = (t, tag = "p") => [...document.querySelectorAll(`#log .brief ${tag}`)].find((e) => e.textContent.includes(t));
+  find(a).id = "rec-flag-a"; find(b).id = "rec-flag-b"; find(c).id = "rec-flag-c"; find(q, "*:not(div)").id = "rec-check";
+}, { a: flag.side_a.quote, b: flag.side_b.quote, c: flag.verify_prompt, q: check });
+await explain(["#rec-flag-a", "#rec-flag-b", "#rec-flag-c"], CAPTIONS.brief);
+await explain(["#rec-check"], CAPTIONS.checkpoint);
+const pick = `#log .q button[data-pick="${demo.pick + 1}"]:not([disabled])`;
+await page.evaluate((s) => { document.querySelector(s).closest(".q").id = "rec-pick"; }, pick); // the first match in the regenerated set
 await explain(["#rec-pick"], CAPTIONS.pick);
 await click(pick);
 await pause(400);

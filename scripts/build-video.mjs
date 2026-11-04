@@ -39,12 +39,12 @@ async function snap(html, page = canvas) {
 const png64 = (f) => `data:image/png;base64,${readFileSync(f).toString("base64")}`;
 
 // The headline panel (benchmark A1/A2): the 4-step usage rail, one big two-tone title, one note, a progress bar.
-const RAIL = ["貼る", "選ぶ", "答える", "直す"];
+const RAIL = ["貼る", "調べる", "選ぶ", "答える", "直す"];
 function panelHtml({ title, note = "", step, tone }, extra = "") {
   const peak = tone === "peak", [a, b = ""] = title.split("\n");
   const second = tone === "alert" ? RED : peak ? "#fff" : GREEN;
-  const rail = step ? `<div style="display:flex;gap:14px;font-size:17px;font-weight:700">${RAIL.map((r, i) => `<span style="color:${i + 1 === step ? (peak ? "#fff" : GREEN) : peak ? "#0a5c30" : "#54675d"}">${String(i + 1).padStart(2, "0")} ${r}</span>`).join("")}</div>` : `<div style="font-size:18px;font-weight:700;color:${GREEN}">面接コーチ</div>`;
-  const bar = step ? `<div style="position:absolute;left:28px;right:28px;bottom:30px;height:6px;background:${peak ? "#0a8f43" : "#22332b"}"><div style="height:6px;width:${step * 25}%;background:${peak ? "#fff" : GREEN}"></div></div>` : "";
+  const rail = step ? `<div style="display:flex;gap:9px;font-size:15px;font-weight:700">${RAIL.map((r, i) => `<span style="color:${i + 1 === step ? (peak ? "#fff" : GREEN) : peak ? "#0a5c30" : "#54675d"}">${String(i + 1).padStart(2, "0")} ${r}</span>`).join("")}</div>` : `<div style="font-size:18px;font-weight:700;color:${GREEN}">面接コーチ</div>`;
+  const bar = step ? `<div style="position:absolute;left:28px;right:28px;bottom:30px;height:6px;background:${peak ? "#0a8f43" : "#22332b"}"><div style="height:6px;width:${step * 20}%;background:${peak ? "#fff" : GREEN}"></div></div>` : "";
   return `<div style="position:absolute;left:0;top:0;width:427px;height:720px;box-sizing:border-box;padding:30px 28px;background:${peak ? GREEN : INK};color:${peak ? INK : "#fff"}">
     ${rail}<div style="margin-top:${extra ? 26 : 190}px;font-size:${peak ? 54 : 50}px;font-weight:800;line-height:1.28;letter-spacing:-.5px">${a}<br><span style="color:${second}">${b}</span></div>
     <div style="margin-top:22px;font-size:21px;line-height:1.55;color:${peak ? INK : SOFT};font-weight:600">${note}</div>${extra}${bar}</div>`;
@@ -302,29 +302,24 @@ segs.pop();
   ffmpeg("-i", koAll, "-i", enAll, "-filter_complex", `[0:v][1:v]xfade=transition=slideleft:duration=0.35:offset=${off}[v];[0:a][1:a]acrossfade=d=0.35[a]`, "-map", "[v]", "-map", "[a]", ...enc, file);
   segs.push({ file, chapter: 4 });
 }
-{
-  const { ctx, page } = await live("ja", "kr");
-  await scene(4, [{ file: await snap(splitHtml(await appShot(page), panelHtml({ title: "日本人の、\n韓国転職にも", note: "行き先「韓国で就職」はベータ版です" }))), sec: 2 }], "日本人の、韓国での転職向けベータ版もあります。");
-  await ctx.close();
-}
 
 // ⑤ How the app uses Claude (criterion: choose and combine models). Facts: lib/claude.js MODELS, lib/review.js + lib/script.js gates.
 const flow = (items) => items.map((x, i) => `<div style="padding:20px 28px;border-radius:8px;background:#16271e;color:#fff;font-size:34px;font-weight:700;line-height:1.35">${x}</div>${i < items.length - 1 ? `<div style="text-align:center;color:${GREEN};font-size:28px;line-height:1.2;margin:6px 0">↓</div>` : ""}`).join("");
 {
-  const BOX = ["質問・台本は Sonnet", "採点は別の呼び出しで Opus", "プログラムが検査<br>ルール外の添削は捨てる"];
+  const BOX = ["調査は Haiku、比較は Sonnet", "質問・台本は Sonnet", "採点は別の呼び出しで Opus", "プログラムが検査<br>出典のない情報とルール外の添削は捨てる"];
   const frames = [];
   for (let k = 1; k <= BOX.length; k++) {
     const file = await snap(`<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:44px 200px;box-sizing:border-box"><div style="font-size:42px;font-weight:800;color:${GREEN};margin-bottom:28px">アプリの中の Claude</div>${flow(BOX.map((b, i) => (i < k ? `<span data-b${i}>${b}</span>` : `<span style="opacity:.12">${b}</span>`)))}</div>`);
     const r = await rectOf(`[data-b${k - 1}]`);
-    frames.push({ file, sec: 1.4, arrow: { x: 190, y: r.y + r.h / 2, dir: "right" } });
+    frames.push({ file, sec: 1.1, arrow: { x: 190, y: r.y + r.h / 2, dir: "right" } });
   }
-  await scene(5, frames, "アプリの中では、質問と台本はSonnet、採点は別の呼び出しでOpus。答えは、プログラムが検査します。");
+  await scene(5, frames, "アプリの中では、調査はHaiku、比較と質問と台本はSonnet、採点は別の呼び出しでOpus。答えは、プログラムが検査します。");
 }
 
 // ⑥ A one-second montage of the take's key moments (benchmark B2), the roadmap, then the closing line in big type.
 const takeSeg = segs.find((s) => s.chapter === 3).file;
 const grab = (key) => { const p = panels.find((x) => x.key === key), f = join(dir, `g-${key}.png`); ffmpeg("-ss", String(p.t + 1), "-i", takeSeg, "-frames:v", "1", f); return f; };
-await scene(6, ["questions", "verdict", "script", "compare"].map((k) => ({ file: grab(k), sec: 0.75 })), "次に日本で転職する人が、面接の前の夜に開く。そのために作りました。");
+await scene(6, ["questions", "brief", "verdict", "compare"].map((k) => ({ file: grab(k), sec: 0.75 })), "次に日本で転職する人が、面接の前の夜に開く。そのために作りました。");
 await scene(6, await reveal("国も、言葉も、", "足していける。"), "ルールは国ごとに分かれているので、国も言葉も足していけます。");
 await scene(6, [
   { file: await snap(big("面接の壁は、", "", GREEN, INK, INK)), sec: 0.7 },
