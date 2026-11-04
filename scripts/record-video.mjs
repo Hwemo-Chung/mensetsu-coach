@@ -18,35 +18,44 @@ const demo = JSON.parse(readFileSync(new URL(`../public/demo/demo-${lang}.json`,
 const pack = JSON.parse(readFileSync(new URL("../packs/jp.json", import.meta.url), "utf8"));
 // What the viewer sees of each generation (real: 10–20 s). Over 3 s so the app's own wait label ("checking your
 // answer…") shows up next to the dots: dots alone read as a hang (user, 11/03).
-const GEN_MS = 3600; // 4.5 → 3.6 s (11/03, narrated cut under 3:00): still past 3 s, so the wait label shows briefly
-const HOLD_MS = 3000; // each "stop and explain" pause
+const GEN_MS = 3100; // still past 3 s, so the wait label shows; faster tempo (user 11/04)
+const HOLD_MS = 1800; // each "stop and explain" pause, at least
 // Explanation captions (storyboard approved 11/03): one big line + one note. Japanese is the video's language.
 // Every caption states only what the recorded data shows (demo review 11/03): counts are computed, "all ✓" only if true.
 const after = demo.steps[1].review, allOk = after.answers_question === "yes" && Object.values(after.steps).every((s) => s.present);
+// v4 (user 11/04, benchmark A2/A1): the caption is the big headline in the panel left of the app (build-video.mjs draws
+// it from <out>.panels.json). Title lines split with \n; step = the 4-step usage rail; tone = panel colour.
+const n = demo.specificity.referenced;
 const CAPTIONS = {
-  questions: ["この会社だけの質問、10問", `${demo.specificity.referenced}問が、メールの言葉をそのまま使っています`],
-  verdict: ["質問に、答えていない", "最初に見るのは、聞かれたことに答えたかどうか"],
-  steps: ["足りない部分が、赤で分かる", "直し方も、となりに出ます"],
-  rule: ["直すのは、ルール表の項目だけ", "どのルールかを、ルールIDで示します"],
-  script: ["自分の答えをもとにした台本", "数字は［空欄］。自分の事実で埋めます"],
-  retry: ["空欄を埋めて、答え直す", "デモでは、空欄に架空の数字を入れています"],
-  compare: [allOk ? "答え直したら、すべて ✓" : "答え直したら、✗ が ✓ に", "最初の答えと並べて比べます"],
-  // ③-a/③-b (storyboard v2, PRESENTATION-BENCHMARK 11/03): the first answer is spoken (record-demo.mjs --voice).
-  voice: ["声で答えても、いい", "話したそのままが、文字になる（端末の中で）"],
-  habit: ["口ぐせまで、見つける", "声で答えると、「なんか」もそのまま残るから"],
+  paste: ["メールを\n貼るだけ", "求人やエージェントのメールを、そのまま"],
+  questions: ["この会社だけの\n質問、10問", `${n}問が、メールの言葉をそのまま使っています`],
+  pick: ["練習する質問を\n選ぶ", "ボタンを押すだけ"],
+  voice: ["声で\n答える", "話したそのままが、端末の中で文字になる"],
+  verdict: ["質問に、\n答えていない", "最初に見るのは、聞かれたことに答えたかどうか"],
+  steps: ["足りない部分が\n赤で分かる", "直し方も、すぐ下に出ます"],
+  rule: ["直すのは\nルール表だけ", "どのルールかを、ルールIDで示します"],
+  habit: ["口ぐせまで\n見つける", "声で答えると「なんか」もそのまま残るから"],
+  script: ["自分の答えを\nもとにした台本", "数字は［空欄］。自分の事実で埋めます"],
+  retry: ["空欄を埋めて\n答え直す", "デモでは、架空の数字を入れています"],
+  compare: [allOk ? "答え直したら\nすべて ✓" : "答え直したら\n✗ が ✓ に", "最初の答えと並べて比べます"],
 };
-// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): each caption is also spoken (user 11/03: "the explaining captions become
-// narration"). The line says the caption in full sentences (no ✓/［］ symbols for the voice); the caption stays on screen
-// for muted viewers. Lines are made before recording, so each hold lasts as long as its line.
+// What each caption walks through while it is spoken (user 11/04: arrows and interaction, not still screens). A selector
+// starting with * takes every match, otherwise the first one. Set after R/SC exist, see WALK below.
+const STEP = { paste: 1, questions: 1, pick: 2, voice: 3, verdict: 3, steps: 3, rule: 3, habit: 3, script: 3, retry: 4, compare: 4 };
+const TONE = { verdict: "alert", compare: "peak" };
+// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): each caption is also spoken. Lines say it in full sentences (no ✓/［］ for
+// the voice). Lines are made before recording, so each hold lasts as long as its line.
 const SAY = {
-  questions: `この会社だけの質問を、10問作ります。そのうち${demo.specificity.referenced}問が、メールの言葉をそのまま使っています。`,
-  voice: "声で答えても大丈夫です。話したそのままが、端末の中で文字になります。",
-  verdict: "質問に、答えていません。最初に見るのは、聞かれたことに答えたかどうかです。",
-  steps: "足りない部分が、赤で分かります。直し方も、となりに出ます。",
-  rule: "直すのは、ルール表の項目だけ。どのルールかを、ルールIDで示します。",
+  paste: "使い方は、かんたんです。求人メールを貼るだけ。",
+  questions: `その会社だけの質問を、10問作ります。${n}問が、メールの言葉をそのまま使っています。`,
+  pick: "練習する質問を、ボタンで選びます。",
+  voice: "声で答えます。話したそのままが、端末の中で文字になります。",
+  verdict: "質問に、答えていません。まず見るのは、聞かれたことに答えたかどうかです。",
+  steps: "足りない部分が、赤で分かります。直し方も、すぐ下に出ます。",
+  rule: "直すのは、ルール表の項目だけ。ルールIDで示します。",
   habit: "口ぐせまで、見つけます。声で答えると、「なんか」もそのまま残るからです。",
-  script: "自分の答えをもとにした台本です。数字は空欄のまま。自分の事実で埋めます。",
-  retry: "空欄を埋めて、答え直します。このデモでは、空欄に架空の数字を入れています。",
+  script: "自分の答えをもとにした台本です。数字は空欄のまま、自分の事実で埋めます。",
+  retry: "空欄を埋めて答え直します。数字はデモ用の架空です。",
   compare: `${allOk ? "答え直したら、すべてにチェックがつきました。" : "答え直したら、バツがチェックに変わりました。"}最初の答えと並べて比べます。`,
 };
 const NARRATE = process.env.NARRATE === "1";
@@ -55,12 +64,13 @@ if (NARRATE) {
   const { narrate } = await import("./narration.mjs");
   for (const [k, t] of Object.entries(SAY)) lines[k] = await narrate(t);
 }
+const panels = []; // { key, title, note, step, tone, t } — the headline panel track for build-video.mjs
 const cues = []; // { wav, t } — t = wall clock when the caption appears (same clock as the screencast timestamps)
 // The spoken answer is the in-browser recogniser's real output for the TTS voice, replayed like the API answers (0 calls).
 const spoken = demo.steps[0].spoken === true;
 // Only a filler rule the recorded review actually returned gets the habit caption (captions state only what the data shows).
 const habitRule = demo.steps[0].review.corrections.find((c) => /^del-/.test(c.rule_id) && demo.steps[0].answer.includes(c.before))?.rule_id;
-const VIEW = { width: 1280, height: 720 }; // × deviceScaleFactor 1.5 = 1920×1080: a 1.5× zoom, readable on a phone
+const VIEW = { width: 854, height: 720 }; // × 1.5 = the right 2/3 of 1920×1080: one column, larger text than the dashboard
 
 const server = await startServer();
 const browser = await launch();
@@ -114,21 +124,22 @@ async function pointer(sel) {
     if (!p) {
       p = document.createElement("div");
       p.id = "rec-pointer";
-      Object.assign(p.style, { position: "fixed", zIndex: 99, width: "30px", height: "30px", marginLeft: "-15px", marginTop: "-15px", borderRadius: "50%", background: "transparent", border: "3px solid rgba(4,122,53,.8)", boxShadow: "0 0 0 2px #fff", pointerEvents: "none", transition: "left .6s ease, top .6s ease" });
+      Object.assign(p.style, { position: "fixed", zIndex: 99, width: "30px", height: "30px", marginLeft: "-15px", marginTop: "-15px", borderRadius: "50%", background: "transparent", border: "3px solid rgba(4,122,53,.8)", boxShadow: "0 0 0 2px #fff", pointerEvents: "none", transition: "left .3s ease, top .3s ease" });
       document.body.append(p);
     }
     Object.assign(p.style, { left: `${x}px`, top: `${y}px` });
   }, { x: box.x + Math.max(box.width / 2, box.width - 16), y: box.y + box.height / 2 }); // near the right edge: the label stays visible
-  await page.waitForTimeout(700);
+  await page.waitForTimeout(380);
 }
 const click = async (sel) => { await pointer(sel); await page.click(sel); };
 
 // Stop and explain: scroll the target's own scroller (chat log or panel) so it comes up near the top (0.8 s, visible),
 // dim the rest, frame the target in green above a caption band, hold, then put the layout back. CSSOM only.
 // top: caption band at the top of the screen (the target sits at the bottom, e.g. the input).
-async function explain(sels, caption, hold = HOLD_MS, during, top = false) {
-  const [title, note] = caption, line = lines[Object.keys(CAPTIONS).find((k) => CAPTIONS[k] === caption)];
-  if (line) hold = Math.max(hold, Math.round(line.sec * 1000) + 400);
+async function explain(sels, caption, hold = HOLD_MS, during) {
+  const [title, note] = caption, key = Object.keys(CAPTIONS).find((k) => CAPTIONS[k] === caption), line = lines[key];
+  // Silent preview: the same reading time as the narration at TEMPO, so the cut keeps its length.
+  hold = Math.max(hold, line ? Math.round(line.sec * 1000) + 250 : Math.round(SAY[key].length / 7.2 * 1000) + 250);
   await page.evaluate(async (sels) => {
     const el = document.querySelector(sels[0]);
     let sc = el.parentElement;
@@ -140,7 +151,7 @@ async function explain(sels, caption, hold = HOLD_MS, during, top = false) {
     const t0 = performance.now();
     await new Promise((done) => {
       const step = (t) => {
-        const k = Math.min(1, (t - t0) / 800), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+        const k = Math.min(1, (t - t0) / 500), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
         sc.scrollTop = from + (to - from) * e;
         k < 1 ? requestAnimationFrame(step) : done();
       };
@@ -148,27 +159,32 @@ async function explain(sels, caption, hold = HOLD_MS, during, top = false) {
     });
   }, sels);
   if (during) await during();
-  await page.evaluate(({ sels, title, note, top }) => {
-    const els = sels.flatMap((s) => [...document.querySelectorAll(s)]);
-    const sc = document.querySelector("[data-rec]");
-    const cap = document.createElement("div"); cap.id = "rec-cap";
-    Object.assign(cap.style, { position: "fixed", zIndex: 99, left: "0", right: "0", ...(top ? { top: "0" } : { bottom: "0" }), padding: "14px 32px 18px", background: "rgba(17,17,17,.86)", color: "#fff", textAlign: "center", pointerEvents: "none", opacity: "0", transition: "opacity .3s" });
-    const t = document.createElement("div"); t.textContent = title; Object.assign(t.style, { fontSize: "30px", fontWeight: "700", lineHeight: "1.3" });
-    const n = document.createElement("div"); n.textContent = note; Object.assign(n.style, { fontSize: "18px", marginTop: "4px", color: "#cfe9d8" });
-    cap.append(t, n);
-    document.body.append(cap);
-    const rs = els.map((e) => e.getBoundingClientRect()), lim = sc ? sc.getBoundingClientRect() : { top: 0 };
-    const floor = top ? innerHeight - 4 : cap.getBoundingClientRect().top - 12; // the frame never runs under the caption band
-    const b = { l: Math.min(...rs.map((r) => r.left)), t: Math.max(lim.top + 4, Math.min(...rs.map((r) => r.top))), r: Math.max(...rs.map((r) => r.right)), bt: Math.min(floor, Math.max(...rs.map((r) => r.bottom))) };
+  panels.push({ key, title, note, step: STEP[key], tone: TONE[key], t: now() });
+  const n = await page.evaluate(({ sels, walk }) => {
+    const els = walk.flatMap((s) => (s[0] === "*" ? [...document.querySelectorAll(s.slice(1))].slice(0, 6) : [document.querySelector(s)])).filter(Boolean);
     const hl = document.createElement("div"); hl.id = "rec-hl";
-    Object.assign(hl.style, { position: "fixed", zIndex: 98, left: `${b.l - 8}px`, top: `${b.t - 6}px`, width: `${b.r - b.l + 16}px`, height: `${b.bt - b.t + 12}px`, border: "3px solid #06c755", borderRadius: "6px", boxShadow: "0 0 0 9999px rgba(0,0,0,.28)", pointerEvents: "none", opacity: "0", transition: "opacity .3s" });
-    document.body.append(hl);
-    requestAnimationFrame(() => { cap.style.opacity = "1"; hl.style.opacity = "1"; });
-  }, { sels, title, note, top });
-  if (line) cues.push({ wav: line.wav, t: now() + 0.15 }); // starts as the caption fades in
-  await pause(hold);
+    Object.assign(hl.style, { position: "fixed", zIndex: 98, border: "3px solid #06c755", borderRadius: "6px", boxShadow: "0 0 0 9999px rgba(0,0,0,.28)", pointerEvents: "none", transition: "all .28s cubic-bezier(.2,.8,.2,1)" });
+    const ar = document.createElementNS("http://www.w3.org/2000/svg", "svg"); ar.id = "rec-arrow";
+    ar.setAttribute("viewBox", "0 0 48 32");
+    ar.innerHTML = '<path d="M2 11h24V2l20 14-20 14v-9H2z" fill="#ffe14d" stroke="#111" stroke-width="2.5" stroke-linejoin="round"/>';
+    Object.assign(ar.style, { position: "fixed", zIndex: 99, width: "54px", height: "36px", pointerEvents: "none", transition: "left .28s cubic-bezier(.2,.8,.2,1), top .28s cubic-bezier(.2,.8,.2,1)" });
+    document.body.append(hl, ar);
+    ar.animate([{ transform: "translateX(-9px)" }, { transform: "translateX(2px)" }], { duration: 340, iterations: Infinity, direction: "alternate", easing: "ease-in-out" });
+    window.__walk = (i) => {
+      const el = els[i], sc = document.querySelector("[data-rec]");
+      if (sc) { const r = el.getBoundingClientRect(), box = sc.getBoundingClientRect(); if (r.bottom > box.bottom - 16 || r.top < box.top + 16) sc.scrollTop += r.top - box.top - 40; }
+      const r = el.getBoundingClientRect();
+      Object.assign(hl.style, { left: `${r.left - 8}px`, top: `${r.top - 5}px`, width: `${r.width + 16}px`, height: `${Math.min(r.height, innerHeight - r.top - 12) + 10}px` });
+      Object.assign(ar.style, { left: `${Math.max(4, r.left - 66)}px`, top: `${r.top + Math.min(r.height, 60) / 2 - 18}px` });
+    };
+    return els.length;
+  }, { sels, walk: WALK[key] ?? sels });
+  await page.evaluate(() => window.__walk(0));
+  if (line) cues.push({ wav: line.wav, t: now() + 0.15 }); // starts as the frame lands
+  for (let i = 1; i < n; i++) { await pause(hold / n); await page.evaluate((k) => window.__walk(k), i); }
+  await pause(hold / n);
   await page.evaluate(() => {
-    for (const id of ["rec-hl", "rec-cap"]) document.getElementById(id)?.remove();
+    for (const id of ["rec-hl", "rec-arrow"]) document.getElementById(id)?.remove();
     for (const e of document.querySelectorAll("[data-rec]")) { e.style.paddingBottom = ""; delete e.dataset.rec; }
     const log = document.querySelector(".log"); log.scrollTop = log.scrollHeight; // the app's own position again
   });
@@ -192,51 +208,69 @@ await cdp.send("Page.startScreencast", { format: "jpeg", quality: 92, everyNthFr
 await pause(500);
 const start = now();
 
-// ③ on camera.
+const R = "#log .msg.review", SC = "#log .msg.script:not(.review)";
+const WALK = {
+  paste: ["#input", "#send"],
+  questions: ["*#log .q"],
+  pick: ["#rec-pick", "#rec-pick button"],
+  voice: ["#mic", "#input"],
+  verdict: [`${R} .verdict`, `${R} .verdict + .tr`],
+  steps: [`*${R} .step.miss`],
+  rule: [`${R} .rule`, `${R} .rule + .ja`],
+  habit: ["#rec-habit", "#rec-habit + .ja"],
+  script: [`${SC} .listen`, `${SC} .ja`, `${SC} .points`],
+  retry: ["#input", "#send"],
+  compare: ["*#log .msg.compare .cmp tbody tr"],
+};
+// ③ on camera. The chat column only (no rail or panel under 1024 px), so targets live in #log.
 await pointer("#input");
 await page.fill("#input", demo.mail); // a paste lands at once
-await pause(900);
+await explain(["#input"], CAPTIONS.paste);
 await click("#send");
 await page.locator("#log .q").first().waitFor({ timeout: 15000 });
-await pause(600);
+await pause(250);
 await explain(["#log .q:nth-of-type(1)", "#log .q:nth-of-type(3)"], CAPTIONS.questions);
-// v3 (UIUX §11): the question is picked by tapping its card's [練習する] (typing the number still works).
-await click(`#log .q button[data-pick="${demo.pick + 1}"]`);
-await pause(1200);
-if (spoken) { // ③-a: answer by voice; the transcript lands in the box (fillers kept), checked, then sent
+const pick = `#log .q button[data-pick="${demo.pick + 1}"]`;
+await page.evaluate((s) => { document.querySelector(s).closest(".q").id = "rec-pick"; }, pick);
+await explain(["#rec-pick"], CAPTIONS.pick);
+await click(pick);
+await pause(400);
+if (spoken) { // answer by voice; the transcript lands in the box (fillers kept), checked, then sent
   await click("#mic");
-  await pause(3500); // the recording timer runs while the "user" speaks (~13 s of speech, shortened)
+  await pause(1800); // the recording timer runs while the "user" speaks (shortened)
   await click("#mic");
   await page.waitForFunction(() => document.querySelector("#input").value.length > 20);
-  await pause(600);
-  await explain(["#input", "#mic"], CAPTIONS.voice, HOLD_MS, undefined, true);
-} else await type(demo.steps[0].answer, 35); // the off-target answer
+  await pause(250);
+  await explain(["#input", "#mic"], CAPTIONS.voice);
+} else await type(demo.steps[0].answer, 12); // the off-target answer
 await click("#send");
-await page.locator("#reviewBox > .review").waitFor({ timeout: 15000 });
-await page.locator("#reviewBox > .script:not(.review) .listen").waitFor({ timeout: 15000 });
-await pause(800);
-const R = "#reviewBox > .review";
+await page.locator(R).waitFor({ timeout: 15000 });
+await page.locator(`${SC} .listen`).waitFor({ timeout: 15000 });
+await pause(250);
 await explain([`${R} .verdict`, `${R} .verdict + .tr`], CAPTIONS.verdict);
 await explain([`${R} .step.miss, ${R} .step.tip`, `${R} .hint`], CAPTIONS.steps);
 await explain([`${R} .rule`, `${R} .rule + .ja`], CAPTIONS.rule);
-if (spoken && habitRule) { // ③-b: the spoken filler is caught by the pack's rule
-  await page.evaluate((id) => { const r = [...document.querySelectorAll("#reviewBox > .review .rule")].find((e) => e.textContent.includes(id)); r.id = "rec-habit"; }, habitRule);
+if (spoken && habitRule) { // the spoken filler is caught by the pack's rule
+  await page.evaluate(({ id, R }) => { const r = [...document.querySelectorAll(`${R} .rule`)].find((e) => e.textContent.includes(id)); r.id = "rec-habit"; }, { id: habitRule, R });
   await explain(["#rec-habit", "#rec-habit + .ja"], CAPTIONS.habit);
 }
-// ③ with 🔊: the whole card comes up (the button sits above the title), the read-along highlight runs under the caption.
-await explain(["#reviewBox > .script:not(.review)"], CAPTIONS.script, 4500, () => click("#reviewBox > .script:not(.review) .listen"));
-// The same question again from the dashboard's question rail, as a user would (v3, ≥1280px).
-await click(`#rail button[data-pick="${demo.pick + 1}"]`);
-await pause(800);
-// The corrected answer is pasted (no human types 200 characters in 4 s) and labelled as filled with fictional numbers.
+// With 🔊: the whole card comes up, the read-along highlight runs while the line plays.
+await explain([SC], CAPTIONS.script, 2600, () => click(`${SC} .listen`));
+// The same question again, tapped if a quick reply offers it, else by number. The corrected answer is pasted (no human
+// types 200 characters in seconds) and labelled as filled with fictional numbers.
+const again = page.locator(`#log button[data-pick="${demo.pick + 1}"]:not([disabled])`);
+if (await again.count()) await click(`#log button[data-pick="${demo.pick + 1}"]:not([disabled])`);
+else { await page.fill("#input", String(demo.pick + 1)); await click("#send"); }
+await pause(300);
 await pointer("#input");
 await page.fill("#input", demo.steps[1].answer);
-await explain(["#input"], CAPTIONS.retry, 2500, undefined, true);
+await explain(["#input"], CAPTIONS.retry);
 await click("#send");
-await page.locator("#reviewBox > .compare").waitFor({ timeout: 15000 });
-await pause(600);
-await explain(["#reviewBox > .compare .cmp"], CAPTIONS.compare, 3500);
-await pause(800);
+await page.locator("#log .msg.compare").waitFor({ timeout: 15000 });
+await pause(250);
+// The peak (benchmark A3): the ✗ → ✓ table grows before it is framed, so it reads at a glance.
+await explain(["#log .msg.compare .cmp"], CAPTIONS.compare, 2600, () => page.evaluate(() => { document.querySelector("#log .msg.compare .cmp").style.zoom = "1.9"; }));
+await pause(300);
 const end = now();
 await cdp.send("Page.stopScreencast");
 await browser.close();
@@ -244,9 +278,10 @@ server.stop();
 
 // Screencast frames arrive only when the page changes: each frame lasts until the next one (variable rate → 30 fps).
 const shots = frames.filter((f) => f.t >= start - 1 && f.t <= end);
+writeFileSync(`${out}.panels.json`, JSON.stringify({ duration: end - shots[0].t, panels: panels.map((p, i) => ({ ...p, t: i ? p.t - shots[0].t : 0 })) }, null, 1));
 const list = shots.map((f, i) => `file '${f.file}'\nduration ${((shots[i + 1]?.t ?? end) - f.t).toFixed(3)}`).join("\n");
 writeFileSync(join(dir, "list.txt"), `${list}\nfile '${shots.at(-1).file}'\n`);
-execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1920:1080:flags=lanczos,fps=30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", join(dir, "out.mp4")]);
+execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1280:1080:flags=lanczos,fps=30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", join(dir, "out.mp4")]);
 if (cues.length) { // mix the lines in at their caption times (video t = 0 is the first kept frame)
   const t0 = shots[0].t, n = cues.length;
   const filter = cues.map((c, k) => `[${k + 1}:a]aresample=48000,adelay=${Math.max(0, Math.round((c.t - t0) * 1000))}:all=1[a${k}]`).join(";") + `;${cues.map((_, k) => `[a${k}]`).join("")}amix=inputs=${n}:normalize=0:duration=longest[aout]`;

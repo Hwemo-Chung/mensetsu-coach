@@ -8,8 +8,8 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 
 const VOICE = "Kore";
-// Played 1.12× (ffmpeg atempo, pitch kept): the narrated cut ran 3:18 at 1.0×, over the 3-minute limit (11/03).
-export const TEMPO = 1.12;
+// Played 1.22× (ffmpeg atempo, pitch kept): the user asked for a faster tempo (11/04).
+export const TEMPO = 1.22;
 const CACHE = join(tmpdir(), "mensetsu-narration");
 let synth = null, last = 0;
 
