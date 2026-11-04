@@ -3,6 +3,7 @@ import { EXPLAIN_LANGS } from "../lib/lang.js";
 import { redact } from "../lib/privacy.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 import { PACKS, loadPack } from "../lib/pack.js";
+import { POST as fit } from "../lib/fit-api.js";
 import { researchEnabled, runResearch, today } from "../lib/research.js";
 
 const MAX_NAME_CHARS = 100; // a name, not a pasted mail: this cap is part of what keeps candidate text out of the search
@@ -28,6 +29,7 @@ let client;
 
 // Stage R search. Same gate order as the other APIs. Only what the user confirmed on the card is read from the body: two names, and optionally a location and public URLs.
 export async function POST(request, deps = {}) {
+  if (new URL(request.url).searchParams.get("route") === "fit") return fit(request, deps); // /api/fit: vercel.json rewrite, the Hobby plan allows 12 functions
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`research:${ip}`, { limit: 5 })) return json(429, { code: "rate_limited" });
   if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });

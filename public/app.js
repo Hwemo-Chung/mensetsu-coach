@@ -203,7 +203,7 @@ async function startResearch(names, unlock) {
 
 // A fit needs two of the three sides; with one there is nothing to compare and nothing to pay for.
 const worthComparing = (brief) => [brief.sources?.length, lastMail, fitDesired(loadDesired(LS))].filter(Boolean).length >= 2;
-// PDF and image contents can be neither masked nor checked against a quote, so api/fit.js would discard them anyway.
+// PDF and image contents can be neither masked nor checked against a quote, so lib/fit-api.js would discard them anyway.
 const maskable = (f) => !!f && !/^image\/|pdf$/.test(f.type) && !/\.pdf$/i.test(f.name);
 
 // Stage R step 5. Fills the card it is given and never blocks anything: a failure leaves the paid brief as it is.

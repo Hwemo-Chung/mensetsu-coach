@@ -10,7 +10,7 @@ import { POST as script } from "./api/script.js";
 import { POST as review } from "./api/review.js";
 import { POST as reverse } from "./api/reverse.js";
 import { POST as research } from "./api/research.js";
-import { POST as fit } from "./api/fit.js";
+import { POST as fit } from "./lib/fit-api.js";
 import { POST as subscribe } from "./api/subscribe.js";
 import { GET as unsubscribe } from "./api/unsubscribe.js";
 import { POST as demand } from "./api/demand.js";

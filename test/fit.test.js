@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { MODELS } from "../lib/claude.js";
-import { POST as fit } from "../api/fit.js";
+import { POST as fit } from "../lib/fit-api.js";
 import { POST as research } from "../api/research.js";
 import { buildFitRequest, buildResearchRequest, desiredProfileText, fitFacts, fitSchema, gateFit, generateFit } from "../lib/research.js";
 import { reverseFacts, briefFacts } from "../public/export.js";
@@ -358,7 +358,7 @@ test("every route that loads a pack ships the pack files to Vercel", () => {
 
 test("vercel.json gives the fit call its own function entry", () => {
   const { functions } = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
-  assert.ok(functions["api/fit.js"].maxDuration >= 60);
+  assert.ok(functions["api/research.js"].maxDuration >= 60); // /api/fit runs inside it
 });
 
 // The browser side
@@ -403,4 +403,15 @@ test("deleting the profile takes the fit sections that can quote it, and leaves 
   assert.equal(b.company_snapshot.business.value, "自社SaaSの開発（架空）");
   forgetFit({ company_context: {} });
   forgetFit(null);
+});
+
+test("the deployment stays within the Hobby plan's 12 functions, and /api/fit reaches its handler", async () => {
+  const { readdirSync } = await import("node:fs");
+  const count = (dir) => readdirSync(dir, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? count(`${dir}/${e.name}`) : e.name.endsWith(".js") ? 1 : 0), 0);
+  assert.ok(count(new URL("../api", import.meta.url).pathname) <= 12);
+  const { rewrites } = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+  assert.ok(rewrites.some((r) => r.source === "/api/fit" && r.destination === "/api/research?route=fit"));
+  const { POST: viaResearch } = await import("../api/research.js");
+  const res = await viaResearch(new Request("http://x/api/research?route=fit", { method: "POST", headers: { "x-access-code": "wrong" }, body: "{}" }));
+  assert.ok([401, 503].includes(res.status) || (await res.clone().json()).code, "answered by the fit handler");
 });

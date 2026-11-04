@@ -146,7 +146,7 @@ Claude Code を開発の中心に置きました。試行と修正の経過は�
 - `api/script.js`: 模範スクリプト API（POST）
 - `api/review.js`: 構成チェック・添削 API（POST）
 - `api/reverse.js`: 逆質問 API（POST）
-- `api/research.js`, `api/fit.js`, `lib/research.js`: 企業・職種の調査と調査結果との比較（POST、`RESEARCH_ENABLED=1` のときのみ）
+- `api/research.js`, `lib/fit-api.js`, `lib/research.js`: 企業・職種の調査と調査結果との比較（POST、`RESEARCH_ENABLED=1` のときのみ）
 - `api/subscribe.js`, `api/unsubscribe.js`, `api/cron/daily.js`, `lib/mail.js`: メーリングリストの登録・配信停止・毎日 09:00 JST の配信（Vercel Cron）
 - `public/export.js`: セッション → Markdown のエクスポート
 - `api/access.js`: アクセスコード確認 API（POST、AI の呼び出しなし）。すべての API はエラーを文ではなくコード（`{ code }`）で返します。
