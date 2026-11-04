@@ -5,7 +5,7 @@ import { MODELS } from "../lib/claude.js";
 import { POST as access } from "../api/access.js";
 import {
   researchEnabled, extractionSchema, fitSchema, briefSchema, NOT_FOUND, EXCERPT_MAX,
-  resultUrls, gateSourceUrls, gateEntity, gateClaim, gatePosition, clipExcerpt, reportedLabel, researchStatus, gateBrief,
+  resultUrls, gateSourceUrls, gateEntity, gateClaim, gatePosition, clipExcerpt, researchStatus, gateBrief,
 } from "../lib/research.js";
 
 const COMPANY = "株式会社サンプルテック（仮）";
@@ -13,6 +13,8 @@ const url = (p) => `https://example.com/${p}`;
 const searchBlock = (...paths) => ({ type: "web_search_tool_result", tool_use_id: "t1", content: paths.map((p) => ({ type: "web_search_result", title: p, url: url(p), encrypted_content: "x", page_age: null })) });
 const fetchBlock = (p) => ({ type: "web_fetch_tool_result", tool_use_id: "t2", content: { type: "web_fetch_result", url: url(p), content: { type: "document" } } });
 const searchError = { type: "web_search_tool_result", tool_use_id: "t3", content: { type: "web_search_tool_result_error", error_code: "invalid_tool_input" } };
+const maxUsesError = { type: "web_search_tool_result", tool_use_id: "t5", content: { type: "web_search_tool_result_error", error_code: "max_uses_exceeded" } };
+const rateLimited = { type: "web_search_tool_result", tool_use_id: "t6", content: { type: "web_search_tool_result_error", error_code: "too_many_requests" } };
 const fetchError = { type: "web_fetch_tool_result", tool_use_id: "t4", content: { type: "web_fetch_tool_error", error_code: "url_not_accessible" } };
 const ran = { server_tool_use: { web_search_requests: 2, web_fetch_requests: 1 } };
 const none = { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } };
@@ -108,7 +110,7 @@ test("gate 1: result URLs come only from real result blocks", () => {
     searchBlock("a", "b"), fetchBlock("c"), searchError, fetchError,
     { type: "text", text: url("said-only") },
   ]);
-  assert.deepEqual([...urls].sort(), [url("a"), url("b"), url("c")]);
+  assert.deepEqual([...urls.keys()].sort(), [url("a"), url("b"), url("c")]);
   assert.equal(resultUrls(undefined).size, 0);
 });
 
@@ -131,6 +133,40 @@ test("gate 1: unparsable or non-http URLs never survive, even if a result carrie
   const content = [{ type: "web_search_tool_result", content: [{ type: "web_search_result", url: "javascript:alert(1)" }, { type: "web_search_result", url: "not a url" }] }];
   assert.equal(resultUrls(content).size, 0);
   assert.deepEqual(gateSourceUrls([source("x", { url: "javascript:alert(1)" }), source("y", { url: "not a url" }), source("z", { url: undefined })], content), []);
+});
+
+test("gate 1 through gateBrief: an exact source with an invented URL is dropped and its claims are not_found", () => {
+  const b = gate(model([source("s1", { url: url("invented") })]));
+  assert.deepEqual(b.sources, []);
+  assert.equal(b.company_snapshot.business.value, NOT_FOUND);
+  assert.deepEqual(b.company_snapshot.recent_news, []);
+  assert.ok(!JSON.stringify(b).includes("invented"));
+});
+
+test("gate 1: the stored URL is the real result's string, never the model's", () => {
+  const stored = (modelUrl) => gate(model([source("s1", { url: modelUrl })])).sources[0].url;
+  assert.equal(stored(`${url("s1")}#${"本文".repeat(5000)}`), url("s1"), "a fragment cannot carry page text");
+  assert.equal(stored("https:\\\\example.com\\s1"), url("s1"));
+  assert.equal(stored(`https://example.com/\ns1`), url("s1"));
+  assert.equal(gate(model([source("s1", { url: url("page") })]), [searchBlock("page/")]).sources[0].url, url("page/"), "the slash the result really had");
+});
+
+test("gate 6: source ids are assigned by code, so the model's id cannot carry text", () => {
+  const long = "本文".repeat(5000);
+  const b = gate(model([source(long, { title: "t", url: url("s1") }), source("s9", { url: url("s2") })], [long, "s9"]));
+  assert.deepEqual(b.sources.map((s) => s.id), ["s1", "s2"]);
+  assert.deepEqual(b.company_snapshot.business.source_ids, ["s1", "s2"]);
+  assert.ok(!JSON.stringify(b).includes("本文"));
+});
+
+test("gate 6: reassigning ids keeps every citation on its own page", () => {
+  const swapped = model([source("s2", { url: url("s1") }), source("s1", { url: url("s2") })], ["s2"]);
+  const b = gate(swapped);
+  const page = (id) => b.sources.find((s) => s.id === id).url;
+  assert.deepEqual(b.company_snapshot.business.source_ids.map(page), [url("s1")]);
+  const dropped = gate(model([source("s1", { url: url("invented") }), source("x", { url: url("s1") })], ["s1"]));
+  assert.deepEqual(dropped.sources.map((s) => s.id), ["s1"]);
+  assert.equal(dropped.company_snapshot.business.value, NOT_FOUND, "a dropped source's id must not land on the renumbered survivor");
 });
 
 test("gate 2: a claim keeps only surviving sources; none left, or none given, is not_found", () => {
@@ -187,13 +223,25 @@ test("gate 4: a list claim backed only by a similar company disappears, the exac
 
 test("gate 5: a condition from a similar posting is labelled and never stated as this position's", () => {
   const sources = [source("x"), source("y", { position_match: "similar" }), source("z", { position_match: "unknown" })];
-  const exact = gatePosition(claim("年収800万", "x", "y"), sources);
+  const exact = gatePosition(claim("年収800万", "x"), sources);
   assert.equal(exact.position_match, "exact");
   assert.equal(exact.applies_to_position, true);
-  const similar = gatePosition(claim("年収800万", "y", "z"), sources);
+  // Intent changed: one exact source used to clear a claim that also cites a similar posting, whose figures may be the ones stated.
+  const mixed = gatePosition(claim("年収800万", "x", "y"), sources);
+  assert.equal(mixed.position_match, "similar");
+  assert.equal(mixed.applies_to_position, false);
+  assert.deepEqual(mixed.source_ids, ["x", "y"], "both stay citable");
+  assert.equal(mixed.source_count, 1, "a similar posting does not add support for this position");
+  assert.equal(mixed.single_source, true);
+  const similar = gatePosition(claim("年収800万", "y"), sources);
   assert.equal(similar.position_match, "similar");
   assert.equal(similar.applies_to_position, false);
   assert.equal(similar.value, "年収800万", "kept, but labelled");
+  assert.equal(similar.source_count, 1, "similar-only stays listed");
+  // Intent changed with the worst-value rule: citing a page of unknown relation can no longer read as similar.
+  const weakest = gatePosition(claim("年収800万", "y", "z"), sources);
+  assert.equal(weakest.position_match, "unknown");
+  assert.equal(weakest.applies_to_position, false);
   const unknown = gatePosition(claim("年収800万", "z"), sources);
   assert.equal(unknown.position_match, "unknown");
   assert.equal(unknown.applies_to_position, false);
@@ -211,6 +259,18 @@ test("gate 5: the section's position_match is computed from sources, not taken f
   assert.equal(gate(model([source("s1")])).position_analysis.position_match, "exact");
 });
 
+test("gate 5: a mixed salary stays listed through gateBrief but is not this position's", () => {
+  const m = model([source("s1"), source("s2", { position_match: "similar" })]);
+  m.position_analysis.salary = { ...claim("年収800万", "s1", "s2"), bonus_included: "yes", overtime_pay_included: "no" };
+  m.position_analysis.conditions = [claim("残業 月20時間", "s2")];
+  const pos = gate(m).position_analysis;
+  assert.equal(pos.salary.applies_to_position, false);
+  assert.equal(pos.salary.source_count, 1);
+  assert.equal(pos.salary.bonus_included, "yes");
+  assert.equal(pos.conditions[0].value, "残業 月20時間", "similar-only conditions are not dropped by the list filter");
+  assert.equal(pos.conditions[0].applies_to_position, false);
+});
+
 test("gate 6: reported question wording is cut to 80 characters, by code point", () => {
   assert.equal(EXCERPT_MAX, 80);
   assert.equal(clipExcerpt("短い質問"), "短い質問");
@@ -222,26 +282,77 @@ test("gate 6: reported question wording is cut to 80 characters, by code point",
 });
 
 test("gate 6: no page text is stored: long summaries are cut, tool results and unknown fields never enter the brief", () => {
-  const m = model([{ ...source("s1", { title: "題".repeat(1000) }), page_text: "ページ全文" }]);
+  const m = model([{ ...source("s1", { title: "題".repeat(1000), published_date: "日".repeat(1000) }), page_text: "ページ全文" }]);
+  m.reputation_themes = [{ ...claim("残業の話題", "s1"), polarity: "negative", sample_size: "件".repeat(1000), representativeness: "low" }];
   m.company_snapshot.business = { ...claim("文".repeat(5000), "s1"), page_text: "ページ全文" };
   m.page_text = "ページ全文";
   const content = [{ ...searchBlock("s1"), secret: "ページ全文" }, { type: "web_fetch_tool_result", content: { type: "web_fetch_result", url: url("s1"), content: { type: "document", source: { data: "ページ全文" } } } }];
   const b = gate(m, content);
   const text = JSON.stringify(b);
   assert.ok(!text.includes("ページ全文"));
+  assert.equal([...b.company_snapshot.business.value].length, 400);
+  assert.equal([...b.sources[0].title].length, 200);
+  assert.equal([...b.sources[0].published_date].length, 40);
+  assert.equal([...b.reputation_themes[0].sample_size].length, 40);
   assert.ok(text.length < 8000, `brief is ${text.length} chars`);
 });
 
-test("reported questions are unverified unless every source is an official careers page", () => {
-  const off = source("o", { source_type: "official_careers" });
-  const post = source("p", { source_type: "interview_post" });
-  assert.equal(reportedLabel(claim("Q", "o"), [off, post]), "official");
-  assert.equal(reportedLabel(claim("Q", "p"), [off, post]), "reported_unverified");
-  assert.equal(reportedLabel(claim("Q", "o", "p"), [off, post]), "reported_unverified");
-  assert.equal(reportedLabel(claim("Q", "dropped"), [off, post]), "reported_unverified");
-  assert.equal(reportedLabel(claim("Q"), [off]), "reported_unverified");
-  const b = gate(model([post, off], ["p"]), [searchBlock("p", "o")]);
-  assert.equal(b.interview_intelligence.reported_questions[0].label, "reported_unverified");
+// Intent changed: official_careers was trusted as the model's own reading, so a review page saying it is official could strip the label.
+test("interview reports stay unverified: the model's official_careers mark cannot remove the label", () => {
+  for (const source_type of ["interview_post", "review_site", "official_careers"]) {
+    const iv = gate(model([source("s1", { url: url("review-site/company/1"), source_type })]), [searchBlock("review-site/company/1")]).interview_intelligence;
+    assert.equal(iv.reported_questions[0].label, "reported_unverified", source_type);
+    assert.equal(iv.selection_stages[0].label, "reported_unverified", source_type);
+  }
+});
+
+test("every list is capped, so a page cannot be stored whole by splitting it into items", () => {
+  const many = Array.from({ length: 200 }, (_, i) => claim(`${"文".repeat(399)}${i}`, "s1"));
+  const m = model([source("s1")]);
+  m.company_snapshot.recent_news = many;
+  m.position_analysis.required_skills = many;
+  m.position_analysis.preferred_skills = many;
+  m.position_analysis.conditions = many;
+  m.reputation_themes = many.map((c) => ({ ...c, polarity: "negative", sample_size: "1件", representativeness: "low" }));
+  m.interview_intelligence.selection_stages = many;
+  m.interview_intelligence.reported_questions = many;
+  const b = gate(m);
+  for (const l of [b.company_snapshot.recent_news, b.position_analysis.required_skills, b.position_analysis.preferred_skills, b.position_analysis.conditions, b.reputation_themes, b.interview_intelligence.selection_stages, b.interview_intelligence.reported_questions]) assert.equal(l.length, 10);
+});
+
+test("the cap counts surviving claims: dropped items do not use it up", () => {
+  const m = model([source("s1")]);
+  m.company_snapshot.recent_news = [...Array.from({ length: 50 }, () => claim("出典なし", "dropped")), claim("本物のニュース", "s1")];
+  assert.deepEqual(gate(m).company_snapshot.recent_news.map((c) => c.value), ["本物のニュース"]);
+});
+
+test("the source list is capped: one URL under many ids cannot store a page through its titles", () => {
+  const b = gate(model(Array.from({ length: 200 }, (_, i) => source(`x${i}`, { title: "題".repeat(200), url: url("s1") })), ["x0", "x199"]));
+  assert.equal(b.sources.length, 30);
+  assert.deepEqual(b.company_snapshot.business.source_ids, ["s1"], "a citation of a capped-out source is gone");
+});
+
+test("contact details from the web are redacted before anything is stored", () => {
+  const contact = "hr-contact@example.com 03-1234-5678";
+  const m = model([source("s1", { title: `採用担当 ${contact}` })]);
+  m.company_snapshot.business = claim(`問い合わせ ${contact}`, "s1");
+  m.company_snapshot.recent_news = [claim(`広報 ${contact}`, "s1")];
+  m.position_analysis.salary = { ...claim(`担当 ${contact}`, "s1"), bonus_included: "yes", overtime_pay_included: "no" };
+  m.reputation_themes = [{ ...claim(`投稿者 ${contact}`, "s1"), polarity: "negative", sample_size: contact, representativeness: "low" }];
+  m.interview_intelligence.selection_stages = [claim(`連絡先 ${contact}`, "s1")];
+  m.interview_intelligence.reported_questions = [claim("面接官 03-1234-5678 が聞いた", "s1")];
+  const text = JSON.stringify(gate(m));
+  assert.ok(!text.includes("hr-contact@example.com"));
+  assert.ok(!text.includes("1234"));
+  assert.ok(text.includes("[email]") && text.includes("[phone]"));
+});
+
+test("a phone number at the length limit is redacted before the cut, so no part of it survives", () => {
+  const m = model([source("s1", { title: `${"題".repeat(192)}03-1234-5678` })]);
+  m.company_snapshot.business = claim(`${"文".repeat(392)}03-1234-5678`, "s1");
+  m.interview_intelligence.reported_questions = [claim(`${"問".repeat(72)}03-1234-5678`, "s1")];
+  assert.ok(!JSON.stringify(gate(m)).includes("03-1234"));
+  assert.ok(!clipExcerpt(`${"問".repeat(72)}03-1234-5678`).includes("03-1234"));
 });
 
 test("research_status: a tool failure is unavailable, never not_found", () => {
@@ -251,6 +362,11 @@ test("research_status: a tool failure is unavailable, never not_found", () => {
   assert.equal(researchStatus(undefined, undefined), "unavailable");
   assert.equal(researchStatus([searchError, searchBlock("a")], ran), "ok", "one failure among real results");
   assert.equal(researchStatus([searchBlock()], ran), "ok", "a real search with zero hits");
+  assert.equal(researchStatus([rateLimited, rateLimited, rateLimited, searchBlock()], ran), "unavailable", "zero hits with failures is not nothing found");
+  assert.equal(researchStatus([searchBlock(), fetchError, fetchError], ran), "unavailable", "the fetch failures could have been the answer");
+  assert.equal(researchStatus([maxUsesError, searchBlock()], ran), "ok", "the use cap is not a failure");
+  assert.equal(researchStatus([searchBlock(), { ...fetchError, content: { ...fetchError.content, error_code: "max_uses_exceeded" } }], ran), "ok", "nor on fetch");
+  assert.equal(researchStatus([searchBlock(), fetchBlock("c"), fetchError], ran), "ok", "a fetched page is a real result");
   assert.equal(researchStatus([searchBlock("a")], none), "unavailable", "the usage count is the proof of a real search");
 });
 
@@ -258,6 +374,11 @@ test("an unavailable brief carries no sections, so no not_found can be shown", (
   const b = gate(model([source("s1")]), [searchError], none);
   assert.deepEqual(b, { research_status: "unavailable", research_date: DATE });
   assert.ok(!JSON.stringify(b).includes(NOT_FOUND));
+});
+
+test("failed searches with zero hits give no sections, so no not_found can be shown", () => {
+  const b = gate(model([]), [rateLimited, rateLimited, rateLimited, searchBlock()], { server_tool_use: { web_search_requests: 4 } });
+  assert.deepEqual(b, { research_status: "unavailable", research_date: DATE });
 });
 
 test("a real search with no hits is an honest empty brief, not a failure", () => {
