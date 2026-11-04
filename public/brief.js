@@ -1,12 +1,13 @@
 // Stage R cards: the name confirmation and the brief. Everything from the model or the web goes through textContent.
 import { $, el, T, bubble, fold } from "./render.js";
-import { SNAPSHOT_FIELDS, claimFound, claimMeta, linkable } from "./export.js";
+import { SNAPSHOT_FIELDS, citedIds, claimFound, claimMeta, linkable } from "./export.js";
 
 const NAME_MAX = 100; // api/research.js refuses longer names
 const listOf = (v) => (Array.isArray(v) ? v : []);
 const objects = (v) => listOf(v).filter((x) => x && typeof x === "object");
 const heading = (b, text) => b.append(el("h3", "label", text));
 const bold = (b, text) => { const p = el("p", "claim"); p.append(el("b", null, text)); b.append(p); };
+const withIds = (text, x) => [text, ...citedIds(x)].join(" · ");
 
 export function renderConfirm(names, onStart) {
   const r = T().research, b = bubble("coach brief brief-confirm", null), form = el("form", "brief-form");
@@ -62,7 +63,7 @@ function mismatches(b, flags, r) {
   if (!flags.length) return;
   heading(b, r.mismatch);
   b.append(el("p", "legend", r.mismatchNote));
-  const side = (s) => el("p", "side", `${r.origin[s?.origin] ?? ""}: ${s?.quote ?? ""}`);
+  const side = (s) => el("p", "side", withIds(`${r.origin[s?.origin] ?? ""}: ${s?.quote ?? ""}`, s));
   for (const f of flags) {
     bold(b, f.topic ?? "");
     b.append(side(f.side_a), side(f.side_b), el("p", "caution", f.verify_prompt ?? ""));
@@ -94,7 +95,7 @@ function fit(b, f, r) {
   const items = (label, list) => {
     if (!list.length) return;
     bold(b, label);
-    for (const x of list) b.append(el("p", "side", x.point ?? ""), el("p", "legend", `${r.basis[x.basis] ?? ""}: ${x.quote ?? ""}`));
+    for (const x of list) b.append(el("p", "side", x.point ?? ""), el("p", "legend", withIds(`${r.basis[x.basis] ?? ""}: ${x.quote ?? ""}`, x)));
   };
   items(r.matches, matches);
   items(r.gaps, gaps);
@@ -106,7 +107,7 @@ function fit(b, f, r) {
 function checkpoints(b, list, r) {
   if (!list.length) return;
   heading(b, r.checkpoints);
-  for (const c of list) b.append(el("p", "side", `${r.ask[c.ask] ? `${r.ask[c.ask]}: ` : ""}${c.question ?? ""}`));
+  for (const c of list) b.append(el("p", "side", withIds(`${r.ask[c.ask] ? `${r.ask[c.ask]}: ` : ""}${c.question ?? ""}`, c)));
 }
 
 // Only http(s) becomes a link; the rest stays listed as text. The title is text in either case.

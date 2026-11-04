@@ -75,6 +75,8 @@ async function toQuestions(page, t = ko) {
   await bubbles(page, "coach").filter({ hasText: t.chat.askPick({ count: 10 }) }).waitFor();
 }
 const start = (page, t = ko) => confirmCard(page).last().getByRole("button", { name: t.research.start }).click();
+// Stages carry the same label and come before this heading, so only the question rows can satisfy a check on this slice.
+const questionRows = (text, r) => text.slice(text.indexOf(r.questions));
 
 for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
   test(`${name}px: nothing is searched until confirmed; the edited name goes through the real gates into the card`, async () => {
@@ -96,7 +98,8 @@ for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
     assert.ok(!text.includes("別企業の従業員数"), "a claim on a similarly named company does not");
     assert.ok(text.includes(ko.research.notFound));
     assert.ok(!text.includes("not_found"), "the raw marker never shows");
-    assert.ok(text.includes(ko.research.unverified), "reported question labelled");
+    assert.ok(questionRows(text, ko.research).includes("当社の製品のどこを改善しますか（架空）"));
+    assert.ok(questionRows(text, ko.research).includes(ko.research.unverified), "reported question labelled");
     assert.ok(text.includes(ko.research.singleSource));
     assert.ok(await card.getByRole("button", { name: ko.research.start }).isDisabled(), "the card cannot fire twice");
     const links = brief.locator("details a");
@@ -117,8 +120,11 @@ for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
     const brief = briefCard(page);
     await brief.getByRole("heading", { name: ko.research.mismatch }).waitFor();
     const r = ko.research, text = await brief.innerText();
-    for (const s of [r.snapshot, r.news, r.role, r.match.exact, r.claimMatch.similar, r.mismatchNote, r.origin.mail, r.origin.research, "プロダクトマネジメント（架空）", "デリバリー管理（架空）", "担当業務の割合を確認しましょう（架空）", r.reputation, "12件", r.rep.low, r.polarity.negative, r.questions, r.unverified, r.fit, r.matches, r.gaps, r.confirm, "夜間対応の有無を確認しますか（架空）", r.checkpoints, r.ask.agent, r.confidence.high, r.partial({ n: 1 }), r.salaryNote({ bonus: r.included.yes, overtime: r.included.unknown })]) assert.ok(text.includes(s), s);
+    for (const s of [r.snapshot, r.news, r.role, r.match.exact, r.claimMatch.similar, r.mismatchNote, r.origin.mail, r.origin.research, "プロダクトマネジメント（架空）", "デリバリー管理（架空）", "担当業務の割合を確認しましょう（架空）", r.reputation, "12件", r.rep.low, r.polarity.negative, r.questions, r.fit, r.matches, r.gaps, r.confirm, "夜間対応の有無を確認しますか（架空）", r.checkpoints, r.ask.agent, r.confidence.high, r.partial({ n: 1 }), r.salaryNote({ bonus: r.included.yes, overtime: r.included.unknown })]) assert.ok(text.includes(s), s);
     assert.ok(text.indexOf(r.snapshot) < text.indexOf(r.mismatch) && text.indexOf(r.mismatch) < text.indexOf(r.reputation) && text.indexOf(r.reputation) < text.indexOf(r.questions) && text.indexOf(r.questions) < text.indexOf(r.fit) && text.indexOf(r.fit) < text.indexOf(r.checkpoints), "spec order");
+    assert.ok(questionRows(text, r).includes("製品のどこを改善しますか（架空）") && questionRows(text, r).includes(r.unverified), "the reported question itself is labelled");
+    for (const s of [`${r.origin.research}: デリバリー管理（架空） · s1`, `${r.basis.company_info}: 物流の経験を歓迎（架空） · s1`, `${r.ask.agent}: 残業の実態を確認できますか（架空） · s1`]) assert.ok(text.includes(s), s);
+    assert.ok(!text.includes("プロダクトマネジメント（架空） ·") && !text.includes("要件定義を3年（架空） ·"), "no separator without an id");
     assert.ok(text.includes(HOSTILE), "model text is shown as text");
     assert.equal(await brief.locator("img").count(), 0, "and never parsed as HTML");
     assert.equal(await page.evaluate(() => window.__pwned), undefined);
@@ -140,6 +146,36 @@ for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
   });
 }
 
+for (const match of ["similar", "unknown"]) {
+  test(`position_match ${match}: the section opens with its own label`, async () => {
+    const { context, page, errors } = await openApp(browser, server.url, PHONE);
+    await answerWith(page, { ...FULL, position_analysis: { ...FULL.position_analysis, position_match: match } });
+    await toQuestions(page);
+    await start(page);
+    const r = ko.research, role = briefCard(page).getByRole("heading", { name: r.role, exact: true });
+    await role.waitFor();
+    assert.equal(await role.locator("xpath=following-sibling::p[1]").innerText(), r.match[match]);
+    assert.deepEqual(errors, []);
+    await context.close();
+  });
+}
+
+test("reverse questions: the brief stays in the browser", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  let body;
+  await page.route("**/api/reverse", (r) => { body = r.request().postDataJSON(); return r.fulfill({ json: { questions: [] } }); });
+  await toQuestions(page);
+  await start(page);
+  await briefCard(page).getByRole("heading", { name: ko.research.snapshot }).waitFor();
+  await page.getByRole("button", { name: ko.reverse.button }).click();
+  await page.locator("#log > .msg.reverse").waitFor();
+  assert.deepEqual(body.context, questions.company_context, "the summary only, as before research existed");
+  assert.equal((await storedBrief(page)).research_status, "ok", "the session keeps it");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
 for (const lang of ["en", "ja"]) {
   test(`${lang} 390px: the cards read in the screen language`, async () => {
     const t = LANGS[lang];
@@ -151,7 +187,8 @@ for (const lang of ["en", "ja"]) {
     const brief = briefCard(page);
     await brief.getByRole("heading", { name: t.research.snapshot }).waitFor();
     const text = await brief.innerText();
-    for (const s of [t.research.mismatch, t.research.reputation, t.research.unverified, t.research.checkpoints]) assert.ok(text.includes(s), s);
+    for (const s of [t.research.mismatch, t.research.reputation, t.research.checkpoints]) assert.ok(text.includes(s), s);
+    assert.ok(questionRows(text, t.research).includes(t.research.unverified));
     assert.ok(await noHorizontalOverflow(page));
     assert.deepEqual(errors, []);
     await context.close();

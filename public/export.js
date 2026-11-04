@@ -74,11 +74,15 @@ export function linkable(url) {
 export const SNAPSHOT_FIELDS = ["business", "business_model", "size", "founded", "locations"];
 // A claim counts only with a surviving source (gate 2), so a brief written by hand or edited in storage cannot show one without.
 export const claimFound = (c) => typeof c?.value === "string" && c.value !== "not_found" && c.source_count > 0;
-export const claimMeta = (c, r) => [r.confidence[c.confidence] ?? r.confidence.unknown, c.single_source ? r.singleSource : r.sources({ n: c.source_count }), ...(Array.isArray(c.source_ids) ? c.source_ids : [])];
+export const citedIds = (c) => (Array.isArray(c?.source_ids) ? c.source_ids : []);
+export const claimMeta = (c, r) => [r.confidence[c.confidence] ?? r.confidence.unknown, c.single_source ? r.singleSource : r.sources({ n: c.source_count }), ...citedIds(c)];
 const listOf = (v) => (Array.isArray(v) ? v : []);
 
+// Real links come only from a source that passed gate 1. Prefix only: Japanese has no spaces, so taking the rest of the token would eat the sentence.
+export const noBareLinks = (s) => s.replace(/(?:https?|ftp):\/\/(?:www\.)?|www\./gi, "[url]");
+
 // Web text must not become a link, image or HTML in a Markdown viewer, and a line break in it must not start a new block.
-const inert = (s) => String(s ?? "").replace(/\s+/g, " ").replace(/[\\[\]<>`]/g, "\\$&");
+const inert = (s) => noBareLinks(String(s ?? "").replace(/\s+/g, " ")).replace(/[\\[\]<>`]/g, "\\$&");
 
 // Stage R summary, checkpoints and sources. The URLs stay out of mask(): a long numeric page id would read as a phone number.
 function researchSection(session, t) {
@@ -95,7 +99,7 @@ function researchSection(session, t) {
   }
   out.push("", `### ${r.role}`, "", r.match[b.position_analysis?.position_match] ?? r.match.unknown);
   const checks = listOf(b.company_checkpoints).filter((c) => c?.question);
-  if (checks.length) out.push("", `### ${r.checkpoints}`, "", ...checks.map((c) => `- ${r.ask[c.ask] ? `${r.ask[c.ask]}: ` : ""}${inert(c.question)}`));
+  if (checks.length) out.push("", `### ${r.checkpoints}`, "", ...checks.map((c) => { const ids = citedIds(c).map(inert).join(", "); return `- ${r.ask[c.ask] ? `${r.ask[c.ask]}: ` : ""}${inert(c.question)}${ids ? ` (${ids})` : ""}`; }));
   const lines = sources.map((s) => { const url = linkable(s.url); return `- ${mask(`${s.id}: ${inert(s.title)}`)}${url ? ` — ${url}` : ""}`; });
   return mask(out.join("\n")) + (lines.length ? `\n\n### ${r.sourceList}\n\n${lines.join("\n")}` : "");
 }

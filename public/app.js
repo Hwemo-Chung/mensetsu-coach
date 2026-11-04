@@ -192,7 +192,9 @@ async function makeReverse() {
   const wait = waiting(T().reverse.wait);
   const my = state.epoch;
   try {
-    const { res, data } = await post("/api/reverse", { context: state.session.company_context, lang: state.lang, pack: packOf() });
+    // The brief can quote the desired profile, which only the fit call may receive; this endpoint uses none of it.
+    const { research_brief, ...context } = state.session.company_context;
+    const { res, data } = await post("/api/reverse", { context, lang: state.lang, pack: packOf() });
     if (my !== state.epoch) return;
     if (!res.ok) return failed(res, data);
     const t = T().reverse;

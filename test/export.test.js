@@ -135,7 +135,8 @@ test("research export: summary with confidence, position label, checkpoints and 
   assert.ok(md.includes(`- ${r.fields.business_model}: ${r.notFound}`), "not_found is said in words");
   assert.ok(!md.includes("not_found"));
   assert.ok(md.includes(r.match.similar));
-  assert.ok(md.includes(`- ${r.ask.agent}: 残業の実態はどの程度ですか（架空）`));
+  assert.ok(md.split("\n").includes(`- ${r.ask.agent}: 残業の実態はどの程度ですか（架空） (s1)`), "a checkpoint names its source");
+  assert.ok(md.split("\n").some((l) => l.startsWith(`- ${r.ask.interview}: `) && l.endsWith("進め方は？")), "and adds nothing without one");
 });
 
 test("research export: a source URL survives the mask; contact data in a claim does not", () => {
@@ -153,6 +154,19 @@ test("research export: web text cannot become a link, image or HTML; only http(s
   assert.ok(md.includes("危険なリンク"), "the source stays listed, without its link");
   const edited = sessionToMarkdown(withBrief({ ...brief, company_snapshot: { business: claim("架空", { source_ids: ["[x](https://example.com/y)"] }) } }), LANGS.ko);
   assert.ok(!edited.includes("[x]("), "a source id edited in storage is inert too");
+});
+
+test("research export: a bare URL in web text stays plain text, whatever stored it; the checked source URL stays", () => {
+  const bare = "詳細は https://evil.example/a または HTTP://evil.example/b、ftp://evil.example/c、www.evil.example を参照";
+  const md = sessionToMarkdown(withBrief({
+    ...brief,
+    company_snapshot: { business: claim(bare) },
+    company_checkpoints: [{ question: bare, ask: "agent", source_ids: ["s1"] }],
+    sources: [{ id: "s1", title: bare, url: LONG_ID_URL, accessed_date: "2026-11-04", published_date: "" }],
+  }), LANGS.ko);
+  assert.ok(!/https?:\/\/evil|ftp:\/\/evil|www\.evil/i.test(md), md);
+  assert.ok(md.includes("を参照"), "the sentence around it stays");
+  assert.ok(md.includes(LONG_ID_URL));
 });
 
 test("research export: an honest empty brief says so; unavailable or absent adds no section", () => {

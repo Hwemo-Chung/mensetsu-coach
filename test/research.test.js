@@ -397,6 +397,21 @@ test("a phone number at the length limit is redacted before the cut, so no part 
   assert.ok(!clipExcerpt(`${"問".repeat(72)}03-1234-5678`).includes("03-1234"));
 });
 
+test("a URL in model text never becomes a link: real links come only from a source that passed gate 1", () => {
+  const bare = "詳細は https://evil.example/a または HTTP://evil.example/b、ftp://evil.example/c、https://www.evil.example、www.evil.example を参照";
+  const m = model([source("s1", { title: bare })]);
+  m.company_snapshot.business = claim(bare, "s1");
+  m.reputation_themes = [{ ...claim(bare, "s1"), polarity: "negative", sample_size: bare, representativeness: "low" }];
+  m.interview_intelligence.reported_questions = [claim(`https://evil.example/q を参照`, "s1")];
+  const b = gate(m);
+  const { sources: [kept], ...rest } = b;
+  const { url: checked, ...keptText } = kept;
+  assert.equal(checked, url("s1"), "the checked URL is untouched");
+  const text = JSON.stringify([rest, keptText]);
+  assert.ok(!/https?:\/\/|ftp:\/\/|www\./i.test(text), text);
+  assert.ok(b.company_snapshot.business.value.endsWith("[url]evil.example を参照"), "the sentence around it stays");
+});
+
 test("research_status: a tool failure is unavailable, never not_found", () => {
   assert.equal(researchStatus([searchError], none), "unavailable");
   assert.equal(researchStatus([], none), "unavailable", "nothing searched cannot mean nothing exists");
