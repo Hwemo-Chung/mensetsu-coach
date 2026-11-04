@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
 import { LANGS } from "../public/i18n/index.js";
 import { EXPLAIN_LANGS, loadPack, PACKS } from "../lib/coach.js";
 
@@ -26,6 +27,23 @@ test("every pack stage, category and every API error code has a label in every l
     for (const st of pack.answer_structure.steps) assert.ok(L.steps[st.key], `${code} step ${st.key}`);
     for (const e of codes) assert.equal(typeof L.errors[e], "function", `${code} error ${e}`);
     assert.match(L.errors.mail_too_long({ max: 8000 }), /8000|8,000/, `${code} interpolates max`);
+  }
+});
+
+// The hand-written list above missed research_unsupported, so the codes come from the source as well.
+test("every error code the server returns has a label in every language", () => {
+  const dirs = ["api", "lib"].map((d) => new URL(`../${d}/`, import.meta.url));
+  const source = dirs.flatMap((d) => readdirSync(d).filter((f) => f.endsWith(".js")).map((f) => readFileSync(new URL(f, d), "utf8"))).join("\n");
+  const codes = new Set([...source.matchAll(/\bcode: "([a-z_]+)"/g)].map((m) => m[1]));
+  assert.ok(codes.size > 20, "the pattern still finds the codes");
+  for (const [lang, L] of Object.entries(LANGS)) for (const c of codes) assert.equal(typeof L.errors[c], "function", `${lang} ${c}`);
+});
+
+test("labels in the screen language: a Japanese term is not left in the Korean or English strings", () => {
+  for (const lang of ["ko", "en"]) {
+    assert.doesNotMatch(LANGS[lang].chat.specificity({ n: 1, total: 2 }), /[\u4e00-\u9fff]/, lang);
+    assert.doesNotMatch(LANGS[lang].script.text.ja, /[\u4e00-\u9fff]/, lang);
+    assert.doesNotMatch(LANGS[lang].mail.body, /日本語/, lang);
   }
 });
 

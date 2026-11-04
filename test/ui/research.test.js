@@ -243,6 +243,25 @@ test("unavailable: the questions stay, the wording is not 'nothing found', and o
   await context.close();
 });
 
+test("thin results say so: the card counts the basic facts, and empty rows and sections say the result is short", async () => {
+  const r = ko.research, fact = { value: "架空の値", source_ids: ["s1"], confidence: "medium", source_count: 1, single_source: true };
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  const snapshot = { legal_name: fact, business: fact, business_model: fact, size: fact };
+  await answerWith(page, EMPTY, { ...FULL, company_snapshot: { ...FULL.company_snapshot, ...snapshot } });
+  await toQuestions(page);
+  await start(page);
+  await briefCard(page).getByRole("heading", { name: r.snapshot }).waitFor();
+  const thin = await briefCard(page).innerText();
+  assert.ok(thin.includes(r.insufficient({ found: 0, total: 7 })));
+  assert.ok(thin.includes(r.lacking), "an empty position section says so instead of showing nothing");
+  await briefCard(page).getByRole("button", { name: r.rerun }).click();
+  await start(page);
+  await briefCard(page).getByText(snapshot.size.value).first().waitFor();
+  assert.ok(!(await briefCard(page).innerText()).includes(r.insufficient({ found: 4, total: 7 })), "four of seven is not short");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
 test("a failed re-run keeps the earlier brief; an honest empty brief replaces it and says so", async () => {
   const { context, page, errors } = await openApp(browser, server.url, PHONE);
   await answerWith(page, FULL, UNAVAILABLE, EMPTY);

@@ -94,7 +94,7 @@ test("REL-4: reload → code → session restored with notice; answers continue;
   const notice = bubbles(page, "coach").filter({ hasText: ko.chat.restored({ q: 10, a: 1 }) });
   await notice.waitFor();
   assert.equal(await page.locator("#log .q").count(), 10);
-  await page.locator("#log .legend", { hasText: "資料参照" }).waitFor();
+  await page.locator("#log .legend", { hasText: "자료 참조" }).waitFor();
   await bubbles(page, "coach").filter({ hasText: ko.chat.askPickAgain }).waitFor();
   assert.equal(await page.getByRole("button", { name: ko.chat.profileButton }).count(), 0, "no mail kept: no career-line offer");
   assert.equal(await notice.getByRole("button", { name: ko.reverse.button }).count(), 1);

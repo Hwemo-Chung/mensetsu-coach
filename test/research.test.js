@@ -390,6 +390,16 @@ test("the prompt asks for trusted sources and the newest figure, not interview p
   assert.match(text, /平均年間給与/);
 });
 
+// A real ko call returned 18 of 20 values in Japanese (11/05): the line sat mid-prompt and Haiku followed the pages' language.
+test("the screen language is repeated next to the task, and the schema's wording stays out of the values", () => {
+  for (const [lang, name] of [["ko", "韓国語"], ["en", "英語"]]) {
+    const r = buildResearchRequest(COMPANY, "職種", lang, DATE);
+    assert.match(r.messages[0].content, new RegExp(`value はすべて${name}で書く`), lang);
+    assert.match(r.system, /スキーマの説明文を value に書き写さない/);
+    assert.match(r.system, /日本語のページも訳す/);
+  }
+});
+
 test("every list is capped, so a page cannot be stored whole by splitting it into items", () => {
   const many = Array.from({ length: 200 }, (_, i) => claim(`${"文".repeat(399)}${i}`, "s1"));
   const m = model([source("s1")]);

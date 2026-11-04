@@ -71,7 +71,8 @@ const notThisPosition = (c, r) => (c?.applies_to_position === true ? [] : [c?.po
 function position(b, p, r) {
   heading(b, r.role);
   b.append(el("p", "legend", r.match[p?.position_match] ?? r.match.unknown));
-  const row = (label, c, extra = []) => claimFound(c) && claim(b, label, c, [...notThisPosition(c, r), ...extra]);
+  let found = false;
+  const row = (label, c, extra = []) => { if (claimFound(c)) { found = true; claim(b, label, c, [...notThisPosition(c, r), ...extra]); } };
   row(r.work, p?.actual_work);
   row(r.team, p?.team_context);
   for (const c of objects(p?.required_skills)) row(r.required, c);
@@ -80,6 +81,7 @@ function position(b, p, r) {
   row(r.salary, p?.salary, [r.salaryNote({ bonus: pay(p?.salary?.bonus_included), overtime: pay(p?.salary?.overtime_pay_included) })]);
   for (const k of ["employment", "overtime", "work_location", "work_style", "client_site_work", "change_scope"]) row(r.positionFields[k], p?.[k]);
   for (const c of objects(p?.conditions)) row(r.conditions, c);
+  if (!found) b.append(el("p", "claim", r.lacking));
 }
 
 function mismatches(b, flags, r) {
@@ -272,6 +274,8 @@ export function renderBrief(brief, names, onRerun, kept = false, onFit = null, s
     const found = objects(brief.sources);
     const days = elapsedDays(brief.research_date);
     b.append(el("p", "legend", [r.date({ date: brief.research_date }), ...(days ? [r.elapsed({ n: days })] : [])].join(" · ")));
+    const known = SNAPSHOT_FIELDS.filter((k) => claimFound(brief.company_snapshot?.[k])).length;
+    if (known * 2 < SNAPSHOT_FIELDS.length) b.append(el("p", "caution", r.insufficient({ found: known, total: SNAPSHOT_FIELDS.length })));
     if (!found.length) b.append(el("p", "caution", r.empty));
     if (brief.tool_errors > 0) b.append(el("p", "caution", r.partial({ n: brief.tool_errors })));
     if (brief.coverage) b.append(el("p", "legend", [r.coverage({ searches: brief.coverage.searches, fetches: brief.coverage.fetches, ok: brief.coverage.fetch_ok }), ...(brief.coverage.budget_exhausted ? [r.budget] : [])].join(" · ")));
