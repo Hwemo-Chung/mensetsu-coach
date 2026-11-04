@@ -4,6 +4,7 @@ import { loadSession, clearSession, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
+import { renderConfirm, renderBrief } from "./brief.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
 
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
@@ -18,6 +19,8 @@ let stage = "code"; // code → mail → pick ⇄ answer
 let lastMail = null, lastAttachment = null; // memory only, for the optional career-line regeneration
 let destPack = "jp"; // destination pack for the next question set (jp, or kr beta)
 const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
+let researchOn = false; // from /api/access; off = no card and no call
+let researchRun = 0; // finish() does not bump state.epoch, so this drops a response meant for an earlier question set
 
 const LANG_KEY = "mensetsu-lang";
 const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
@@ -81,6 +84,7 @@ async function onCode(text) {
   if (res.ok) {
     keepCode(text);
     allowRecording(data.stt);
+    researchOn = data.research === true;
     $("start").hidden = true; // the tour's next-step card has done its job
     // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
     if (state.demoActive) {
@@ -139,7 +143,48 @@ function restore(saved) {
   const last = state.session.attempts.findLast((a) => a.review);
   if (last) showReview(last.review, compareAttempts(state.session, last.question_id), last.script);
   renderNotes();
+  if (researchOn) {
+    const brief = state.session.company_context.research_brief;
+    if (brief) renderBrief(brief, researchNames(), () => offerResearch());
+    else offerResearch();
+  }
   askForPick(true);
+}
+
+// Stage R. The names sent are only what the user confirmed on this card; a reload or a new question set never searches by itself.
+const researchNames = () => state.session.research_names ?? state.session.company_context;
+const offerResearch = (names = researchNames()) => renderConfirm(names, startResearch);
+function endResearch() {
+  researchRun++;
+  for (const e of log.querySelectorAll(".research-ctl")) e.disabled = true;
+}
+async function startResearch(names, unlock) {
+  const wait = waiting(T().research.wait);
+  const my = state.epoch, run = researchRun;
+  const current = () => my === state.epoch && run === researchRun;
+  try {
+    const { res, data } = await post("/api/research", { ...names, lang: state.lang });
+    if (!current()) return;
+    if (!res.ok) {
+      unlock();
+      return failed(res, data);
+    }
+    // A failed re-run must not cost the user the paid brief they already have.
+    const c = state.session.company_context;
+    const kept = data.research_status !== "ok" && c.research_brief?.research_status === "ok";
+    if (!kept) {
+      c.research_brief = data;
+      state.session.research_names = names;
+      persist();
+    }
+    renderBrief(data, names, () => offerResearch(names), kept);
+  } catch {
+    if (!current()) return;
+    unlock();
+    bubble("err", message({ code: "network" }));
+  } finally {
+    wait.remove();
+  }
 }
 
 // F10: reverse questions from the company summary already in the session (no mail re-sent).
@@ -190,8 +235,10 @@ async function requestQuestions(mail, file, profile, waitText) {
     if (my !== state.epoch) return;
     if (!res.ok) return failed(res, data);
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
-    // A regenerated set (career line) starts fresh, notes included.
-    state.session = { pack: data.pack, company_context: data.company_context, questions: data.questions, attempts: [], specificity: data.specificity, notes: {} };
+    // A regenerated set (career line) starts fresh, notes included; it is the same company, so a paid brief stays.
+    const prev = profile ? state.session : null, research_brief = prev?.company_context.research_brief;
+    if (!profile) endResearch();
+    state.session = { pack: data.pack, company_context: research_brief ? { ...data.company_context, research_brief } : data.company_context, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(prev?.research_names && { research_names: prev.research_names }) };
     state.current = null;
     persist();
     renderNotes();
@@ -200,6 +247,7 @@ async function requestQuestions(mail, file, profile, waitText) {
     renderQuestions(data);
     openByDefault();
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
+    if (!profile && researchOn) offerResearch();
     if (!profile) offerProfile();
     askForPick(false);
   } finally {
@@ -372,6 +420,7 @@ function finish() {
   } catch {
     return bubble("err", message({ code: "unknown" }));
   }
+  endResearch();
   state.session = null;
   lastMail = null;
   lastAttachment = null;

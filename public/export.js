@@ -57,7 +57,47 @@ export function sessionToMarkdown(session, t) {
     out.push("", `## ${t.habits.summary}`, "", `| ${t.habits.rule} | ${t.habits.count} |`, "|---|---|");
     for (const h of habits) out.push(`| ${h.label}${h.habit ? " ⚠" : ""} | ${h.count} |`);
   }
-  return mask(out.join("\n")) + "\n";
+  return mask(out.join("\n")) + researchSection(session, t) + "\n";
+}
+
+// http(s) only, for the card's links and this file: a stored or model-written URL can carry any scheme.
+export function linkable(url) {
+  if (typeof url !== "string") return null;
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.href : null;
+  } catch {
+    return null;
+  }
+}
+
+export const SNAPSHOT_FIELDS = ["business", "business_model", "size", "founded", "locations"];
+// A claim counts only with a surviving source (gate 2), so a brief written by hand or edited in storage cannot show one without.
+export const claimFound = (c) => typeof c?.value === "string" && c.value !== "not_found" && c.source_count > 0;
+export const claimMeta = (c, r) => [r.confidence[c.confidence] ?? r.confidence.unknown, c.single_source ? r.singleSource : r.sources({ n: c.source_count }), ...(Array.isArray(c.source_ids) ? c.source_ids : [])];
+const listOf = (v) => (Array.isArray(v) ? v : []);
+
+// Web text must not become a link, image or HTML in a Markdown viewer, and a line break in it must not start a new block.
+const inert = (s) => String(s ?? "").replace(/\s+/g, " ").replace(/[\\[\]<>`]/g, "\\$&");
+
+// Stage R summary, checkpoints and sources. The URLs stay out of mask(): a long numeric page id would read as a phone number.
+function researchSection(session, t) {
+  const b = session.company_context.research_brief;
+  if (b?.research_status !== "ok") return "";
+  const r = t.research, sources = listOf(b.sources).filter((s) => s?.id);
+  const out = ["", "", `## ${r.title(session.research_names ?? session.company_context)}`, "", r.date({ date: b.research_date }), ""];
+  if (!sources.length) out.push(r.empty, "");
+  if (b.tool_errors > 0) out.push(r.partial({ n: b.tool_errors }), "");
+  out.push(`### ${r.snapshot}`, "");
+  for (const k of SNAPSHOT_FIELDS) {
+    const c = b.company_snapshot?.[k];
+    out.push(`- ${r.fields[k]}: ${claimFound(c) ? `${inert(c.value)} (${claimMeta(c, r).join(", ")})` : r.notFound}`);
+  }
+  out.push("", `### ${r.role}`, "", r.match[b.position_analysis?.position_match] ?? r.match.unknown);
+  const checks = listOf(b.company_checkpoints).filter((c) => c?.question);
+  if (checks.length) out.push("", `### ${r.checkpoints}`, "", ...checks.map((c) => `- ${r.ask[c.ask] ? `${r.ask[c.ask]}: ` : ""}${inert(c.question)}`));
+  const lines = sources.map((s) => { const url = linkable(s.url); return `- ${mask(`${s.id}: ${inert(s.title)}`)}${url ? ` — ${url}` : ""}`; });
+  return mask(out.join("\n")) + (lines.length ? `\n\n### ${r.sourceList}\n\n${lines.join("\n")}` : "");
 }
 
 // F9: corrections per rule across the session. A rule seen twice or more is a habit.

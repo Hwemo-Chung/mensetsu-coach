@@ -140,7 +140,7 @@ export function renderRail(src = state.session) {
 }
 
 // <details> fold appended to a card; returns its body (class cls) for the folded content.
-function fold(card, label, cls) {
+export function fold(card, label, cls) {
   const d = el("details", "fold"), body = el("div", cls);
   d.append(el("summary", null, label), body);
   card.append(d);

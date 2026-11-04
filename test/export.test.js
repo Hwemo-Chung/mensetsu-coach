@@ -106,3 +106,66 @@ test("statusOf (rail ○/✗/✓): latest reviewed attempt decides; an optional 
   assert.equal(statusOf(s, "q2"), "todo", "per question");
   assert.equal(statusOf({ ...s, pack: { steps: [{ key: "ketsuron", label: "결론" }] }, attempts: [{ question_id: "q1", answer: "e", review: { ...offTopic, answers_question: "yes" } }] }, "q1"), "ok", "pack steps win");
 });
+
+// Stage R brief in the export: same document, one more section. Synthetic data only.
+const claim = (value, extra = {}) => ({ value, source_ids: ["s1"], confidence: "medium", source_count: 1, single_source: true, ...extra });
+const missing = { value: "not_found", source_ids: [], confidence: "unknown", source_count: 0, single_source: false };
+const LONG_ID_URL = "https://example.com/jobs/12345678901234";
+const brief = {
+  research_status: "ok",
+  research_date: "2026-11-04",
+  company_snapshot: { business: claim("業務システムの提供（架空）"), business_model: missing, size: claim("連絡先 090-1234-5678"), founded: missing, locations: claim("本社は東京（架空）", { single_source: false, source_count: 2, source_ids: ["s1", "s2"], confidence: "high" }) },
+  position_analysis: { position_match: "similar" },
+  company_checkpoints: [{ question: "残業の実態はどの程度ですか（架空）", ask: "agent", source_ids: ["s1"] }, { question: "[click](https://example.com/x) の進め方は？", ask: "interview", source_ids: [] }],
+  sources: [
+    { id: "s1", title: "採用情報（架空）", url: LONG_ID_URL, accessed_date: "2026-11-04", published_date: "" },
+    { id: "s2", title: "![pixel](https://example.com/p.png) <img src=x>", url: "https://example.com/b", accessed_date: "2026-11-04", published_date: "" },
+    { id: "s3", title: "危険なリンク", url: "javascript:alert(1)", accessed_date: "2026-11-04", published_date: "" },
+  ],
+};
+const withBrief = (b, extra = {}) => ({ ...session, ...extra, company_context: { ...session.company_context, research_brief: b } });
+
+test("research export: summary with confidence, position label, checkpoints and sources", () => {
+  const r = LANGS.ja.research;
+  const md = sessionToMarkdown(withBrief(brief, { research_names: { company: "株式会社サンプルテック（仮）", position: "PM（仮）" } }), LANGS.ja);
+  assert.ok(md.includes(`## ${r.title({ company: "株式会社サンプルテック（仮）", position: "PM（仮）" })}`), "headed with the confirmed names");
+  assert.ok(md.includes(r.date({ date: "2026-11-04" })));
+  assert.ok(md.includes(`- ${r.fields.business}: 業務システムの提供（架空） (${r.confidence.medium}, ${r.singleSource}, s1)`));
+  assert.ok(md.includes(`- ${r.fields.locations}: 本社は東京（架空） (${r.confidence.high}, ${r.sources({ n: 2 })}, s1, s2)`));
+  assert.ok(md.includes(`- ${r.fields.business_model}: ${r.notFound}`), "not_found is said in words");
+  assert.ok(!md.includes("not_found"));
+  assert.ok(md.includes(r.match.similar));
+  assert.ok(md.includes(`- ${r.ask.agent}: 残業の実態はどの程度ですか（架空）`));
+});
+
+test("research export: a source URL survives the mask; contact data in a claim does not", () => {
+  const md = sessionToMarkdown(withBrief(brief), LANGS.ko);
+  assert.ok(md.includes(LONG_ID_URL), "a long numeric page id is not a phone number");
+  assert.ok(!md.includes("090-1234-5678"));
+});
+
+test("research export: web text cannot become a link, image or HTML; only http(s) URLs are written", () => {
+  const md = sessionToMarkdown(withBrief(brief), LANGS.ko);
+  assert.ok(!md.includes("![pixel]("), "image syntax is escaped");
+  assert.ok(!/(^|[^\\])<img/m.test(md), "HTML is escaped");
+  assert.ok(!md.includes("[click]("), "link syntax is escaped");
+  assert.ok(!md.includes("javascript:"));
+  assert.ok(md.includes("危険なリンク"), "the source stays listed, without its link");
+});
+
+test("research export: an honest empty brief says so; unavailable or absent adds no section", () => {
+  const r = LANGS.ko.research;
+  const empty = sessionToMarkdown(withBrief({ research_status: "ok", research_date: "2026-11-04", company_snapshot: {}, sources: [] }), LANGS.ko);
+  assert.ok(empty.includes(r.empty));
+  assert.ok(empty.includes(`- ${r.fields.business}: ${r.notFound}`));
+  const plain = sessionToMarkdown(session, LANGS.ko);
+  assert.equal(sessionToMarkdown(withBrief({ research_status: "unavailable", research_date: "2026-11-04" }), LANGS.ko), plain);
+  assert.ok(!plain.includes(r.snapshot));
+});
+
+test("linkable: only http and https become links", async () => {
+  const { linkable } = await import("../public/export.js");
+  assert.equal(linkable("https://example.com/a"), "https://example.com/a");
+  assert.equal(linkable("http://example.com/"), "http://example.com/");
+  for (const bad of ["javascript:alert(1)", "data:text/html,x", "vbscript:x", "file:///etc/passwd", "/relative", "", null, undefined, 1, {}]) assert.equal(linkable(bad), null, String(bad));
+});

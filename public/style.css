@@ -45,13 +45,13 @@ button, select, textarea, input { font: inherit; color: inherit; }
 /* Coach mark (avatar) on the first row of a coach run, LINE-style; role names stay for screen readers (::before, hidden). */
 .msg.coach { margin-top: 12px; }
 .msg.coach::after { content: "面" / ""; position: absolute; left: -40px; top: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--green-ink); color: #fff; font-size: 16px; font-weight: 700; line-height: 32px; text-align: center; white-space: normal; }
-.msg.coach:not(.qs, .script, .compare) + .msg.coach:not(.qs, .script, .compare) { margin-top: 2px; }
-.msg.coach:not(.qs, .script, .compare) + .msg.coach::after, .msg.qs::after, .msg.script::after, .msg.compare::after { content: none; }
+.msg.coach:not(.qs, .script, .compare, .brief) + .msg.coach:not(.qs, .script, .compare, .brief) { margin-top: 2px; }
+.msg.coach:not(.qs, .script, .compare, .brief) + .msg.coach::after, .msg.qs::after, .msg.script::after, .msg.compare::after, .msg.brief::after { content: none; }
 .msg.me { align-self: flex-end; max-width: 80%; margin: 12px 0 2px; background: var(--me); border-radius: 16px 4px 16px 16px; }
 .msg.err { color: var(--red); border: 1px solid #f0c7cd; margin-top: 8px; }
 .msg.note { color: var(--warn); }
 /* Long content = full-width white card (1px border, 12px radius). */
-.msg.script, .msg.compare { width: 100%; max-width: var(--col); margin: 10px 0 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
+.msg.script, .msg.compare, .msg.brief { width: 100%; max-width: var(--col); margin: 10px 0 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
 .log > .quick, .log > .next-btn { margin-left: 40px; }
 /* Each text block keeps its own 40em cap. */
 .log p, .log li, .pane p, .pane li { max-width: 40em; }
@@ -150,6 +150,19 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .cmp-answer { border-left: 2px solid var(--line); padding: 0 0 0 12px; min-width: 0; }
 .compare .label { margin-top: 0; }
 .compare .ja { margin: 0; font-weight: 400; white-space: pre-wrap; }
+
+/* Stage R: the confirm card and the brief card share the long-card look; every line of web text is one <p>, wrapping anywhere. */
+.brief { white-space: normal; overflow-wrap: anywhere; }
+.brief .title { font-weight: 700; font-size: 17px; margin: 0 0 4px; }
+.brief .label { font-size: 14px; color: var(--green-ink); font-weight: 700; margin: 16px 0 2px; }
+.brief .claim, .brief .side { margin: 6px 0 0; }
+.brief .caution { margin: 2px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
+.brief-form label { display: block; margin-top: 10px; font-size: 14px; font-weight: 700; }
+.brief-form input { display: block; width: 100%; min-height: 44px; margin-top: 2px; padding: 8px 12px; border: 1px solid var(--field); border-radius: 8px; font-size: 16px; font-weight: 400; }
+.brief-form input:disabled { background: var(--page); color: var(--muted); }
+.brief .sources { margin: 0; padding: 0; list-style: none; }
+.brief .sources li { margin: 6px 0 0; }
+.brief a { color: var(--green-ink); }
 
 /* Tutorial coach mark (UIUX-SPEC (k)): fixed above the input, never positioned next to its target. */
 .tour { position: relative; z-index: 6; background: #fff; border: 2px solid var(--green-ink); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
