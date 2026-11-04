@@ -46,15 +46,22 @@ test("generic PII patterns (phone / email) absent from packs and research", () =
   assert.deepEqual(bad, [], bad.join("\n"));
 });
 
-test("the development query log passes the PII pattern check (spec §7 privacy test)", () => {
+// Intent changed: this scanned the log after redaction, so it could not fail. The redacted flag is what records a contact sent to the search.
+test("the development query log shows no contact in the queries actually sent (spec §7 privacy test)", () => {
   const dir = mkdtempSync(join(tmpdir(), "pii-log-"));
   const path = join(dir, "queries.log");
+  const env = { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: path };
   const search = (query) => ({ type: "server_tool_use", name: "web_search", input: { query } });
-  logQueries(researchMessage.content, { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: path });
-  // A page could tell the model to search for a contact; the log still must not keep it.
-  logQueries([search("採用担当 hr-contact@example.jp 03-1234-5678")], { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: path });
+  const lines = () => readFileSync(path, "utf8").trim().split("\n").map((l) => JSON.parse(l));
+  logQueries(researchMessage.content, env);
+  const clean = lines();
+  assert.ok(clean.some((l) => l.q.includes("株式会社サンプルテック（仮）")), "the log is not empty");
+  assert.deepEqual(clean.filter((l) => l.redacted), []);
+  // A page could tell the model to search for a contact: the check must catch it, and the log still must not keep it.
+  logQueries([search("採用担当 hr-contact@example.jp 03-1234-5678")], env);
+  const leaked = lines().slice(clean.length);
   const log = readFileSync(path, "utf8");
   rmSync(dir, { recursive: true });
-  assert.ok(log.includes("株式会社サンプルテック（仮）"), "the log is not empty");
+  assert.deepEqual(leaked, [{ q: "採用担当 [email] [phone]", redacted: true }]);
   assert.equal(piiMatches(log), null);
 });

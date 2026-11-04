@@ -158,6 +158,7 @@ export default {
     audio_unsupported: () => "この録音形式には対応していません。文字で入力してください。",
     name_required: () => "企業名と職種名の両方を入力してください。",
     name_too_long: (d) => `企業名と職種名は${d.max}文字以内で入力してください。`,
+    name_invalid: () => "企業名または職種名に使えない記号が含まれています。",
     research_unavailable: () => "企業・職種の調査は現在利用できません。",
     unknown: () => "不明なエラーが発生しました。",
   },

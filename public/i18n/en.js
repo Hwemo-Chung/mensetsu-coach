@@ -158,6 +158,7 @@ export default {
     audio_unsupported: () => "This recording format is not supported. Please type instead.",
     name_required: () => "Please enter both the company name and the position.",
     name_too_long: (d) => `Company and position names can be up to ${d.max} characters.`,
+    name_invalid: () => "The company or position name contains a symbol that cannot be used.",
     research_unavailable: () => "Company research is not available right now.",
     unknown: () => "An unknown error occurred.",
   },

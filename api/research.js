@@ -1,13 +1,17 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { EXPLAIN_LANGS } from "../lib/lang.js";
-import { maskInput } from "../lib/privacy.js";
+import { redact } from "../lib/privacy.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 import { researchEnabled, runResearch, today } from "../lib/research.js";
 
 const MAX_NAME_CHARS = 100; // a name, not a pasted mail: this cap is part of what keeps candidate text out of the search
 const DEADLINE_MS = 105_000; // under maxDuration 120, so a slow run still answers "unavailable" instead of a platform 504
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
-const name = (v) => (typeof v === "string" ? maskInput(v.replace(/\s+/g, " ").trim()) : "");
+// さん stays: it can be part of a name, and a search still finds it, whereas dropping it would search a name nobody confirmed.
+const name = (v) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().replace(/\s*(?:様|殿|御中|님)$/, "") : "");
+// A masked name is not what the user confirmed, so it is refused, not searched. F1 reads masked mail, so a placeholder can arrive as a "name".
+const hasContact = (n) => redact(n) !== n || /\[(?:email|phone|〒|氏名)\]/.test(n);
+const leavesTag = (n) => /[<>\p{Cc}]/u.test(n);
 
 let client;
 
@@ -30,6 +34,8 @@ export async function POST(request, deps = {}) {
   const position = name(body?.position);
   if (!company || !position) return json(400, { code: "name_required" });
   if (company.length > MAX_NAME_CHARS || position.length > MAX_NAME_CHARS) return json(400, { code: "name_too_long", max: MAX_NAME_CHARS });
+  if (hasContact(company) || hasContact(position)) return json(400, { code: "name_required" });
+  if (leavesTag(company) || leavesTag(position)) return json(400, { code: "name_invalid" });
 
   const date = today();
   try {

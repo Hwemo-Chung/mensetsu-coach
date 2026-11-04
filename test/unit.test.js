@@ -69,6 +69,15 @@ test("optional question category: in the enum, excluded from 最低1つ, used on
   assert.ok(pack.culture_notes.some((n) => n.includes("本籍・出生地")));
 });
 
+test("redact catches phone numbers written with parentheses, and leaves dates beside parentheses alone", () => {
+  for (const phone of ["03(1234)5678", "０９０（１２３４）５６７８", "(090)1234-5678", "（03）1234-5678", "(03) 1234 5678", "03-(1234)-5678", "+81(3)1234-5678"]) {
+    assert.ok(!/[\d０-９]/.test(redact(`TEL ${phone} まで`)), phone);
+  }
+  for (const text of ["2026-11-04 (10:00)", "2026.11.04(水)", "2019.04.01 (2020.03.31)", "株式会社サンプルテック（仮）", "売上 100(前年比 120)", "第3四半期(2026)"]) {
+    assert.equal(redact(text), text);
+  }
+});
+
 test("redact strips email and phone", () => {
   assert.equal(redact("a@b.co / 090-1234-5678 / 120名"), "[email] / [phone] / 120名");
 });
