@@ -17,7 +17,8 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .msg[data-role]::before { content: attr(data-role); }
 @media (max-width: 1023px) { .lbl { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; } }
 
-.app { height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
+/* position + clip: absolutely placed children (.vh labels) must not stretch the document; the tour's scrollIntoView then scrolled it (11/04). */
+.app { position: relative; overflow: clip; height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; }
 
 /* Top bar: one row, 56px. Mark + name left; destination, language, panel, options, save right (icons on a phone). */
 .bar { grid-column: 1 / -1; display: flex; align-items: center; gap: 2px; height: 56px; padding: 0 6px 0 var(--gutter); background: #fff; border-bottom: 1px solid var(--line); }

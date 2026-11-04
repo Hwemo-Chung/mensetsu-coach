@@ -193,3 +193,26 @@ test("tour: tall spotlit cards keep a real height (head only, not collapsed) and
   assert.ok(h > 200, `question card head is ${h}px`);
   await context.close();
 });
+
+// Found 11/04: at 1280×720 the tour's scrollIntoView scrolled the document itself (176 px), cutting off the header for
+// good. .app is a fixed-height screen, so the document must never move; 1440×900 hid this because nothing overflowed.
+for (const [w, h, lang] of [[1280, 720, "ja"], [1280, 720, "ko"], [390, 844, "ja"]]) {
+  test(`the document stays at the top during and after the tour (${w}×${h}, ${lang})`, async () => {
+    const ctx = await browser.newContext({ viewport: { width: w, height: h }, locale: lang });
+    await ctx.addInitScript((l) => { localStorage.setItem("mensetsu-lang", l); localStorage.setItem("mensetsu-tour-end", "a"); }, lang);
+    const page = await ctx.newPage();
+    await page.goto(server.url);
+    await page.locator(".msg.coach").first().waitFor();
+    await page.locator("#log button").first().click();
+    await page.locator("#tourStep", { hasText: /^1\// }).waitFor();
+    for (let i = 0; i < 30; i++) {
+      await page.waitForFunction(() => document.querySelector("#tour").hidden || !document.querySelector("#tourNext").disabled, null, { timeout: 30000 });
+      assert.equal(await page.evaluate(() => scrollY), 0, `step ${i + 1}: the document scrolled`);
+      if (await page.evaluate(() => document.querySelector("#tour").hidden)) break;
+      await page.click("#tourNext");
+      await page.waitForTimeout(150);
+    }
+    assert.equal(await page.evaluate(() => Math.round(document.querySelector("header").getBoundingClientRect().top)), 0, "the header is on screen");
+    await ctx.close();
+  });
+}
