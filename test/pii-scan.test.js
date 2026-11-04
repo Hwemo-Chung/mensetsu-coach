@@ -7,6 +7,11 @@ import { fileURLToPath } from "node:url";
 const root = new URL("../", import.meta.url);
 const denyPath = process.env.PII_DENYLIST ?? fileURLToPath(new URL("../BuiltWithClaude-2026-private/secrets/.pii-denylist.txt", root));
 import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { logQueries } from "../lib/research.js";
+import { researchMessage } from "./fake-claude.js";
 // Every tracked text file (plus untracked files under research/ that are about to be committed).
 const tracked = (() => { try { return execFileSync("git", ["ls-files", "-co", "--exclude-standard"], { cwd: fileURLToPath(root), encoding: "utf8" }).split("\n"); } catch { return []; } })();
 const targets = tracked.filter((p) => p && /\.(json|md|js|mjs|txt|html|css)$/.test(p) && !p.startsWith("node_modules/") && existsSync(new URL(p, root)));
@@ -39,4 +44,17 @@ test("generic PII patterns (phone / email) absent from packs and research", () =
     if (m?.length) bad.push(`${p}: ${[...new Set(m)].join(", ")}`);
   }
   assert.deepEqual(bad, [], bad.join("\n"));
+});
+
+test("the development query log passes the PII pattern check (spec §7 privacy test)", () => {
+  const dir = mkdtempSync(join(tmpdir(), "pii-log-"));
+  const path = join(dir, "queries.log");
+  const search = (query) => ({ type: "server_tool_use", name: "web_search", input: { query } });
+  logQueries(researchMessage.content, { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: path });
+  // A page could tell the model to search for a contact; the log still must not keep it.
+  logQueries([search("採用担当 hr-contact@example.jp 03-1234-5678")], { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: path });
+  const log = readFileSync(path, "utf8");
+  rmSync(dir, { recursive: true });
+  assert.ok(log.includes("株式会社サンプルテック（仮）"), "the log is not empty");
+  assert.equal(piiMatches(log), null);
 });

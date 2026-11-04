@@ -156,6 +156,9 @@ export default {
     stt_unavailable: () => "음성 입력을 준비 중이에요. 직접 입력해 주세요.",
     audio_too_large: () => "녹음이 너무 길어요. 90초 안으로 답해 주세요.",
     audio_unsupported: () => "이 녹음 형식은 받을 수 없어요. 직접 입력해 주세요.",
+    name_required: () => "회사명과 직무명을 모두 입력해 주세요.",
+    name_too_long: (d) => `회사명과 직무명은 ${d.max}자 이내로 입력해 주세요.`,
+    research_unavailable: () => "회사·직무 조사는 지금 사용할 수 없습니다.",
     unknown: () => "알 수 없는 오류가 났어요.",
   },
 };

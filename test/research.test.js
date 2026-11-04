@@ -3,9 +3,15 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MODELS } from "../lib/claude.js";
 import { POST as access } from "../api/access.js";
+import { POST as research } from "../api/research.js";
+import { fakeClient, researchMessage } from "./fake-claude.js";
+import { readFileSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   researchEnabled, extractionSchema, fitSchema, briefSchema, NOT_FOUND, EXCERPT_MAX,
   resultUrls, gateSourceUrls, gateEntity, gateClaim, gatePosition, clipExcerpt, researchStatus, gateBrief,
+  buildResearchRequest, runResearch, searchQueries, queryLogPath, logQueries, today, extractionWireSchema,
 } from "../lib/research.js";
 
 const COMPANY = "株式会社サンプルテック（仮）";
@@ -409,4 +415,283 @@ test("a verdict smuggled in by the model never reaches the brief", () => {
   m.company_snapshot.recommended = true;
   const text = JSON.stringify(gate(m));
   assert.doesNotMatch(text, /recommended|verdict/);
+});
+
+// --- Step 2: the search call and POST /api/research ---
+const POSITION = "プロダクトマネージャー";
+const MAIL = "この求人メールの本文は検索に使わない";
+const PROFILE = "職務要約の本文も検索に使わない";
+const searchUse = (query, id = "u1") => ({ type: "server_tool_use", id, name: "web_search", input: { query } });
+const turn = (stop_reason, content, searches = 1, fetches = 0) => ({ stop_reason, content, usage: { input_tokens: 1, output_tokens: 1, server_tool_use: { web_search_requests: searches, web_fetch_requests: fetches } } });
+const jsonText = (m) => ({ type: "text", text: JSON.stringify(m) });
+const unavailable = { research_status: "unavailable", research_date: today() };
+
+let ipCounter = 0;
+const post = (body, { deps, code = "c0de", ip = `10.9.0.${++ipCounter}` } = {}) => {
+  process.env.ACCESS_CODE = "c0de";
+  const headers = { "x-forwarded-for": ip, ...(code && { "x-access-code": code }) };
+  return research(new Request("http://x/api/research", { method: "POST", headers, body: typeof body === "string" ? body : JSON.stringify(body) }), { enabled: true, ...deps });
+};
+const names = { company: COMPANY, position: POSITION, lang: "ja" };
+
+test("the search request uses the verified Haiku tools and the brief schema, with nothing unverified", () => {
+  const r = buildResearchRequest(COMPANY, POSITION, "ja");
+  assert.equal(r.model, MODELS.research);
+  assert.deepEqual(r.tools.map(({ type, name, max_uses }) => ({ type, name, max_uses })), [
+    { type: "web_search_20250305", name: "web_search", max_uses: 4 },
+    { type: "web_fetch_20250910", name: "web_fetch", max_uses: 4 },
+  ]);
+  assert.ok(r.tools[1].max_content_tokens > 0, "one page cannot fill the context");
+  assert.deepEqual(r.output_config.format, { type: "json_schema", schema: extractionWireSchema });
+  const text = JSON.stringify(r);
+  for (const k of ["citations", "temperature", "fallbacks", "betas", "web_search_20260209"]) assert.ok(!text.includes(k), k);
+});
+
+// A real call 11/04 answered 400 "compiled grammar is too large" for the expanded schema, which offline tests cannot see.
+test("the schema on the wire shares repeated shapes through $defs and means exactly the same", () => {
+  const w = extractionWireSchema;
+  const expand = (s) => {
+    if (s.$ref) {
+      const { $ref, ...rest } = s;
+      return { ...expand(w.$defs[$ref.split("/").pop()]), ...rest };
+    }
+    return { ...s, ...(s.properties && { properties: Object.fromEntries(Object.entries(s.properties).map(([k, v]) => [k, expand(v)])) }), ...(s.items && { items: expand(s.items) }) };
+  };
+  const { $defs, ...root } = w;
+  assert.deepEqual(expand(root), extractionSchema);
+  assert.equal(root.type, "object", "the root stays an object");
+  for (const d of Object.values($defs)) {
+    assert.equal(d.additionalProperties, false);
+    assert.deepEqual([...d.required].sort(), Object.keys(d.properties).sort());
+  }
+  const shapes = Object.values($defs).filter((d) => "value" in d.properties && "confidence" in d.properties);
+  assert.equal(shapes.length, 3, "the plain claim, salary and the reputation theme: 25 claims must not expand into the grammar");
+});
+
+test("the search prompt: Japanese first, source priority, public pages only, web content is untrusted data", () => {
+  const { system, messages } = buildResearchRequest(COMPANY, POSITION, "en", "2026-11-04");
+  assert.match(system, /日本語.*先/);
+  const order = ["公式", "IR", "採用", "報道", "口コミ", "面接体験"].map((w) => system.indexOf(w));
+  assert.ok(order.every((n) => n >= 0), "every source class is named");
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "in priority order");
+  assert.match(system, /12か月/);
+  assert.match(system, /公開ページ/);
+  assert.match(system, /ログイン/);
+  assert.match(system, /信頼できないデータ/);
+  assert.match(system, /指示.*従わない/);
+  assert.match(system, /untrusted_web_content/);
+  assert.match(system, /英語/, "explanations follow the screen language");
+  assert.doesNotMatch(system, /verdict|推奨する/);
+  const user = messages[0].content;
+  assert.ok(user.includes(COMPANY) && user.includes(POSITION));
+  assert.ok(user.includes("2026-11-04"), "12 months needs today's date");
+  assert.equal(messages.length, 1);
+});
+
+test("guardrail 1: the request sent holds no mail, profile or attachment text, whatever the body carried", async () => {
+  const client = fakeClient({ turns: [researchMessage] });
+  const res = await post({ ...names, mail: MAIL, profile: PROFILE, attachment: { name: "cv.txt", data: PROFILE }, desired_position_profile: PROFILE, extra: MAIL }, { deps: { client } });
+  assert.equal(res.status, 200);
+  assert.equal(client.requests.length, 1);
+  const sent = JSON.stringify(client.requests[0]);
+  assert.ok(sent.includes(COMPANY) && sent.includes(POSITION));
+  assert.ok(!sent.includes(MAIL) && !sent.includes(PROFILE));
+  assert.deepEqual(client.requests[0], buildResearchRequest(COMPANY, POSITION, "ja", today()), "built from the two names and nothing else");
+});
+
+test("guardrail 1: contact details and a pasted mail never reach the search", async () => {
+  const client = fakeClient({ turns: [researchMessage] });
+  await post({ ...names, company: "サンプル hr-contact@example.com 03-1234-5678" }, { deps: { client } });
+  const sent = JSON.stringify(client.requests[0]);
+  assert.ok(!sent.includes("hr-contact@example.com") && !sent.includes("1234"));
+  const untouched = fakeClient({ turns: [researchMessage] });
+  const res = await post({ ...names, company: "本文".repeat(51) }, { deps: { client: untouched } });
+  assert.equal(res.status, 400);
+  assert.deepEqual(await res.json(), { code: "name_too_long", max: 100 });
+  assert.equal(untouched.requests.length, 0);
+});
+
+test("a multi-line name is one line by the time it is searched", async () => {
+  const client = fakeClient({ turns: [researchMessage] });
+  await post({ ...names, position: `${POSITION}\n\t候補` }, { deps: { client } });
+  assert.ok(client.requests[0].messages[0].content.includes(`${POSITION} 候補`));
+});
+
+test("POST: the fixture run gives a gated brief, with the similar-name company's facts gone", async () => {
+  const res = await post(names, { deps: { client: fakeClient({ turns: [researchMessage] }) } });
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("cache-control"), "no-store");
+  const b = await res.json();
+  assert.equal(b.research_status, "ok");
+  assert.equal(b.research_date, today());
+  assert.deepEqual(b.sources.map((s) => s.url), ["https://example.com/sampletech/careers", "https://example.com/reviews/sampletech"]);
+  assert.equal(b.company_snapshot.size.value, NOT_FOUND);
+  assert.equal(b.company_snapshot.business.source_count, 1, "the similar company's page adds no support");
+  assert.equal(b.position_analysis.salary.applies_to_position, true);
+  assert.equal(b.position_analysis.salary.bonus_included, "unknown");
+  assert.equal(b.interview_intelligence.reported_questions[0].label, "reported_unverified");
+  assert.ok(!JSON.stringify(b).includes("架空の企業の架空の採用ページ"), "no page text");
+  assert.ok(!JSON.stringify(b).includes("synthetic"), "no tool payload");
+});
+
+test("POST: gate order is rate limit, then access, then flag, then validation; the client is not called", async () => {
+  const client = fakeClient({ turns: [researchMessage] });
+  const code = async (res) => [res.status, (await res.json()).code];
+  assert.deepEqual(await code(await post(names, { deps: { client }, code: null })), [401, "access_denied"]);
+  assert.deepEqual(await code(await post(names, { deps: { client }, code: "wrong" })), [401, "access_denied"]);
+  assert.deepEqual(await code(await post(names, { deps: { client, enabled: false } })), [503, "research_unavailable"]);
+  assert.deepEqual(await code(await post("{not json", { deps: { client } })), [400, "bad_request"]);
+  assert.deepEqual(await code(await post({ ...names, lang: "fr" }, { deps: { client } })), [400, "lang_unsupported"]);
+  assert.deepEqual(await code(await post({ ...names, lang: "constructor" }, { deps: { client } })), [400, "lang_unsupported"]);
+  for (const bad of [undefined, "", "   ", 5, null, ["a"]]) {
+    assert.deepEqual(await code(await post({ ...names, company: bad }, { deps: { client } })), [400, "name_required"]);
+    assert.deepEqual(await code(await post({ ...names, position: bad }, { deps: { client } })), [400, "name_required"]);
+  }
+  assert.deepEqual(await code(await post({ ...names, position: "職".repeat(101) }, { deps: { client } })), [400, "name_too_long"]);
+  assert.equal(client.requests.length, 0);
+});
+
+test("POST: the flag comes from the server's environment", async () => {
+  const saved = process.env.RESEARCH_ENABLED;
+  delete process.env.RESEARCH_ENABLED;
+  process.env.ACCESS_CODE = "c0de";
+  const req = () => new Request("http://x/api/research", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `10.9.1.${++ipCounter}` }, body: JSON.stringify(names) });
+  assert.equal((await research(req(), { client: fakeClient({ turns: [researchMessage] }) })).status, 503);
+  process.env.RESEARCH_ENABLED = "1";
+  assert.equal((await research(req(), { client: fakeClient({ turns: [researchMessage] }) })).status, 200);
+  if (saved === undefined) delete process.env.RESEARCH_ENABLED; else process.env.RESEARCH_ENABLED = saved;
+});
+
+test("POST: the limit is 5 per 10 minutes per IP, checked before anything else", async () => {
+  const client = fakeClient({ turns: [researchMessage] });
+  for (let i = 0; i < 5; i++) assert.equal((await post(names, { deps: { client }, ip: "10.9.2.1" })).status, 200);
+  const over = await post(names, { deps: { client }, ip: "10.9.2.1", code: null });
+  assert.equal(over.status, 429);
+  assert.deepEqual(await over.json(), { code: "rate_limited" });
+  assert.equal((await post(names, { deps: { client }, ip: "10.9.2.2" })).status, 200, "another IP is unaffected");
+  assert.equal(client.requests.length, 6);
+});
+
+test("degrade path: every failure is 200 unavailable, with no sections and no error text", async () => {
+  const failing = {
+    "API error": fakeClient({ fail: Object.assign(new Error("boom secret"), { status: 500 }) }),
+    "rate limit": fakeClient({ fail: Object.assign(new Error("slow down"), { status: 429 }) }),
+    "not JSON": fakeClient({ turns: [turn("end_turn", [searchUse("q"), searchBlock("s1"), { type: "text", text: "申し訳ありません" }])] }),
+    truncated: fakeClient({ turns: [turn("max_tokens", [searchBlock("s1"), { type: "text", text: "{" }])] }),
+    refusal: fakeClient({ turns: [turn("refusal", [])] }),
+    "JSON of the wrong shape": fakeClient({ turns: [turn("end_turn", [searchBlock("s1"), { type: "text", text: "null" }])] }),
+    "still paused": fakeClient({ turns: [turn("pause_turn", [searchUse("q"), searchBlock("s1")])] }),
+    "search errors": fakeClient({ turns: [turn("end_turn", [searchError, jsonText(model([source("s1")]))], 0)] }),
+    "failed searches with zero hits": fakeClient({ turns: [turn("end_turn", [rateLimited, searchBlock(), jsonText(model([]))], 2)] }),
+  };
+  for (const [name, client] of Object.entries(failing)) {
+    const res = await post(names, { deps: { client } });
+    assert.equal(res.status, 200, name);
+    assert.deepEqual(await res.json(), unavailable, name);
+  }
+});
+
+test("degrade path: the whole run has one deadline, so it answers before Vercel kills the function", async () => {
+  const signals = [];
+  const hanging = { beta: { messages: { stream: (_, opts) => (signals.push(opts?.signal), { finalMessage: () => new Promise((_, reject) => opts.signal.addEventListener("abort", () => reject(new Error("aborted")))) }) } } };
+  const res = await post(names, { deps: { client: hanging, deadlineMs: 20 } });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), unavailable);
+  assert.equal(signals.length, 1);
+  const seen = [];
+  const client = fakeClient({ turns: [turn("pause_turn", [searchUse("q"), searchBlock("s1")]), turn("end_turn", [jsonText(model([source("s1")]))], 0)] });
+  const stream = client.beta.messages.stream;
+  client.beta.messages.stream = (req, opts) => (seen.push(opts?.signal), stream(req, opts));
+  await post(names, { deps: { client } });
+  assert.equal(seen.length, 2);
+  assert.ok(seen[0] instanceof AbortSignal);
+  assert.equal(seen[0], seen[1], "resumes share the first call's deadline");
+  assert.ok(Number(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration) * 1000 > 105_000, "the deadline fits maxDuration");
+});
+
+test("tool failure vs honest empty: a real search on a fictional name is ok and all not_found", async () => {
+  const onlySimilar = model([source("s1", { entity_match: "similar" })]);
+  const res = await post(names, { deps: { client: fakeClient({ turns: [turn("end_turn", [searchUse("q"), searchBlock("s1"), jsonText(onlySimilar)])] }) } });
+  const b = await res.json();
+  assert.equal(b.research_status, "ok");
+  assert.deepEqual(b.sources, []);
+  assert.equal(b.company_snapshot.business.value, NOT_FOUND);
+  const none = await post(names, { deps: { client: fakeClient({ turns: [turn("end_turn", [searchUse("q"), searchBlock(), jsonText(model([]))])] }) } });
+  assert.equal((await none.json()).research_status, "ok", "a search that matched nothing is not a failure");
+});
+
+test("pause_turn: resumes with every paused response in order, no new user message, the same tools, no more tool use", async () => {
+  const first = [searchUse("q1"), searchBlock("s1")];
+  const second = [searchUse("q2", "u2"), { type: "server_tool_use", id: "u3", name: "web_fetch", input: { url: url("s2") } }];
+  const client = fakeClient({ turns: [turn("pause_turn", first), turn("pause_turn", second, 1), turn("end_turn", [fetchBlock("s2"), jsonText(model([source("s1"), source("s2")], ["s1", "s2"]))], 0, 1)] });
+  const b = await runResearch(client, COMPANY, POSITION, "ja", { date: DATE });
+  const base = buildResearchRequest(COMPANY, POSITION, "ja", DATE);
+  assert.equal(client.requests.length, 3);
+  assert.deepEqual(client.requests[0], base);
+  assert.deepEqual(client.requests[1].messages, [...base.messages, { role: "assistant", content: first }]);
+  assert.deepEqual(client.requests[2].messages, [...base.messages, { role: "assistant", content: first }, { role: "assistant", content: second }]);
+  for (const r of client.requests.slice(1)) {
+    assert.deepEqual(r.tools, base.tools, "a pending server tool must stay defined");
+    assert.deepEqual(r.tool_choice, { type: "none" }, "max_uses is per request, so a resume could spend the budget again");
+  }
+  // Gate 1 and the search count must see every turn: s1 came back only in the first one.
+  assert.equal(b.research_status, "ok");
+  assert.deepEqual(b.sources.map((s) => s.url), [url("s1"), url("s2")]);
+  assert.equal(b.company_snapshot.business.source_count, 2);
+});
+
+test("pause_turn: searches in an earlier turn count even when the last turn reports none", async () => {
+  const client = fakeClient({ turns: [turn("pause_turn", [searchUse("q"), searchBlock("s1")], 1), turn("end_turn", [jsonText(model([source("s1")]))], 0)] });
+  assert.equal((await runResearch(client, COMPANY, POSITION, "ja", { date: DATE })).research_status, "ok");
+});
+
+test("pause_turn: resumes are bounded", async () => {
+  const client = fakeClient({ turns: [turn("pause_turn", [searchUse("q"), searchBlock("s1")])] });
+  await assert.rejects(runResearch(client, COMPANY, POSITION, "ja", { date: DATE }));
+  assert.equal(client.requests.length, 3);
+  const res = await post(names, { deps: { client } });
+  assert.deepEqual(await res.json(), unavailable);
+});
+
+test("only the JSON after the last tool result is parsed: a preamble before a search does not fail the run", async () => {
+  const content = [{ type: "text", text: "検索します。" }, searchUse("q"), searchBlock("s1"), { type: "thinking", thinking: "", signature: "x" }, jsonText(model([source("s1")]))];
+  const b = await runResearch(fakeClient({ turns: [turn("end_turn", content)] }), COMPANY, POSITION, "ja", { date: DATE });
+  assert.equal(b.company_snapshot.business.value, "業務システムの開発");
+});
+
+test("searchQueries: real queries from the response blocks only", () => {
+  const content = [searchUse("a b"), { type: "server_tool_use", name: "web_fetch", input: { url: url("x") } }, { type: "server_tool_use", name: "web_search", input: { params: {} } }, { type: "text", text: "c" }, searchBlock("s1")];
+  assert.deepEqual(searchQueries(content), ["a b"]);
+  assert.deepEqual(searchQueries(undefined), []);
+});
+
+test("query log: only with RESEARCH_DEBUG=1, outside production and Vercel, and to a path outside the repo", () => {
+  const on = { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: join(tmpdir(), "queries.log") };
+  assert.equal(queryLogPath(on), on.RESEARCH_DEBUG_LOG);
+  assert.equal(queryLogPath({}), null);
+  assert.equal(queryLogPath({ ...on, RESEARCH_DEBUG: "0" }), null);
+  assert.equal(queryLogPath({ RESEARCH_DEBUG: "1" }), null, "no path, no log");
+  assert.equal(queryLogPath({ ...on, NODE_ENV: "production" }), null);
+  assert.equal(queryLogPath({ ...on, VERCEL: "1" }), null);
+  const inRepo = new URL("../queries.log", import.meta.url).pathname;
+  assert.equal(queryLogPath({ ...on, RESEARCH_DEBUG_LOG: inRepo }), null);
+  assert.equal(queryLogPath({ ...on, RESEARCH_DEBUG_LOG: new URL("../test/x/../q.log", import.meta.url).pathname }), null);
+  assert.equal(queryLogPath({ ...on, RESEARCH_DEBUG_LOG: "queries.log" }), null, "relative to the repo");
+});
+
+test("query log: a run writes its real queries from every turn and nothing else; a write failure does not fail the run", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "research-log-"));
+  const path = join(dir, "q.log");
+  const env = { RESEARCH_DEBUG: "1", RESEARCH_DEBUG_LOG: path };
+  const client = fakeClient({ turns: [turn("pause_turn", [searchUse(`${COMPANY} 採用`), searchBlock("s1")]), turn("end_turn", [searchUse(`${COMPANY} 面接`, "u2"), jsonText(model([source("s1")]))], 1)] });
+  await runResearch(client, COMPANY, POSITION, "ja", { date: DATE, env });
+  assert.deepEqual(readFileSync(path, "utf8").trim().split("\n").map((l) => JSON.parse(l)), [`${COMPANY} 採用`, `${COMPANY} 面接`]);
+  const bad = { ...env, RESEARCH_DEBUG_LOG: join(dir, "missing", "q.log") };
+  assert.equal((await runResearch(fakeClient({ turns: [researchMessage] }), COMPANY, POSITION, "ja", { date: DATE, env: bad })).research_status, "ok");
+  assert.doesNotThrow(() => logQueries([searchUse("x")], bad));
+  rmSync(dir, { recursive: true });
+});
+
+test("vercel.json gives the route 120 s, as the spec fixes", () => {
+  assert.equal(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration, 120);
 });

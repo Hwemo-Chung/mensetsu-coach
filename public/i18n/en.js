@@ -156,6 +156,9 @@ export default {
     stt_unavailable: () => "Voice input is not ready yet. Please type instead.",
     audio_too_large: () => "The recording is too long. Answer within 90 seconds.",
     audio_unsupported: () => "This recording format is not supported. Please type instead.",
+    name_required: () => "Please enter both the company name and the position.",
+    name_too_long: (d) => `Company and position names can be up to ${d.max} characters.`,
+    research_unavailable: () => "Company research is not available right now.",
     unknown: () => "An unknown error occurred.",
   },
 };

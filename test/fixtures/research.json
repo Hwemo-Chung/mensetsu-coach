@@ -1,0 +1,48 @@
+{
+  "usage": { "input_tokens": 9000, "output_tokens": 1200, "server_tool_use": { "web_search_requests": 2, "web_fetch_requests": 1 } },
+  "blocks": [
+    { "type": "thinking", "thinking": "", "signature": "synthetic-signature" },
+    { "type": "server_tool_use", "id": "srvtoolu_s1", "name": "web_search", "input": { "query": "株式会社サンプルテック（仮） プロダクトマネージャー 採用" } },
+    { "type": "server_tool_use", "id": "srvtoolu_s2", "name": "web_search", "input": { "query": "株式会社サンプルテック（仮） 面接 口コミ" } },
+    { "type": "web_search_tool_result", "tool_use_id": "srvtoolu_s1", "content": [
+      { "type": "web_search_result", "title": "株式会社サンプルテック（仮） 採用情報", "url": "https://example.com/sampletech/careers", "encrypted_content": "synthetic", "page_age": "October 1, 2026" },
+      { "type": "web_search_result", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "encrypted_content": "synthetic", "page_age": null }
+    ] },
+    { "type": "web_search_tool_result", "tool_use_id": "srvtoolu_s2", "content": [
+      { "type": "web_search_result", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "encrypted_content": "synthetic", "page_age": "September 12, 2026" }
+    ] },
+    { "type": "server_tool_use", "id": "srvtoolu_f1", "name": "web_fetch", "input": { "url": "https://example.com/sampletech/careers" } },
+    { "type": "web_fetch_tool_result", "tool_use_id": "srvtoolu_f1", "content": { "type": "web_fetch_result", "url": "https://example.com/sampletech/careers", "retrieved_at": "2026-11-04T00:00:00Z", "content": { "type": "document", "source": { "type": "text", "media_type": "text/plain", "data": "架空の企業の架空の採用ページです。" }, "title": "採用情報" } } }
+  ],
+  "model": {
+    "company_snapshot": {
+      "business": { "value": "中小企業向けの業務システムを提供している（架空）", "source_ids": ["official", "similar"], "confidence": "high" },
+      "business_model": { "value": "自社製品が中心で、一部受託も行う（架空）", "source_ids": ["official"], "confidence": "medium" },
+      "size": { "value": "別企業の従業員数", "source_ids": ["similar"], "confidence": "high" },
+      "founded": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
+      "locations": { "value": "本社は東京（架空）", "source_ids": ["official"], "confidence": "high" },
+      "recent_news": []
+    },
+    "position_analysis": {
+      "position_match": "exact",
+      "actual_work": { "value": "製品の要件定義と開発チームとの進行管理（架空）", "source_ids": ["official"], "confidence": "medium" },
+      "team_context": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
+      "required_skills": [{ "value": "要件定義の経験（架空）", "source_ids": ["official"], "confidence": "medium" }],
+      "preferred_skills": [],
+      "salary": { "value": "年収600万〜800万円（架空。保証ではない）", "source_ids": ["official"], "confidence": "medium", "bonus_included": "unknown", "overtime_pay_included": "unknown" },
+      "conditions": []
+    },
+    "reputation_themes": [
+      { "value": "残業の話題が繰り返し挙がる（架空）", "source_ids": ["reviews"], "confidence": "medium", "polarity": "negative", "sample_size": "12件", "representativeness": "low" }
+    ],
+    "interview_intelligence": {
+      "selection_stages": [{ "value": "面接2回（架空）", "source_ids": ["reviews"], "confidence": "medium" }],
+      "reported_questions": [{ "value": "当社の製品のどこを改善しますか（架空）", "source_ids": ["reviews"], "confidence": "medium" }]
+    },
+    "sources": [
+      { "id": "official", "title": "株式会社サンプルテック（仮） 採用情報", "url": "https://example.com/sampletech/careers", "published_date": "2026-10-01", "entity_match": "exact", "position_match": "exact", "source_type": "official_careers" },
+      { "id": "similar", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "published_date": "", "entity_match": "similar", "position_match": "unknown", "source_type": "official_other" },
+      { "id": "reviews", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "published_date": "2026-09-12", "entity_match": "exact", "position_match": "unknown", "source_type": "review_site" }
+    ]
+  }
+}

@@ -6,6 +6,9 @@ export const fixture = load("questions.json");
 export const scriptFixture = load("script.json");
 export const reviewFixture = load("review.json");
 export const reverseFixture = load("reverse.json");
+const research = load("research.json");
+// One raw response in the shape the search call gets: server tool blocks, then the JSON text (MOCK_CLAUDE=1 and tests).
+export const researchMessage = { stop_reason: "end_turn", usage: research.usage, content: [...research.blocks, { type: "text", text: JSON.stringify(research.model) }] };
 // The model writes the jp reading in hiragana (lib/kana.js converts it); script.json holds the converted API output.
 export const scriptKana = "はい、 /みつもりが 《ずれた》 ばあいわ、 /まず えいきょうはんいを かくにんし↘、 /かんけいしゃに はやめに きょうゆうします↘。 /ぜんしょくでわ、 /おくれを ［期限］ いないに ほうこくする るーるを つくり、 /てもどりを ［ここに実績の数字］ へらしました↘。 /すすめかたに ついて、 /おんしゃの やりかたも ぜひ うかがえますでしょうか↗。";
 // The model answers the script under the target language code (ja/ko) as one string per step (C3); generateScript joins
@@ -16,10 +19,12 @@ export const asModelScript = ({ text, parts, issues, closing, ...rest }, key = "
 
 // responses: one result per call, in order (for retry tests); otherwise every call returns `result`.
 // stops: one stop_reason per call (C2 truncation retry); otherwise every call ends with `stop`.
-export function fakeClient({ result = fixture, responses, stop = "end_turn", stops, fail } = {}) {
+// turns: whole raw responses, one per call (server tool blocks, pause_turn); exhausted → repeat the last.
+export function fakeClient({ result = fixture, responses, stop = "end_turn", stops, fail, turns } = {}) {
   let calls = 0;
   const finalMessage = async () => {
     if (fail) throw fail;
+    if (turns) return turns[Math.min(calls++, turns.length - 1)];
     const r = responses ? responses[Math.min(calls, responses.length - 1)] : result; // exhausted → repeat the last
     calls++;
     return { stop_reason: stops?.[calls - 1] ?? stop, content: [{ type: "text", text: typeof r === "string" ? r : JSON.stringify(r) }] };

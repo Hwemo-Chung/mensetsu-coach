@@ -156,6 +156,9 @@ export default {
     stt_unavailable: () => "音声入力は準備中です。文字で入力してください。",
     audio_too_large: () => "録音が長すぎます。90秒以内で答えてください。",
     audio_unsupported: () => "この録音形式には対応していません。文字で入力してください。",
+    name_required: () => "企業名と職種名の両方を入力してください。",
+    name_too_long: (d) => `企業名と職種名は${d.max}文字以内で入力してください。`,
+    research_unavailable: () => "企業・職種の調査は現在利用できません。",
     unknown: () => "不明なエラーが発生しました。",
   },
 };
