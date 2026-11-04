@@ -107,6 +107,7 @@ await page.route("**/api/**", async (route) => {
 
 // Playwright video has no mouse pointer: draw one so the viewer sees where the "user" clicks (CSSOM styles, CSP-safe).
 async function pointer(sel) {
+  await page.locator(sel).first().scrollIntoViewIfNeeded(); // a card's button may be below the fold: scroll before the ring moves
   const box = await page.locator(sel).first().boundingBox();
   await page.evaluate(({ x, y }) => {
     let p = document.getElementById("rec-pointer");
@@ -199,8 +200,8 @@ await click("#send");
 await page.locator("#log .q").first().waitFor({ timeout: 15000 });
 await pause(600);
 await explain(["#log .q:nth-of-type(1)", "#log .q:nth-of-type(3)"], CAPTIONS.questions);
-await type(String(demo.pick + 1), 150);
-await click("#send");
+// v3 (UIUX §11): the question is picked by tapping its card's [練習する] (typing the number still works).
+await click(`#log .q button[data-pick="${demo.pick + 1}"]`);
 await pause(1200);
 if (spoken) { // ③-a: answer by voice; the transcript lands in the box (fillers kept), checked, then sent
   await click("#mic");
@@ -224,8 +225,8 @@ if (spoken && habitRule) { // ③-b: the spoken filler is caught by the pack's r
 }
 // ③ with 🔊: the whole card comes up (the button sits above the title), the read-along highlight runs under the caption.
 await explain(["#reviewBox > .script:not(.review)"], CAPTIONS.script, 4500, () => click("#reviewBox > .script:not(.review) .listen"));
-await type(String(demo.pick + 1), 150); // the app is back at "pick": the same question again, as a user would
-await click("#send");
+// The same question again from the dashboard's question rail, as a user would (v3, ≥1280px).
+await click(`#rail button[data-pick="${demo.pick + 1}"]`);
 await pause(800);
 // The corrected answer is pasted (no human types 200 characters in 4 s) and labelled as filled with fictional numbers.
 await pointer("#input");
