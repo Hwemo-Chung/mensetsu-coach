@@ -518,6 +518,8 @@ test("the search request uses the verified Haiku tools and the brief schema, wit
   ]);
   assert.ok(r.tools[1].max_content_tokens > 0, "one page cannot fill the context");
   assert.deepEqual(r.output_config.format, { type: "json_schema", schema: extractionWireSchema });
+  // Real eval 11/04: default effort spent 10-18K output tokens on thinking for a 3K answer, so 8 of 24 runs hit max_tokens.
+  assert.equal(r.output_config.effort, "low", "thinking must not eat the JSON's token budget");
   const text = JSON.stringify(r);
   for (const k of ["citations", "temperature", "fallbacks", "betas", "web_search_20260209"]) assert.ok(!text.includes(k), k);
 });
