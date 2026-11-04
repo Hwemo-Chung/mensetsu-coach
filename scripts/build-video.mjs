@@ -108,23 +108,35 @@ const reveal = async (a, b, ...colors) => [
   { file: await snap(big(a, b, ...colors)), sec: 1 },
 ];
 
-// ① The failed interview, a reenactment labelled as one (no recording, no real company).
-const bubble = (who, text, me) => `<div style="display:flex;justify-content:${me ? "flex-end" : "flex-start"};margin:0 0 26px"><div ${me ? "data-me" : "data-them"} style="max-width:860px;padding:22px 30px;border-radius:18px;font-size:40px;font-weight:600;line-height:1.45;background:${me ? GREEN : "#fff"};color:${INK}"><span style="display:block;font-size:19px;font-weight:700;opacity:.65;margin-bottom:2px">${who}</span>${text}</div></div>`;
-const Q = "見積もりがずれたとき、どう判断しましたか。", A = "新しいツールを導入しまして、プロジェクトは成功しました。", AGAIN = "すみません、もう一度伺います。どう判断しましたか。";
-const stage = (body, big = "") => `<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:34px 64px;box-sizing:border-box;display:flex;flex-direction:column">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0"><span style="background:${YELLOW};color:${INK};font-size:25px;font-weight:800;padding:6px 16px">韓国出身のエンジニア</span><span style="font-size:18px;color:${SOFT};font-weight:600">再現イメージ</span></div>
-  <div style="flex:1;display:flex;flex-direction:column;justify-content:${big ? "flex-start;padding-top:36px" : "center"}">${body}</div>${big ? `<div style="position:absolute;right:64px;bottom:24px;font-size:170px;line-height:1;font-weight:900;color:${YELLOW}">${big}</div>` : ""}</div>`;
 const big = (a, b, bg = INK, ca = "#fff", cb = GREEN) => `<div style="position:absolute;inset:0;background:${bg};display:flex;flex-direction:column;justify-content:center;padding:0 90px;font-size:84px;font-weight:900;line-height:1.3;letter-spacing:-1px"><div style="color:${ca}">${a}</div><div style="color:${cb};min-height:109px">${b}</div></div>`;
+// ① A 15-second TV-spot opening with one selling point (user 11/04): the same question, ✗ becomes ✓. The interview's
+// outcome is the author's own (user confirmed 見送り). Marks come from the recorded review data, never drawn by hand;
+// the optional 復唱 is left out because it is a tip, not a ✗.
 {
-  const f1 = await snap(stage(bubble("面接官", Q) + "", "1回"));
-  const f2 = await snap(stage(bubble("面接官", Q) + bubble("私", A, true), "1回")), me = await rectOf("[data-me]");
-  await scene(1, [{ file: f1, sec: 1.1 }, { file: f2, sec: 1.7, arrow: { x: me.x - 6, y: me.y + me.h / 2, dir: "right" } }], "韓国出身のエンジニアとして、日本で転職活動をしたときのことです。");
-  const f3 = await snap(stage(bubble("面接官", AGAIN) + bubble("私", A, true), "2回")), qq = await rectOf("[data-them]");
-  const f4 = await snap(stage(bubble("面接官", AGAIN) + bubble("私", A, true), "3回"));
-  await scene(1, [{ file: f3, sec: 1.4, arrow: { x: qq.x + qq.w + 6, y: qq.y + qq.h / 2, dir: "left" } }, { file: f4, sec: 1.8, arrow: { x: qq.x + qq.w + 6, y: qq.y + qq.h / 2, dir: "left" } }], "面接で、同じ質問を3回、聞き返されました。");
+  const tag = `<span style="position:absolute;left:64px;top:36px;background:${YELLOW};color:${INK};font-size:27px;font-weight:800;padding:6px 16px">韓国出身のエンジニア</span>`;
+  const slam = (a, b, c = RED, size = 120) => `<div style="position:absolute;inset:0;background:${INK};color:#fff">${tag}<div style="position:absolute;left:64px;right:64px;top:210px;font-size:58px;font-weight:800">${a}</div><div style="position:absolute;left:64px;right:64px;top:300px;font-size:${size}px;line-height:1.2;font-weight:900;color:${c}">${b}</div></div>`;
+  await scene(1, [
+    { file: await snap(slam("面接で、同じ質問を", "")), sec: 0.7 },
+    { file: await snap(slam("面接で、同じ質問を", "3回、聞き返された。", YELLOW, 92)), sec: 2.6 },
+    { file: await snap(slam("結果は、", "見送り。", RED, 180)), sec: 2.2 },
+  ], "韓国出身のエンジニアとして受けた面接で、同じ質問を3回、聞き返されました。結果は、見送り。");
+
+  const d = JSON.parse(readFileSync(new URL("../public/demo/demo-ja.json", import.meta.url), "utf8"));
+  const [first, last] = [d.steps[0].review, d.steps[1].review];
+  const rows = [["質問に答えている", first.answers_question === "yes", last.answers_question === "yes"], ...steps.filter((x) => !x.optional).map((x) => [x.label, first.steps[x.key].present, last.steps[x.key].present])];
+  if (rows.some(([, a, z]) => a || !z)) throw new Error("the recording no longer goes from all ✗ to all ✓: rewrite the opening");
+  const table = (flipped) => `<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:44px 90px;box-sizing:border-box"><div style="font-size:50px;font-weight:900;margin-bottom:24px">同じ質問に、答え直す</div>
+    <table style="width:100%;border-collapse:collapse;font-size:44px;font-weight:800"><tr style="font-size:26px;color:${SOFT}"><td></td><td style="text-align:center;width:190px">最初</td><td style="text-align:center;width:190px">答え直し</td></tr>
+    ${rows.map(([label], i) => `<tr style="border-top:2px solid #22332b"><td style="padding:16px 0">${label}</td><td style="text-align:center;color:${RED};font-size:62px">✗</td><td data-row="${i}" style="text-align:center;color:${GREEN};font-size:62px">${i < flipped ? "✓" : ""}</td></tr>`).join("")}</table>
+    <div style="position:absolute;right:90px;bottom:26px;font-size:20px;color:${SOFT};font-weight:600">実際の出力の録画</div></div>`;
+  const frames = [...(await reveal("聞かれたことに、", "答えていなかった。", INK, "#fff", RED)), { file: await snap(table(0)), sec: 1.1 }];
+  for (let k = 1; k <= rows.length; k++) {
+    const file = await snap(table(k)), r = await rectOf(`[data-row="${k - 1}"]`);
+    frames.push({ file, sec: 0.6, arrow: { x: r.x + r.w - 20, y: r.y + r.h / 2, dir: "left" } });
+  }
+  await scene(1, frames, "聞かれたことに、答えていなかったんです。答え方を直すと、同じ質問で、バツがチェックに変わります。");
+  await scene(1, [{ file: await snap(`<div style="position:absolute;inset:0;background:${GREEN};color:${INK};display:flex;flex-direction:column;justify-content:center;align-items:center"><div style="font-size:110px;font-weight:900;color:#fff;letter-spacing:18px">✓✓✓✓</div><div style="font-size:82px;font-weight:900;margin-top:12px">見送りで、終わらせない。</div><div style="font-size:40px;font-weight:800;margin-top:22px">面接コーチ</div></div>`), sec: 2.3 }], "見送りで、終わらせない。面接コーチ。");
 }
-await scene(1, await reveal("日本語のせい、", "ではなかった。"), "日本語が下手だったからでは、ありません。");
-await scene(1, await reveal("聞かれたことに、", "答えていなかった。", INK, "#fff", RED), "聞かれたことではなく、準備した答えを話していたんです。");
 
 // A live page in the take's width (one column), for the split screens.
 const APP = { width: 854, height: 720 };
@@ -144,7 +156,7 @@ const appShot = async (page) => { const file = join(dir, `a${String(++n).padStar
 {
   const { ctx, page } = await live("ja");
   const box = await page.locator("#input").boundingBox(), S = 853 / 854;
-  await scene(2, [{ file: await snap(splitHtml(await appShot(page), panelHtml({ title: "だから、\n作りました", note: "メールを貼るだけで、その会社専用の面接コーチに" }))), sec: 2.5, arrow: { x: 427 + (box.x + box.width / 2) * S, y: box.y * S - 6, dir: "down" } }], "だから作りました。メールを貼るだけで、その会社専用の面接コーチになります。");
+  await scene(2, [{ file: await snap(splitHtml(await appShot(page), panelHtml({ title: "メールを\n貼るだけ", note: "その会社専用の面接コーチになります" }))), sec: 2.5, arrow: { x: 427 + (box.x + box.width / 2) * S, y: box.y * S - 6, dir: "down" } }], "メールを貼るだけで、その会社専用の面接コーチになります。");
   await ctx.close();
 }
 
