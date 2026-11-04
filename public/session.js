@@ -2,10 +2,11 @@
 // so Node tests run them without a DOM. Every storage call is wrapped: a full or blocked storage must never
 // turn a paid API result into an error.
 export const SESSION_KEY = "mensetsu-session";
-export const SESSION_VERSION = 2; // 1 (unversioned): question_ja / script.ja, before the pack-neutral field names
+export const SESSION_VERSION = 3; // 1 (unversioned): question_ja / script.ja, before the pack-neutral field names; 2: before company_context.research_brief
 
 const isObj = (v) => v != null && typeof v === "object" && !Array.isArray(v);
 const str = (v) => typeof v === "string";
+const RESEARCH_STATUSES = ["ok", "unavailable"];
 
 export function saveSession(storage, session) {
   try {
@@ -47,7 +48,10 @@ export function migrateSession(s) {
       const { ja, ...script } = a.script;
       return { ...a, script: { ...script, text: ja } };
     });
-  const out = { ...s, version: SESSION_VERSION, company_context: { ...c, facts: Array.isArray(c.facts) ? c.facts : [] }, questions, attempts, notes: isObj(s.notes) ? s.notes : {} };
+  // A bad brief loses only the brief: the questions and attempts must still come back.
+  const { research_brief, ...context } = c;
+  if (isObj(research_brief) && RESEARCH_STATUSES.includes(research_brief.research_status)) context.research_brief = research_brief;
+  const out = { ...s, version: SESSION_VERSION, company_context: { ...context, facts: Array.isArray(c.facts) ? c.facts : [] }, questions, attempts, notes: isObj(s.notes) ? s.notes : {} };
   if (Array.isArray(s.reverse)) out.reverse = s.reverse.filter(isObj).map(({ question_ja, ...r }) => ({ ...r, question: r.question ?? question_ja }));
   return out;
 }

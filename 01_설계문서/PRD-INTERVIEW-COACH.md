@@ -154,7 +154,7 @@
 ## 7. データモデル
 
 - **国別パック**（`packs/jp.json`）：言語ペア、添削ルール18件、4文型の基準、模範回答の形式、質問分類（段階2、カテゴリ4）、面接文化ノート、毎日の質問10問。
-- **セッション**（ブラウザ localStorage）：`{ version, pack, company_context, questions[], attempts[{ question_id, answer, review, script }], specificity, notes }`。~~書き込むだけで、リロード時には読み込みません~~ → 11/03 実装：アクセスコード確認後に復元（REL-4）。`version` 2、旧フィールド名（`question_ja`・`ja`）のセッションは migrate（`public/session.js`）。
+- **セッション**（ブラウザ localStorage）：`{ version, pack, company_context, questions[], attempts[{ question_id, answer, review, script }], specificity, notes }`。~~書き込むだけで、リロード時には読み込みません~~ → 11/03 実装：アクセスコード確認後に復元（REL-4）。`version` 3（11/04：`company_context.research_brief` を追加、本項目のない v2 もそのまま読み込み）、旧フィールド名（`question_ja`・`ja`）のセッションは migrate（`public/session.js`）。
 - **API エラー**：`{ code, max?, max_mb? }`（`attachment_too_large` は `max_mb`）。画面が文章に変換します。
 - **スクリプト応答**：`{ text, parts, closing?, issues[], reading?, translation?, points[], kana? }`（`reading`・`translation`・`kana` の `?` は目的地の言語 = 母語ならなし。`kana` は JP 発音のひらがな原文で、音読の比較用。`parts` は段階キー → 文、`closing` はパックに締めの定義がある場合のみ、`issues` はソフトゲートのルール名（`[]` = 違反なし））。モデルに送るスキーマの本文キーは目的地コード（`ja`/`ko`）で、API が `text` に変換します（§16）。
 

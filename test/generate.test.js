@@ -249,7 +249,8 @@ const B = { question: "前職で最も大変だったことは何ですか？", 
 
 test("models: one table, grading on Opus, generation on Sonnet", () => {
   // F10 added a generation stage (reverse questions) on Sonnet; grading stays on Opus.
-  assert.deepEqual(MODELS, { questions: "claude-sonnet-5-5", script: "claude-sonnet-5-5", reverse: "claude-sonnet-5-5", review: "claude-opus-5-5" });
+  // Intent unchanged (one pinned table): stage R added its search and fit models 11/04.
+  assert.deepEqual(MODELS, { questions: "claude-sonnet-5-5", script: "claude-sonnet-5-5", reverse: "claude-sonnet-5-5", review: "claude-opus-5-5", research: "claude-haiku-5-5", fit: "claude-sonnet-5-5" });
   assert.equal(buildQuestionRequest(pack, "M").model, MODELS.questions);
   assert.equal(buildScriptRequest(pack, { question: "Q", answer: "A" }).model, MODELS.script);
   assert.equal(buildReviewRequest(pack, B).model, MODELS.review);

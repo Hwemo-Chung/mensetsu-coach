@@ -1,9 +1,10 @@
 import { checkAccess, rateLimit, limited } from "../lib/guard.js";
 import { sttEnabled } from "../lib/stt.js";
+import { researchEnabled } from "../lib/research.js";
 
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 
-// Checks the access code before the chat moves on. Calls no AI. stt: whether the UI may offer 🎤 recording.
+// Checks the access code before the chat moves on. Calls no AI. stt: whether the UI may offer 🎤 recording. research: whether it may offer stage R.
 export async function POST(request) {
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   // Only wrong codes count (reviews 11/03: a venue behind one IP was locked out by page reloads with the right code).
@@ -14,5 +15,5 @@ export async function POST(request) {
     rateLimit(fails, { limit: 20 });
     return json(401, { code: "access_denied" });
   }
-  return json(200, { ok: true, stt: sttEnabled() });
+  return json(200, { ok: true, stt: sttEnabled(), research: researchEnabled() });
 }

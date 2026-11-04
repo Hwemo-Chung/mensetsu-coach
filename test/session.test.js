@@ -43,6 +43,36 @@ test("broken, empty or future sessions load as null", () => {
   }
 });
 
+test("a version-2 session without research fields loads and gains none", () => {
+  const raw = JSON.stringify({ ...session, version: 2 });
+  const s = loadSession(memory({ [SESSION_KEY]: raw }));
+  assert.equal(SESSION_VERSION, 3);
+  assert.equal(s.version, 3);
+  assert.deepEqual(s.questions, session.questions);
+  assert.deepEqual(s.attempts, session.attempts);
+  assert.ok(!("research_brief" in s.company_context), "no brief is invented");
+  assert.ok(!("research_status" in s));
+});
+
+test("a stored research brief round-trips inside company_context", () => {
+  const brief = { research_status: "ok", research_date: "2026-11-04", company_snapshot: {}, sources: [] };
+  const s = memory();
+  saveSession(s, { ...session, company_context: { ...session.company_context, research_brief: brief } });
+  assert.deepEqual(loadSession(s).company_context.research_brief, brief);
+  const failed = { research_status: "unavailable", research_date: "2026-11-04" };
+  saveSession(s, { ...session, company_context: { ...session.company_context, research_brief: failed } });
+  assert.deepEqual(loadSession(s).company_context.research_brief, failed);
+});
+
+test("a malformed brief is dropped; the practice session still loads", () => {
+  for (const bad of ["text", 1, [], null, {}, { research_status: "maybe" }]) {
+    const s = migrateSession({ ...session, version: 3, company_context: { ...session.company_context, research_brief: bad } });
+    assert.ok(s, JSON.stringify(bad));
+    assert.ok(!("research_brief" in s.company_context), JSON.stringify(bad));
+    assert.deepEqual(s.questions, session.questions);
+  }
+});
+
 test("version-1 sessions (question_ja, script.ja, reverse question_ja) migrate to the neutral names", () => {
   const old = {
     company_context: { company: "〇〇株式会社", position: "SE" }, // no facts in very old sessions
