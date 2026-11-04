@@ -116,10 +116,10 @@ const big = (a, b, bg = INK, ca = "#fff", cb = GREEN) => `<div style="position:a
   const tag = `<span style="position:absolute;left:64px;top:36px;background:${YELLOW};color:${INK};font-size:27px;font-weight:800;padding:6px 16px">韓国出身のエンジニア</span>`;
   const slam = (a, b, c = RED, size = 120) => `<div style="position:absolute;inset:0;background:${INK};color:#fff">${tag}<div style="position:absolute;left:64px;right:64px;top:210px;font-size:58px;font-weight:800">${a}</div><div style="position:absolute;left:64px;right:64px;top:300px;font-size:${size}px;line-height:1.2;font-weight:900;color:${c}">${b}</div></div>`;
   await scene(1, [
-    { file: await snap(slam("面接で、同じ質問を", "")), sec: 0.7 },
-    { file: await snap(slam("面接で、同じ質問を", "3回、聞き返された。", YELLOW, 92)), sec: 2.6 },
+    { file: await snap(slam("以前の面接で、同じ質問を", "")), sec: 0.7 },
+    { file: await snap(slam("以前の面接で、同じ質問を", "3回、聞き返された。", YELLOW, 92)), sec: 2.6 },
     { file: await snap(slam("結果は、", "見送り。", RED, 180)), sec: 2.2 },
-  ], "韓国出身のエンジニアとして受けた面接で、同じ質問を3回、聞き返されました。結果は、見送り。");
+  ], "韓国出身のエンジニアとして、以前受けた面接で、同じ質問を3回、聞き返されました。結果は、見送り。");
 
   const d = JSON.parse(readFileSync(new URL("../public/demo/demo-ja.json", import.meta.url), "utf8"));
   const [first, last] = [d.steps[0].review, d.steps[1].review];
