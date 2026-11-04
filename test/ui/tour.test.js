@@ -72,7 +72,8 @@ test("tour: 10 steps — action then result is spotlit, whole page dimmed, Back 
   const card = page.locator("#log > .msg.brief.spot");
   await card.waitFor();
   const text = await card.innerText();
-  for (const s of [ko.research.fictional, ko.research.mismatch, demo.brief.mismatch_flags[0].side_a.quote, demo.brief.mismatch_flags[0].verify_prompt]) assert.ok(text.includes(s), s);
+  for (const s of [ko.research.fictional, ko.research.mismatch, demo.brief.mismatch_flags[0].side_a.quote, demo.brief.mismatch_flags[0].verify_prompt, ko.research.conditions_, ko.research.axis.overtime, ko.research.status.unmet]) assert.ok(text.includes(s), s);
+  assert.ok(!text.includes(ko.research.memoTitle), "no memo form in the sample: nothing may be stored");
   assert.equal(await card.getByRole("button", { name: ko.research.rerun }).count(), 0);
   await framed(page, "3");
   await flagInSight(page);

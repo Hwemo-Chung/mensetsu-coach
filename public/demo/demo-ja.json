@@ -316,7 +316,7 @@
     ],
     "source_count": 1,
     "single_source": true,
-    "applies_to_position": true,
+    "applies_to_position": false,
     "position_match": "exact"
    },
    "required_skills": [
@@ -328,12 +328,58 @@
      ],
      "source_count": 1,
      "single_source": true,
-     "applies_to_position": true,
+     "applies_to_position": false,
      "position_match": "exact"
     }
-   ]
+   ],
+   "employment": {
+    "value": "正社員（架空）",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "kind": "seishain"
+   },
+   "overtime": {
+    "value": "月平均25時間（架空）",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "monthly_hours": 25
+   },
+   "work_location": {
+    "value": "東京都（架空）",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact"
+   },
+   "client_site_work": {
+    "value": "顧客先常駐なしと記載（架空）",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "stated": "stated_no"
+   }
   },
-  "reputation_themes": [],
   "interview_intelligence": {
    "selection_stages": [],
    "reported_questions": [
@@ -397,19 +443,42 @@
    {
     "id": "s1",
     "title": "サンプルロジ 会社概要（架空）",
-    "url": "https://example.com/samplelogi/about"
+    "url": "https://example.com/samplelogi/about",
+    "source_type": "official_careers",
+    "fetched": false
    },
    {
     "id": "s2",
     "title": "サンプルロジ 採用情報: エンジニアリングマネージャー（架空）",
-    "url": "https://example.com/samplelogi/careers"
+    "url": "https://example.com/samplelogi/careers",
+    "source_type": "official_careers",
+    "fetched": false
    },
    {
     "id": "s3",
     "title": "サンプルロジ ニュース（架空）",
     "url": "https://example.com/samplelogi/news",
-    "published_date": "2026-10-01"
+    "published_date": "2026-10-01",
+    "source_type": "official_careers",
+    "fetched": false
    }
-  ]
+  ],
+  "coverage": {
+   "searches": 4,
+   "fetches": 3,
+   "search_ok": 4,
+   "search_failed": 0,
+   "fetch_ok": 3,
+   "fetch_failed": 0,
+   "budget_exhausted": false
+  }
+ },
+ "sample_profile": {
+  "min_salary_man": "700",
+  "max_overtime_hours": "20",
+  "employment_required": "seishain",
+  "locations": "東京",
+  "excluded_roles": "デリバリー専任",
+  "exclude_client_site": "1"
  }
 }

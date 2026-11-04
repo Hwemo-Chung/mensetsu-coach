@@ -108,7 +108,7 @@ function tourScenes(d, say, onTry) {
   return [
     async () => (await say(d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail)) && send,
     async () => { const b = renderQuestions(d); openByDefault(); return b; },
-    async () => { const b = renderBrief(d.brief, d.company_context); b.querySelector(".title").after(el("p", "caution", T().research.fictional), b.querySelector(".fit-flags")); return b; }, // a tall spotlit card shows its head only, so the flag moves up
+    async () => { const b = renderBrief(d.brief, d.company_context, undefined, false, null, d.sample_profile); b.querySelector(".title").after(el("p", "caution", T().research.fictional), b.querySelector(".fit-flags"), b.querySelector(".fit-conditions")); return b; }, // a tall spotlit card shows its head only, so the flag moves up
     async () => { if (!(await say(String(d.pick + 1)))) return; return bubble("coach", `Q${d.pick + 1}. ${withTr(q)}`); },
     async () => say(d.steps[0].answer),
     async () => { const b = reviewed(d.steps[0].review); showReview(d.steps[0].review); return inPanel(":scope > .review", b); },

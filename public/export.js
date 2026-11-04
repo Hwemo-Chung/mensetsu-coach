@@ -1,3 +1,5 @@
+import { selectCheckpoints } from "./conditions.js";
+
 // F6: turns the browser session into one Markdown document. Pure function, so tests run it in Node.
 // Same patterns and order as lib/privacy.js maskInput (public/ cannot import lib/; test/export.test.js keeps them equal).
 const EMAIL = /[\w.+-]+[@＠][\w-]+(\.[\w-]+)+/g;
@@ -97,7 +99,9 @@ export function linkable(url) {
   }
 }
 
-export const SNAPSHOT_FIELDS = ["business", "business_model", "size", "founded", "locations"];
+export const SNAPSHOT_FIELDS = ["legal_name", "business", "business_model", "size", "founded", "locations", "ownership"];
+// Only what the code saw: a page read without the value, or not researched. Never "does not exist".
+export const unknownText = (c, r) => r.unknownKind[c?.unknown_kind] ?? r.notFound;
 // A claim counts only with a surviving source (gate 2), so a brief written by hand or edited in storage cannot show one without.
 export const claimFound = (c) => typeof c?.value === "string" && c.value !== "not_found" && c.source_count > 0;
 export const citedIds = (c) => (Array.isArray(c?.source_ids) ? c.source_ids : []);
@@ -106,13 +110,13 @@ const listOf = (v) => (Array.isArray(v) ? v : []);
 
 const objects = (v) => listOf(v).filter((x) => x && typeof x === "object");
 
-// What may leave the browser for the question call: sourced facts only. Reputation, pay and conditions stay out, and the fit
+// What may leave the browser for the question call: sourced facts only. Self-claims, pay and conditions stay out, and the fit
 // sections stay out because they can quote the desired profile, which only the fit call may receive.
 export function briefFacts(b) {
   if (b?.research_status !== "ok") return [];
   const fact = (kind) => (c) => (claimFound(c) ? [{ kind, text: c.value, source_ids: citedIds(c) }] : []);
   const co = b.company_snapshot, pos = b.position_analysis;
-  const thisPosition = [pos?.actual_work, pos?.team_context, ...listOf(pos?.required_skills), ...listOf(pos?.preferred_skills)].filter((c) => c?.applies_to_position === true);
+  const thisPosition = [pos?.actual_work, pos?.team_context, ...listOf(pos?.required_skills), ...listOf(pos?.preferred_skills)].filter((c) => c?.position_match === "exact"); // a matching posting is good enough to prepare from, unlike to compare conditions against
   return [
     ...SNAPSHOT_FIELDS.flatMap((k) => fact("company")(co?.[k])),
     ...listOf(co?.recent_news).flatMap(fact("news")),
@@ -160,11 +164,14 @@ function researchSection(session, t) {
   out.push(`### ${r.snapshot}`, "");
   for (const k of SNAPSHOT_FIELDS) {
     const c = b.company_snapshot?.[k];
-    out.push(`- ${r.fields[k]}: ${claimFound(c) ? `${inert(c.value)} (${claimMeta(c, r).map(inert).join(", ")})` : r.notFound}`);
+    out.push(`- ${r.fields[k]}: ${claimFound(c) ? `${inert(c.value)} (${claimMeta(c, r).map(inert).join(", ")})` : unknownText(c, r)}`);
   }
   out.push("", `### ${r.role}`, "", r.match[b.position_analysis?.position_match] ?? r.match.unknown);
   const checks = listOf(b.company_checkpoints).filter((c) => c?.question);
   if (checks.length) out.push("", `### ${r.checkpoints}`, "", ...checks.map((c) => { const ids = citedIds(c).map(inert).join(", "); return `- ${r.ask[c.ask] ? `${r.ask[c.ask]}: ` : ""}${inert(c.question)}${ids ? ` (${ids})` : ""}`; }));
+  // No condition rows and no memo here: they are the user's own wishes and would read as a grade once the file is shared. The general questions are safe.
+  const guide = selectCheckpoints(b.guides?.checkpoint_templates).filter((c) => typeof c?.text === "string");
+  if (guide.length) out.push("", `### ${r.guideTitle}`, "", ...guide.map((c) => `- ${inert(r.audience[c.audience] ?? "")}: ${inert(c.text)}`));
   const lines = sources.map((s) => { const url = linkable(s.url); return `- ${mask(`${s.id}: ${inert(s.title)}`)}${url ? ` — ${url}` : ""}`; });
   return mask(out.join("\n")) + (lines.length ? `\n\n### ${r.sourceList}\n\n${lines.join("\n")}` : "");
 }

@@ -3,13 +3,14 @@
   "blocks": [
     { "type": "thinking", "thinking": "", "signature": "synthetic-signature" },
     { "type": "server_tool_use", "id": "srvtoolu_s1", "name": "web_search", "input": { "query": "株式会社サンプルテック（仮） プロダクトマネージャー 採用" } },
-    { "type": "server_tool_use", "id": "srvtoolu_s2", "name": "web_search", "input": { "query": "株式会社サンプルテック（仮） 面接 口コミ" } },
+    { "type": "server_tool_use", "id": "srvtoolu_s2", "name": "web_search", "input": { "query": "株式会社サンプルテック（仮） 面接" } },
     { "type": "web_search_tool_result", "tool_use_id": "srvtoolu_s1", "content": [
       { "type": "web_search_result", "title": "株式会社サンプルテック（仮） 採用情報", "url": "https://example.com/sampletech/careers", "encrypted_content": "synthetic", "page_age": "October 1, 2026" },
       { "type": "web_search_result", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "encrypted_content": "synthetic", "page_age": null }
     ] },
     { "type": "web_search_tool_result", "tool_use_id": "srvtoolu_s2", "content": [
-      { "type": "web_search_result", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "encrypted_content": "synthetic", "page_age": "September 12, 2026" }
+      { "type": "web_search_result", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "encrypted_content": "synthetic", "page_age": "September 12, 2026" },
+      { "type": "web_search_result", "title": "株式会社サンプルテック（仮） 面接体験", "url": "https://example.com/interviews/sampletech", "encrypted_content": "synthetic", "page_age": null }
     ] },
     { "type": "server_tool_use", "id": "srvtoolu_f1", "name": "web_fetch", "input": { "url": "https://example.com/sampletech/careers" } },
     { "type": "web_fetch_tool_result", "tool_use_id": "srvtoolu_f1", "content": { "type": "web_fetch_result", "url": "https://example.com/sampletech/careers", "retrieved_at": "2026-11-04T00:00:00Z", "content": { "type": "document", "source": { "type": "text", "media_type": "text/plain", "data": "架空の企業の架空の採用ページです。" }, "title": "採用情報" } } }
@@ -29,20 +30,24 @@
       "team_context": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
       "required_skills": [{ "value": "要件定義の経験（架空）", "source_ids": ["official"], "confidence": "medium" }],
       "preferred_skills": [],
-      "salary": { "value": "年収600万〜800万円（架空。保証ではない）", "source_ids": ["official"], "confidence": "medium", "bonus_included": "unknown", "overtime_pay_included": "unknown" },
+      "salary": { "value": "年収600万〜800万円（架空。保証ではない）", "source_ids": ["official"], "confidence": "medium", "bonus_included": "unknown", "overtime_pay_included": "unknown", "min_jpy": 6000000, "max_jpy": 8000000, "fixed_overtime_hours": null },
+      "employment": { "value": "正社員（架空）", "source_ids": ["official"], "confidence": "medium", "kind": "seishain" },
+      "overtime": { "value": "not_found", "source_ids": ["official"], "confidence": "unknown", "monthly_hours": null },
+      "work_location": { "value": "東京都千代田区（架空）", "source_ids": ["official"], "confidence": "medium" },
+      "work_style": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
+      "client_site_work": { "value": "not_found", "source_ids": [], "confidence": "unknown", "stated": "unstated" },
+      "change_scope": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
       "conditions": []
     },
-    "reputation_themes": [
-      { "value": "残業の話題が繰り返し挙がる（架空）", "source_ids": ["reviews"], "confidence": "medium", "polarity": "negative", "sample_size": "12件", "representativeness": "low" }
-    ],
     "interview_intelligence": {
-      "selection_stages": [{ "value": "面接2回（架空）", "source_ids": ["reviews"], "confidence": "medium" }],
-      "reported_questions": [{ "value": "当社の製品のどこを改善しますか（架空）", "source_ids": ["reviews"], "confidence": "medium" }]
+      "selection_stages": [{ "value": "面接2回（架空）", "source_ids": ["post"], "confidence": "medium" }],
+      "reported_questions": [{ "value": "当社の製品のどこを改善しますか（架空）", "source_ids": ["post"], "confidence": "medium" }]
     },
     "sources": [
       { "id": "official", "title": "株式会社サンプルテック（仮） 採用情報", "url": "https://example.com/sampletech/careers", "published_date": "2026-10-01", "entity_match": "exact", "position_match": "exact", "source_type": "official_careers" },
       { "id": "similar", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "published_date": "", "entity_match": "similar", "position_match": "unknown", "source_type": "official_other" },
-      { "id": "reviews", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "published_date": "2026-09-12", "entity_match": "exact", "position_match": "unknown", "source_type": "review_site" }
+      { "id": "reviews", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "published_date": "2026-09-12", "entity_match": "exact", "position_match": "unknown", "source_type": "review_site" },
+      { "id": "post", "title": "株式会社サンプルテック（仮） 面接体験", "url": "https://example.com/interviews/sampletech", "published_date": "", "entity_match": "exact", "position_match": "unknown", "source_type": "interview_post" }
     ]
   }
 }

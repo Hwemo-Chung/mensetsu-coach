@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { MODELS } from "../lib/claude.js";
+import { loadPack } from "../lib/pack.js";
 import { POST as access } from "../api/access.js";
 import { POST as research } from "../api/research.js";
 import { fakeClient, researchMessage } from "./fake-claude.js";
@@ -32,7 +33,6 @@ const DATE = "2026-11-04";
 const model = (sources, ids = ["s1"]) => ({
   company_snapshot: { business: claim("業務システムの開発", ...ids), business_model: claim("自社製品と受託", ...ids), size: claim("従業員100名", ...ids), founded: claim("2010年", ...ids), locations: claim("東京", ...ids), recent_news: [claim("新製品を発表", ...ids)] },
   position_analysis: { position_match: "exact", actual_work: claim("要件定義と進行管理", ...ids), team_context: claim("5名のチーム", ...ids), required_skills: [claim("Java", ...ids)], preferred_skills: [claim("AWS", ...ids)], salary: { ...claim("600万〜800万円", ...ids), bonus_included: "yes", overtime_pay_included: "no" }, conditions: [claim("残業 月20時間", ...ids)] },
-  reputation_themes: [{ ...claim("残業の話題が多い", ...ids), polarity: "negative", sample_size: "12件", representativeness: "low" }],
   interview_intelligence: { selection_stages: [claim("面接2回", ...ids)], reported_questions: [claim("なぜ弊社を志望しましたか", ...ids)] },
   sources,
 });
@@ -41,7 +41,6 @@ const gate = (m, content = [searchBlock("s1", "s2")], usage = ran) => gateBrief(
 const allClaims = (b) => [
   ...Object.values(b.company_snapshot).flat(),
   ...Object.values(b.position_analysis).filter((v) => typeof v === "object").flat(),
-  ...b.reputation_themes,
   ...Object.values(b.interview_intelligence).flat(),
 ];
 const objectsIn = (schema) => {
@@ -80,7 +79,7 @@ test("model ids: search on Haiku, fit on Sonnet, pinned in MODELS", () => {
 });
 
 test("brief schema has every section, the identity enums and research_status", () => {
-  for (const k of ["research_status", "research_date", "company_snapshot", "position_analysis", "reputation_themes", "interview_intelligence", "fit_evaluation", "mismatch_flags", "company_checkpoints", "sources"]) assert.ok(k in briefSchema.properties, k);
+  for (const k of ["research_status", "research_date", "company_snapshot", "position_analysis", "interview_intelligence", "fit_evaluation", "mismatch_flags", "company_checkpoints", "sources"]) assert.ok(k in briefSchema.properties, k);
   assert.deepEqual(briefSchema.properties.research_status.enum, ["ok", "unavailable"]);
   assert.deepEqual(briefSchema.required, ["research_status", "research_date"], "an unavailable brief has no sections");
   assert.ok("needs_user_confirmation" in briefSchema.properties.fit_evaluation.properties);
@@ -179,7 +178,7 @@ test("gate 2: a claim keeps only surviving sources; none left, or none given, is
   const sources = [source("s1")];
   assert.deepEqual(gateClaim(claim("事実", "s1", "dropped"), sources).source_ids, ["s1"]);
   const gone = gateClaim(claim("事実", "dropped"), sources);
-  assert.deepEqual(gone, { value: NOT_FOUND, source_ids: [], confidence: "unknown", source_count: 0, single_source: false });
+  assert.deepEqual(gone, { value: NOT_FOUND, source_ids: [], confidence: "unknown", source_count: 0, single_source: false, unknown_kind: "not_researched" });
   assert.deepEqual(gateClaim(claim("出典なし"), sources), gone);
   assert.deepEqual(gateClaim(undefined, sources), gone);
   assert.deepEqual(gateClaim({ ...claim(NOT_FOUND, "s1"), confidence: "high" }, sources), gone, "the model's own not_found stays one");
@@ -214,7 +213,7 @@ test("gate 4: similar-name results give an honest empty brief, research_status o
   assert.equal(b.research_status, "ok");
   assert.deepEqual(b.sources, []);
   for (const c of [b.company_snapshot.business, b.company_snapshot.size, b.position_analysis.actual_work, b.position_analysis.salary]) assert.equal(c.value, NOT_FOUND);
-  for (const l of [b.company_snapshot.recent_news, b.position_analysis.conditions, b.reputation_themes, b.interview_intelligence.reported_questions]) assert.deepEqual(l, []);
+  for (const l of [b.company_snapshot.recent_news, b.position_analysis.conditions, b.interview_intelligence.reported_questions]) assert.deepEqual(l, []);
   assert.ok(!JSON.stringify(b).includes("新製品"), "no fact of the other company leaks");
   assert.equal(b.position_analysis.salary.bonus_included, "unknown", "a dropped salary cannot keep its bonus claim");
   assert.equal(b.position_analysis.salary.overtime_pay_included, "unknown");
@@ -234,7 +233,7 @@ test("gate 4: a claim citing a non-exact source is not_found even beside an exac
     m.company_snapshot.recent_news = [claim("別会社のニュース", "s2", "s1"), claim("本物のニュース", "s1")];
     m.position_analysis.salary = { ...claim("年収2000万（別企業の数字）", "s1", "s2"), bonus_included: "yes", overtime_pay_included: "no" };
     const b = gate(m);
-    assert.deepEqual(b.company_snapshot.size, { value: NOT_FOUND, source_ids: [], confidence: "unknown", source_count: 0, single_source: false }, entity_match);
+    assert.deepEqual(b.company_snapshot.size, { value: NOT_FOUND, source_ids: [], confidence: "unknown", source_count: 0, single_source: false, unknown_kind: "not_researched" }, entity_match);
     assert.deepEqual(b.company_snapshot.recent_news.map((c) => c.value), ["本物のニュース"]);
     assert.equal(b.position_analysis.salary.value, NOT_FOUND);
     assert.equal(b.position_analysis.salary.bonus_included, "unknown");
@@ -265,9 +264,13 @@ test("gates 3 and 4: a source id the model used twice is void, so a claim cannot
 
 test("gate 5: a condition from a similar posting is labelled and never stated as this position's", () => {
   const sources = [source("x"), source("y", { position_match: "similar" }), source("z", { position_match: "unknown" })];
-  const exact = gatePosition(claim("年収800万", "x"), sources);
+  const exact = gatePosition(claim("年収800万", "x"), sources, url("x"));
   assert.equal(exact.position_match, "exact");
   assert.equal(exact.applies_to_position, true);
+  // Intent changed: a matching job title is not proof it is this offer, so only the posting the user gave speaks for it.
+  const named = gatePosition(claim("年収800万", "x"), sources);
+  assert.equal(named.position_match, "exact");
+  assert.equal(named.applies_to_position, false);
   // Intent changed: one exact source used to clear a claim that also cites a similar posting, whose figures may be the ones stated.
   const mixed = gatePosition(claim("年収800万", "x", "y"), sources);
   assert.equal(mixed.position_match, "similar");
@@ -325,7 +328,6 @@ test("gate 6: reported question wording is cut to 80 characters, by code point",
 
 test("gate 6: no page text is stored: long summaries are cut, tool results and unknown fields never enter the brief", () => {
   const m = model([{ ...source("s1", { title: "題".repeat(1000), published_date: "日".repeat(1000) }), page_text: "ページ全文" }]);
-  m.reputation_themes = [{ ...claim("残業の話題", "s1"), polarity: "negative", sample_size: "件".repeat(1000), representativeness: "low" }];
   m.company_snapshot.business = { ...claim("文".repeat(5000), "s1"), page_text: "ページ全文" };
   m.page_text = "ページ全文";
   const content = [{ ...searchBlock("s1"), secret: "ページ全文" }, { type: "web_fetch_tool_result", content: { type: "web_fetch_result", url: url("s1"), content: { type: "document", source: { data: "ページ全文" } } } }];
@@ -335,13 +337,12 @@ test("gate 6: no page text is stored: long summaries are cut, tool results and u
   assert.equal([...b.company_snapshot.business.value].length, 400);
   assert.equal([...b.sources[0].title].length, 200);
   assert.equal([...b.sources[0].published_date].length, 40);
-  assert.equal([...b.reputation_themes[0].sample_size].length, 40);
   assert.ok(text.length < 8000, `brief is ${text.length} chars`);
 });
 
 // Intent changed: official_careers was trusted as the model's own reading, so a review page saying it is official could strip the label.
 test("interview reports stay unverified: the model's official_careers mark cannot remove the label", () => {
-  for (const source_type of ["interview_post", "review_site", "official_careers"]) {
+  for (const source_type of ["interview_post", "official_careers"]) { // review_site no longer survives at all (decision A)
     const iv = gate(model([source("s1", { url: url("review-site/company/1"), source_type })]), [searchBlock("review-site/company/1")]).interview_intelligence;
     assert.equal(iv.reported_questions[0].label, "reported_unverified", source_type);
     assert.equal(iv.selection_stages[0].label, "reported_unverified", source_type);
@@ -355,11 +356,10 @@ test("every list is capped, so a page cannot be stored whole by splitting it int
   m.position_analysis.required_skills = many;
   m.position_analysis.preferred_skills = many;
   m.position_analysis.conditions = many;
-  m.reputation_themes = many.map((c) => ({ ...c, polarity: "negative", sample_size: "1件", representativeness: "low" }));
   m.interview_intelligence.selection_stages = many;
   m.interview_intelligence.reported_questions = many;
   const b = gate(m);
-  for (const l of [b.company_snapshot.recent_news, b.position_analysis.required_skills, b.position_analysis.preferred_skills, b.position_analysis.conditions, b.reputation_themes, b.interview_intelligence.selection_stages, b.interview_intelligence.reported_questions]) assert.equal(l.length, 10);
+  for (const l of [b.company_snapshot.recent_news, b.position_analysis.required_skills, b.position_analysis.preferred_skills, b.position_analysis.conditions, b.interview_intelligence.selection_stages, b.interview_intelligence.reported_questions]) assert.equal(l.length, 10);
 });
 
 test("the cap counts surviving claims: dropped items do not use it up", () => {
@@ -380,7 +380,6 @@ test("contact details from the web are redacted before anything is stored", () =
   m.company_snapshot.business = claim(`問い合わせ ${contact}`, "s1");
   m.company_snapshot.recent_news = [claim(`広報 ${contact}`, "s1")];
   m.position_analysis.salary = { ...claim(`担当 ${contact}`, "s1"), bonus_included: "yes", overtime_pay_included: "no" };
-  m.reputation_themes = [{ ...claim(`投稿者 ${contact}`, "s1"), polarity: "negative", sample_size: contact, representativeness: "low" }];
   m.interview_intelligence.selection_stages = [claim(`連絡先 ${contact}`, "s1")];
   m.interview_intelligence.reported_questions = [claim("面接官 03-1234-5678 が聞いた", "s1")];
   const text = JSON.stringify(gate(m));
@@ -401,7 +400,6 @@ test("a URL in model text never becomes a link: real links come only from a sour
   const bare = "詳細は https://evil.example/a または HTTP://evil.example/b、ftp://evil.example/c、https://www.evil.example、www.evil.example を参照";
   const m = model([source("s1", { title: bare })]);
   m.company_snapshot.business = claim(bare, "s1");
-  m.reputation_themes = [{ ...claim(bare, "s1"), polarity: "negative", sample_size: bare, representativeness: "low" }];
   m.interview_intelligence.reported_questions = [claim(`https://evil.example/q を参照`, "s1")];
   const b = gate(m);
   const { sources: [kept], ...rest } = b;
@@ -470,7 +468,10 @@ test("a real search with no hits is an honest empty brief, not a failure", () =>
 });
 
 test("a good brief keeps sourced facts, know-how fields and the research date", () => {
-  const b = gate(model([source("s1", { published_date: "2026-10-01" }), source("s2")], ["s1", "s2"]));
+  const full = model([source("s1", { published_date: "2026-10-01" }), source("s2")], ["s1", "s2"]);
+  for (const k of ["legal_name", "ownership"]) full.company_snapshot[k] = claim("記載あり", "s1", "s2");
+  for (const k of ["employment", "overtime", "work_location", "work_style", "client_site_work", "change_scope"]) full.position_analysis[k] = claim("記載あり", "s1", "s2");
+  const b = gate(full);
   assert.equal(b.research_status, "ok");
   assert.equal(b.research_date, DATE);
   assert.equal(b.company_snapshot.business.value, "業務システムの開発");
@@ -479,10 +480,8 @@ test("a good brief keeps sourced facts, know-how fields and the research date", 
   assert.equal(b.company_snapshot.business.single_source, false);
   assert.deepEqual(b.position_analysis.salary.bonus_included, "yes");
   assert.deepEqual(b.position_analysis.salary.overtime_pay_included, "no");
-  assert.equal(b.position_analysis.salary.applies_to_position, true);
-  const theme = b.reputation_themes[0];
-  assert.deepEqual([theme.polarity, theme.sample_size, theme.representativeness], ["negative", "12件", "low"]);
-  assert.deepEqual(b.sources[0], { id: "s1", title: `${COMPANY} s1`, url: url("s1"), accessed_date: DATE, published_date: "2026-10-01", entity_match: "exact", position_match: "exact", source_type: "news" });
+  assert.equal(b.position_analysis.salary.position_match, "exact"); // applies_to_position now needs the user's posting URL
+  assert.deepEqual(b.sources[0], { id: "s1", title: `${COMPANY} s1`, url: url("s1"), accessed_date: DATE, retrieved_at: "", page_age: "", fetched: false, published_date: "2026-10-01", entity_match: "exact", position_match: "exact", source_type: "news" });
   for (const c of allClaims(b)) assert.ok(Array.isArray(c.source_ids) && c.source_count > 0, JSON.stringify(c));
 });
 
@@ -541,13 +540,16 @@ test("the schema on the wire shares repeated shapes through $defs and means exac
     assert.deepEqual([...d.required].sort(), Object.keys(d.properties).sort());
   }
   const shapes = Object.values($defs).filter((d) => "value" in d.properties && "confidence" in d.properties);
-  assert.equal(shapes.length, 3, "the plain claim, salary and the reputation theme: 25 claims must not expand into the grammar");
+  // Intent changed: the reputation theme left with decision A; employment, overtime and client_site_work joined.
+  assert.equal(shapes.length, 5, "plain claim, salary, employment, overtime, client site: 40 claims must not expand into the grammar");
 });
 
 test("the search prompt: Japanese first, source priority, public pages only, web content is untrusted data", () => {
   const { system, messages } = buildResearchRequest(COMPANY, POSITION, "en", "2026-11-04");
   assert.match(system, /日本語.*先/);
-  const order = ["公式", "IR", "採用", "報道", "口コミ", "面接体験"].map((w) => system.indexOf(w));
+  // Intent changed (decision A): review sites left the priority order because the server no longer collects them.
+  assert.doesNotMatch(system, /口コミ/);
+  const order = ["公式", "IR", "採用", "報道", "面接体験"].map((w) => system.indexOf(w));
   assert.ok(order.every((n) => n >= 0), "every source class is named");
   assert.deepEqual([...order].sort((a, b) => a - b), order, "in priority order");
   assert.match(system, /12か月/);
@@ -572,7 +574,7 @@ test("guardrail 1: the request sent holds no mail, profile or attachment text, w
   const sent = JSON.stringify(client.requests[0]);
   assert.ok(sent.includes(COMPANY) && sent.includes(POSITION));
   assert.ok(!sent.includes(MAIL) && !sent.includes(PROFILE));
-  assert.deepEqual(client.requests[0], buildResearchRequest(COMPANY, POSITION, "ja", today()), "built from the two names and nothing else");
+  assert.deepEqual(client.requests[0], buildResearchRequest(COMPANY, POSITION, "ja", today(), { pack: loadPack("jp") }), "built from the two names and the pack's blocklist, nothing else");
 });
 
 // Intent changed: a masked name used to be searched as a string nobody confirmed; it is now refused. Contacts still never reach the search.
@@ -632,12 +634,12 @@ test("POST: the fixture run gives a gated brief, with the similar-name company's
   const b = await res.json();
   assert.equal(b.research_status, "ok");
   assert.equal(b.research_date, today());
-  assert.deepEqual(b.sources.map((s) => s.url), ["https://example.com/sampletech/careers", "https://example.com/reviews/sampletech"]);
+  assert.deepEqual(b.sources.map((s) => s.url), ["https://example.com/sampletech/careers", "https://example.com/interviews/sampletech"], "the review page is dropped by the code gate (decision A)");
   assert.equal(b.company_snapshot.size.value, NOT_FOUND);
   // Intent changed: this claim cites the official page and a similar company's, and used to survive on the official one; gate 4 cannot tell whose fact it states.
   assert.equal(b.company_snapshot.business.value, NOT_FOUND);
   assert.equal(b.company_snapshot.business_model.source_count, 1);
-  assert.equal(b.position_analysis.salary.applies_to_position, true);
+  assert.equal(b.position_analysis.salary.position_match, "exact"); // applies_to_position now needs the user's posting URL
   assert.equal(b.position_analysis.salary.bonus_included, "unknown");
   assert.equal(b.interview_intelligence.reported_questions[0].label, "reported_unverified");
   assert.ok(!JSON.stringify(b).includes("架空の企業の架空の採用ページ"), "no page text");
@@ -806,4 +808,184 @@ test("query log: a run writes its real queries from every turn and nothing else;
 
 test("vercel.json gives the route 120 s, as the spec fixes", () => {
   assert.equal(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration, 120);
+});
+
+// Criteria v2.
+const fetched = (p, extra = {}) => ({ type: "web_fetch_tool_result", tool_use_id: "t9", content: { type: "web_fetch_result", url: url(p), retrieved_at: "2026-11-04T01:02:03Z", content: { type: "document" }, ...extra } });
+const JP = { research: { review_sites: [{ name: "レビュー（架空）", url: "https://www.review.example/" }, { name: "別（架空）", url: "https://other.example/x" }], banned_terms: ["違法", "ブラック企業"], fair_hiring_patterns: ["本籍", "家族"], checkpoint_templates: [{ axis: "common", audience: "agent", ask: "agent", text: "確認（架空）" }] } };
+const blank = (m) => { for (const k of Object.keys(m.company_snapshot)) if (!Array.isArray(m.company_snapshot[k])) m.company_snapshot[k] = claim(NOT_FOUND); return m; };
+
+test("decision A: no review section in the schema, and the code gate drops a review source that is exact and really in the results", () => {
+  assert.ok(!("reputation_themes" in extractionSchema.properties));
+  assert.ok(!("reputation_themes" in briefSchema.properties));
+  const m = { ...model([source("s1", { source_type: "official_other" }), source("s2", { source_type: "review_site" })]), reputation_themes: [{ ...claim("残業の話題", "s2"), polarity: "negative" }] };
+  m.company_snapshot.size = claim("従業員100名", "s2");
+  m.company_snapshot.founded = claim("2010年", "s1", "s2");
+  const b = gate(m);
+  assert.deepEqual(b.sources.map((s) => s.url), [url("s1")]);
+  assert.ok(!("reputation_themes" in b));
+  assert.equal(b.company_snapshot.size.value, NOT_FOUND);
+  assert.equal(b.company_snapshot.founded.value, NOT_FOUND, "a claim that also cites a review page may be stating its figures");
+});
+
+test("blocked_domains come from the pack, on both tools; a pack without them sends none", () => {
+  const { tools } = buildResearchRequest(COMPANY, POSITION, "ja", DATE, { pack: JP });
+  for (const t of tools) assert.deepEqual(t.blocked_domains, ["review.example", "other.example"], t.name);
+  for (const t of buildResearchRequest(COMPANY, POSITION, "ja", DATE, { pack: {} }).tools) assert.ok(!("blocked_domains" in t));
+});
+
+test("read_no_value only for a page really fetched; everything else is not_researched", () => {
+  const m = blank(model([source("s1"), source("s2")]));
+  m.company_snapshot.size = claim(NOT_FOUND, "s1");
+  m.company_snapshot.founded = claim(NOT_FOUND, "s2");
+  m.company_snapshot.locations = claim(NOT_FOUND);
+  const b = gate(m, [searchBlock("s1", "s2"), fetched("s1")]);
+  assert.equal(b.company_snapshot.size.unknown_kind, "read_no_value");
+  assert.deepEqual(b.company_snapshot.size.checked_source_ids, ["s1"]);
+  assert.deepEqual(b.company_snapshot.size.source_ids, [], "a checked page is not evidence for the claim");
+  assert.equal(b.company_snapshot.founded.unknown_kind, "not_researched", "search result only");
+  assert.equal(b.company_snapshot.locations.unknown_kind, "not_researched", "cited nothing");
+  const failed = gate(blank(model([source("s1")])), [searchBlock("s1"), { ...fetchError, content: { ...fetchError.content, url: url("s1") } }]);
+  assert.equal(failed.company_snapshot.size.unknown_kind, "not_researched", "a failed fetch read nothing");
+  assert.equal(b.company_snapshot.business.value, NOT_FOUND);
+});
+
+test("sources carry fetched, retrieved_at and page_age from the tool results, not from the model", () => {
+  const search = { ...searchBlock("s1", "s2") };
+  search.content[0].page_age = "October 1, 2026";
+  const b = gate(model([source("s1", { fetched: true, retrieved_at: "1999" }), source("s2", { fetched: true, retrieved_at: "1999" })]), [search, fetched("s1")]);
+  assert.deepEqual([b.sources[0].fetched, b.sources[0].retrieved_at, b.sources[0].page_age], [true, "2026-11-04T01:02:03Z", "October 1, 2026"]);
+  assert.deepEqual([b.sources[1].fetched, b.sources[1].retrieved_at, b.sources[1].page_age], [false, "", ""]);
+});
+
+test("coverage is counted from the blocks; the use cap is budget, not failure", () => {
+  const call = (name, id) => ({ type: "server_tool_use", id, name, input: {} });
+  const b = gate(model([source("s1")]), [call("web_search", "a"), call("web_search", "b"), call("web_fetch", "c"), call("web_fetch", "d"), searchBlock("s1"), maxUsesError, fetched("s1"), fetchError]);
+  assert.deepEqual(b.coverage, { searches: 2, fetches: 2, search_ok: 1, search_failed: 1, fetch_ok: 1, fetch_failed: 1, budget_exhausted: true });
+  assert.equal(gate(model([source("s1")])).coverage.budget_exhausted, false);
+});
+
+test("figures survive only if the claim's own text states them", () => {
+  const m = model([source("s1")]);
+  m.position_analysis.salary = { ...claim("年収700〜900万円（賞与込み）、固定残業45時間", "s1"), bonus_included: "yes", overtime_pay_included: "yes", min_jpy: 7_000_000, max_jpy: 12_000_000, fixed_overtime_hours: 45 };
+  m.position_analysis.overtime = { ...claim("月平均２０時間", "s1"), monthly_hours: 20 };
+  const pos = gate(m).position_analysis;
+  assert.deepEqual([pos.salary.min_jpy, pos.salary.max_jpy, pos.salary.fixed_overtime_hours], [7_000_000, null, 45], "12,000,000 is not in the text");
+  assert.equal(pos.overtime.monthly_hours, 20);
+  m.position_analysis.salary = { ...claim("年収 7,000,000円", "s1"), min_jpy: 7_000_000, max_jpy: "7000000" };
+  assert.deepEqual([gate(m).position_analysis.salary.min_jpy, gate(m).position_analysis.salary.max_jpy], [7_000_000, null], "commas are normalized; a non-integer is not a figure");
+  m.position_analysis.salary = { ...claim(NOT_FOUND), min_jpy: 7_000_000 };
+  assert.equal(gate(m).position_analysis.salary.min_jpy, null);
+});
+
+test("the new position fields default to unknown and a similar posting keeps its label", () => {
+  const m = model([source("s1", { position_match: "similar" })]);
+  m.position_analysis.employment = { ...claim("正社員", "s1"), kind: "seishain" };
+  m.position_analysis.client_site_work = { ...claim("常駐なし", "s1"), stated: "stated_no" };
+  m.position_analysis.work_location = claim("東京", "s1");
+  const pos = gate(m).position_analysis;
+  assert.equal(pos.employment.kind, "seishain");
+  assert.equal(pos.employment.position_match, "similar");
+  assert.equal(pos.client_site_work.stated, "stated_no");
+  assert.equal(pos.work_location.value, "東京");
+  const bare = gate(model([source("s1")])).position_analysis;
+  assert.equal(bare.employment.kind, "unknown");
+  assert.equal(bare.client_site_work.stated, "unstated");
+  assert.equal(bare.overtime.monthly_hours, null);
+  m.position_analysis.employment = { ...claim("正社員", "s1"), kind: "anything" };
+  assert.equal(gate(m).position_analysis.employment.kind, "unknown");
+});
+
+test("self claims stay apart from the facts and need a source like everything else", () => {
+  const m = model([source("s1")]);
+  m.company_snapshot.self_claims = [claim("顧客満足度No.1（自社調べ）", "s1"), claim("業界最高水準", "gone")];
+  m.company_snapshot.legal_name = claim("株式会社サンプルテック（仮）", "s1");
+  m.company_snapshot.financials = [claim("2026年3月期 売上高10億円（架空）", "s1")];
+  const co = gate(m).company_snapshot;
+  assert.deepEqual(co.self_claims.map((c) => c.value), ["顧客満足度No.1（自社調べ）"]);
+  assert.equal(co.legal_name.source_count, 1);
+  assert.equal(co.financials.length, 1);
+});
+
+test("source conflicts need both sides sourced; an empty list claims no agreement", () => {
+  const m = model([source("s1"), source("s2")]);
+  m.source_conflicts = [
+    { topic: "従業員数", side_a: claim("100名", "s1"), side_b: claim("120名", "s2") },
+    { topic: "片側のみ", side_a: claim("100名", "s1"), side_b: claim("120名", "gone") },
+  ];
+  const b = gate(m);
+  assert.deepEqual(b.source_conflicts.map((c) => [c.topic, c.side_a.value, c.side_b.value]), [["従業員数", "100名", "120名"]]);
+  assert.deepEqual(gate(model([source("s1")])).source_conflicts, []);
+});
+
+test("assertive and grading words are dropped and only counted; reported questions on fair-hiring topics too, never blamed on the company", () => {
+  const m = model([source("s1")]);
+  m.company_snapshot.business = claim("違法な派遣を行う（架空）", "s1");
+  m.company_snapshot.recent_news = [claim("ブラック企業との報道（架空）", "s1"), claim("新製品の発表（架空）", "s1")];
+  m.interview_intelligence.reported_questions = [claim("本籍はどちらですか", "s1"), claim("志望理由は", "s1"), claim("ご家族の職業は", "s1")];
+  const b = gateBrief(m, { content: [searchBlock("s1")], usage: ran, date: DATE, pack: JP });
+  assert.equal(b.company_snapshot.business.value, NOT_FOUND);
+  assert.deepEqual(b.company_snapshot.recent_news.map((c) => c.value), ["新製品の発表（架空）"]);
+  assert.equal(b.banned_removed, 2);
+  assert.deepEqual(b.interview_intelligence.reported_questions.map((c) => c.value), ["志望理由は"]);
+  assert.equal(b.fair_hiring_removed, 2);
+  assert.ok(!/本籍|違法|ブラック/.test(JSON.stringify(b)));
+  const plain = gate(m);
+  assert.equal(plain.banned_removed, 0, "a pack without lists changes nothing");
+});
+
+test("the posting URL is what makes a claim speak for this position, across a canonical difference", () => {
+  const m = model([source("s1"), source("s2")]);
+  m.position_analysis.salary = { ...claim("年収800万", "s1"), bonus_included: "unknown", overtime_pay_included: "unknown" };
+  m.position_analysis.actual_work = claim("要件定義", "s2");
+  const b = gateBrief(m, { content: [searchBlock("s1", "s2")], usage: ran, date: DATE, posting_url: `${url("s1")}/#top` });
+  assert.equal(b.position_analysis.salary.applies_to_position, true);
+  assert.equal(b.position_analysis.actual_work.applies_to_position, false);
+  assert.equal(b.position_analysis.actual_work.position_match, "exact");
+});
+
+test("the request takes only the confirmed names and the user's public URLs and location; the prompt carries the v2 rules", () => {
+  const { system, messages } = buildResearchRequest(COMPANY, POSITION, "ja", DATE, { location: "東京都", company_url: "https://example.com/co", posting_url: "https://example.com/job" });
+  const user = messages[0].content;
+  assert.match(user, /<confirmed_location>東京都<\/confirmed_location>/);
+  assert.match(user, /<company_url>https:\/\/example\.com\/co<\/company_url>/);
+  assert.match(user, /<posting_url>https:\/\/example\.com\/job<\/posting_url>/);
+  assert.doesNotMatch(buildResearchRequest(COMPANY, POSITION, "ja", DATE).messages[0].content, /company_url|posting_url|confirmed_location/);
+  for (const w of [/PDF は取得しない/, /HTML を優先/, /規約で自動取得が禁止/, /会社概要/, /求人/, /有価証券報告書/, /決算公告/, /プレスリリース/, /人名/, /self_claims/, /グループ/, /read|読んだ/]) assert.match(system, w);
+  assert.ok(system.indexOf("会社概要") < system.indexOf("有価証券報告書") && system.indexOf("有価証券報告書") < system.indexOf("プレスリリース"), "the slot order");
+  assert.match(system, /上場/, "the branch by company size");
+});
+
+test("handler: pack, optional URLs and location are validated before any spend", async () => {
+  const savedCode = process.env.ACCESS_CODE;
+  process.env.ACCESS_CODE = "c0de";
+  let n = 40;
+  const client = fakeClient({ turns: [researchMessage, researchMessage] });
+  const sent = () => client.requests.at(-1);
+  const call = (body) => research(new Request("http://x/api/research", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `10.77.0.${n++}`, "content-type": "application/json" }, body: JSON.stringify({ company: COMPANY, position: POSITION, ...body }) }), { enabled: true, client });
+  for (const posting_url of ["ftp://example.com/a", "javascript:alert(1)", "https://user:pw@example.com/", `https://example.com/${"a".repeat(250)}`, "https://example.com/a@b.co", "not a url", 5]) {
+    const res = await call({ posting_url });
+    assert.equal(res.status, 400, String(posting_url));
+    assert.equal((await res.json()).code, "url_invalid");
+  }
+  assert.equal(client.requests.length, 0);
+  assert.equal((await (await call({ pack: "xx" })).json()).code, "pack_unsupported");
+  assert.equal((await (await call({ location: "<x>" })).json()).code, "name_invalid");
+  const ok = await (await call({ posting_url: "https://example.com/job", company_url: "", location: " 東京都 " })).json();
+  assert.equal(ok.research_status, "ok");
+  assert.ok(ok.guides.review_sites.length > 0 && ok.guides.checkpoint_templates.length > 0, "jp is the default pack");
+  assert.ok(sent().tools.every((t) => t.blocked_domains.length > 0));
+  assert.match(sent().messages[0].content, /<confirmed_location>東京都</);
+  assert.doesNotMatch(sent().messages[0].content, /company_url/);
+  await call({ pack: "kr" });
+  assert.ok(sent().tools.every((t) => !("blocked_domains" in t)), "kr has no research settings yet");
+  if (savedCode === undefined) delete process.env.ACCESS_CODE; else process.env.ACCESS_CODE = savedCode;
+});
+
+test("the jp pack's lists are usable and name no review site as a search term", () => {
+  const pack = JSON.parse(readFileSync(new URL("../packs/jp.json", import.meta.url), "utf8")).research;
+  for (const s of pack.review_sites) assert.equal(new URL(s.url).pathname, "/", "site roots only: a link never carries a company name");
+  for (const p of pack.fair_hiring_patterns) new RegExp(p);
+  assert.ok(pack.checkpoint_templates.every((t) => t.axis && t.text && ["agent", "hr", "manager", "executive"].includes(t.audience) && ["agent", "interview"].includes(t.ask)));
+  for (const audience of ["agent", "hr", "manager", "executive"]) assert.ok(pack.checkpoint_templates.some((t) => t.audience === audience), audience);
 });

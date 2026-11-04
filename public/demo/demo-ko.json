@@ -329,7 +329,7 @@
     ],
     "source_count": 1,
     "single_source": true,
-    "applies_to_position": true,
+    "applies_to_position": false,
     "position_match": "exact"
    },
    "required_skills": [
@@ -341,12 +341,58 @@
      ],
      "source_count": 1,
      "single_source": true,
-     "applies_to_position": true,
+     "applies_to_position": false,
      "position_match": "exact"
     }
-   ]
+   ],
+   "employment": {
+    "value": "정사원(가상)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "kind": "seishain"
+   },
+   "overtime": {
+    "value": "월평균 25시간(가상)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "monthly_hours": 25
+   },
+   "work_location": {
+    "value": "도쿄도(가상)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact"
+   },
+   "client_site_work": {
+    "value": "고객사 상주 없음으로 기재(가상)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "stated": "stated_no"
+   }
   },
-  "reputation_themes": [],
   "interview_intelligence": {
    "selection_stages": [],
    "reported_questions": [
@@ -410,19 +456,42 @@
    {
     "id": "s1",
     "title": "샘플 로지 회사 소개 (가상)",
-    "url": "https://example.com/samplelogi/about"
+    "url": "https://example.com/samplelogi/about",
+    "source_type": "official_careers",
+    "fetched": false
    },
    {
     "id": "s2",
     "title": "샘플 로지 채용 정보: 엔지니어링 매니저 (가상)",
-    "url": "https://example.com/samplelogi/careers"
+    "url": "https://example.com/samplelogi/careers",
+    "source_type": "official_careers",
+    "fetched": false
    },
    {
     "id": "s3",
     "title": "샘플 로지 소식 (가상)",
     "url": "https://example.com/samplelogi/news",
-    "published_date": "2026-10-01"
+    "published_date": "2026-10-01",
+    "source_type": "official_careers",
+    "fetched": false
    }
-  ]
+  ],
+  "coverage": {
+   "searches": 4,
+   "fetches": 3,
+   "search_ok": 4,
+   "search_failed": 0,
+   "fetch_ok": 3,
+   "fetch_failed": 0,
+   "budget_exhausted": false
+  }
+ },
+ "sample_profile": {
+  "min_salary_man": "700",
+  "max_overtime_hours": "20",
+  "employment_required": "seishain",
+  "locations": "도쿄",
+  "excluded_roles": "딜리버리 전담",
+  "exclude_client_site": "1"
  }
 }

@@ -59,7 +59,7 @@ test("the MOCK fit goes through the real gates: traced items show, the rest move
   const text = await briefCard(page).innerText();
   for (const s of ["需要予測機能の刷新プロジェクトの推進", "製品の要件定義と開発チームとの進行管理（架空）", "担当業務の割合を確認しましょう（架空）", r.matches, "Python / AWS", r.gaps, r.confirm, "資料にない経験を確認できますか（架空）", r.checkpoints, "担当業務の割合（架空）を確認できますか？"]) assert.ok(text.includes(s), s);
   for (const s of ["どこにも書かれていない相違", "この職種は避けるべきです"]) assert.ok(!text.includes(s), s);
-  assert.ok(text.indexOf(r.snapshot) < text.indexOf(r.mismatch) && text.indexOf(r.mismatch) < text.indexOf(r.reputation) && text.indexOf(r.questions) < text.indexOf(r.fit) && text.indexOf(r.fit) < text.indexOf(r.checkpoints), "spec order");
+  assert.ok(text.indexOf(r.snapshot) < text.indexOf(r.mismatch) && text.indexOf(r.mismatch) < text.indexOf(r.questions) && text.indexOf(r.questions) < text.indexOf(r.fit) && text.indexOf(r.fit) < text.indexOf(r.checkpoints), "spec order");
   const stored = await storedBrief(page);
   assert.equal(stored.mismatch_flags.length, 1);
   assert.equal(stored.research_status, "ok");
@@ -67,7 +67,7 @@ test("the MOCK fit goes through the real gates: traced items show, the rest move
   const body = fit[0].postDataJSON();
   assert.equal(body.mail, MAIL.trim());
   assert.ok(!("fit_evaluation" in body.brief) && !("mismatch_flags" in body.brief), "only the research goes back");
-  assert.deepEqual(Object.keys(searches[0].postDataJSON()).sort(), ["company", "lang", "position"]);
+  assert.deepEqual(Object.keys(searches[0].postDataJSON()).sort(), ["company", "lang", "pack", "position"]);
   assert.deepEqual(errors, []);
   await context.close();
 });

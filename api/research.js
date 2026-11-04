@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { EXPLAIN_LANGS } from "../lib/lang.js";
 import { redact } from "../lib/privacy.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
+import { PACKS, loadPack } from "../lib/pack.js";
 import { researchEnabled, runResearch, today } from "../lib/research.js";
 
 const MAX_NAME_CHARS = 100; // a name, not a pasted mail: this cap is part of what keeps candidate text out of the search
@@ -12,10 +13,20 @@ const name = (v) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().repla
 // A masked name is not what the user confirmed, so it is refused, not searched. F1 reads masked mail, so a placeholder can arrive as a "name".
 const hasContact = (n) => redact(n) !== n || /\[(?:email|phone|〒|氏名)\]/.test(n);
 const leavesTag = (n) => /[<>\p{Cc}]/u.test(n);
+const MAX_URL_CHARS = 250;
+// A URL the user typed goes to Anthropic's fetch: public pages only, so no credentials and no contact details in it.
+const publicUrl = (v) => {
+  try {
+    const u = new URL(v);
+    return typeof v === "string" && (u.protocol === "http:" || u.protocol === "https:") && !u.username && !u.password && v.length <= MAX_URL_CHARS && redact(v) === v && !leavesTag(v);
+  } catch {
+    return false;
+  }
+};
 
 let client;
 
-// Stage R search. Same gate order as the other APIs. Only the two confirmed names are read from the body.
+// Stage R search. Same gate order as the other APIs. Only what the user confirmed on the card is read from the body: two names, and optionally a location and public URLs.
 export async function POST(request, deps = {}) {
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`research:${ip}`, { limit: 5 })) return json(429, { code: "rate_limited" });
@@ -37,10 +48,21 @@ export async function POST(request, deps = {}) {
   if (hasContact(company) || hasContact(position)) return json(400, { code: "name_required" });
   if (leavesTag(company) || leavesTag(position)) return json(400, { code: "name_invalid" });
 
+  const location = name(body?.location);
+  if (location.length > MAX_NAME_CHARS || hasContact(location) || leavesTag(location)) return json(400, { code: "name_invalid" });
+  const packId = body?.pack ?? "jp";
+  if (!PACKS.includes(packId)) return json(400, { code: "pack_unsupported" });
+  const urls = {};
+  for (const k of ["company_url", "posting_url"]) {
+    if (body?.[k] === undefined || body[k] === "") continue;
+    if (!publicUrl(body[k])) return json(400, { code: "url_invalid", max: MAX_URL_CHARS });
+    urls[k] = body[k];
+  }
+
   const date = today();
   try {
     const c = deps.client ?? (client ??= new Anthropic({ maxRetries: 1 }));
-    return json(200, await runResearch(c, company, position, lang, { date, signal: AbortSignal.timeout(deps.deadlineMs ?? DEADLINE_MS) }));
+    return json(200, await runResearch(c, company, position, lang, { date, signal: AbortSignal.timeout(deps.deadlineMs ?? DEADLINE_MS), pack: loadPack(packId), location, ...urls }));
   } catch (e) {
     console.error("research failed:", e?.status ?? "", e?.message); // never log the names
     return json(200, { research_status: "unavailable", research_date: date }); // the first questions stay on screen

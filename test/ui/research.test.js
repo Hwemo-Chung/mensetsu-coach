@@ -29,7 +29,6 @@ const FULL = {
     salary: claim("年収600万〜800万円（架空）", { position_match: "similar", applies_to_position: false, bonus_included: "yes", overtime_pay_included: "unknown" }),
     conditions: [],
   },
-  reputation_themes: [claim("残業の話題が繰り返し挙がる（架空）", { polarity: "negative", sample_size: "12件", representativeness: "low" })],
   interview_intelligence: { selection_stages: [claim("面接2回（架空）", { label: "reported_unverified" })], reported_questions: [claim("製品のどこを改善しますか（架空）", { label: "reported_unverified" })] },
   fit_evaluation: {
     matches: [{ point: "要件定義の経験（架空）", basis: "user_material", quote: "要件定義を3年（架空）", source_ids: [] }],
@@ -40,7 +39,7 @@ const FULL = {
   company_checkpoints: [{ question: "残業の実態を確認できますか（架空）", ask: "agent", source_ids: ["s1"] }],
   sources: [
     { id: "s1", title: `採用情報（架空）${HOSTILE}`, url: LONG_URL, accessed_date: "2026-11-04", published_date: "2026-10-01", entity_match: "exact", position_match: "exact", source_type: "official_careers" },
-    { id: "s2", title: "口コミ（架空）", url: "http://example.com/reviews", accessed_date: "2026-11-04", published_date: "", entity_match: "exact", position_match: "unknown", source_type: "review_site" },
+    { id: "s2", title: "面接体験（架空）", url: "http://example.com/interviews", accessed_date: "2026-11-04", published_date: "", entity_match: "exact", position_match: "unknown", source_type: "review_site" },
     { id: "s3", title: "危険なリンク（架空）", url: "javascript:window.__pwned=1", accessed_date: "2026-11-04", published_date: "", entity_match: "exact", position_match: "unknown", source_type: "other" },
   ],
 };
@@ -93,18 +92,18 @@ for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
     await start(page);
     await briefCard(page).waitFor();
     assert.equal(sent.length, 1);
-    assert.deepEqual(sent[0].postDataJSON(), { company: COMPANY, position: "プロダクトマネージャー（仮）", lang: "ko" }, "only the confirmed names leave the page");
+    assert.deepEqual(sent[0].postDataJSON(), { company: COMPANY, position: "プロダクトマネージャー（仮）", pack: "jp", lang: "ko" }, "only the confirmed names leave the page");
     const brief = briefCard(page), text = await brief.innerText();
     assert.ok(text.includes(ko.research.title({ company: COMPANY, position: "プロダクトマネージャー（仮）" })));
     assert.ok(text.includes("自社製品が中心"), "a claim on an exact source survives");
     assert.ok(!text.includes("別企業の従業員数"), "a claim on a similarly named company does not");
-    assert.ok(text.includes(ko.research.notFound));
+    assert.ok(text.includes(ko.research.unknownKind.not_researched));
     assert.ok(!text.includes("not_found"), "the raw marker never shows");
     assert.ok(questionRows(text, ko.research).includes("当社の製品のどこを改善しますか（架空）"));
     assert.ok(questionRows(text, ko.research).includes(ko.research.unverified), "reported question labelled");
     assert.ok(text.includes(ko.research.singleSource));
     assert.ok(await card.getByRole("button", { name: ko.research.start }).isDisabled(), "the card cannot fire twice");
-    const links = brief.locator("details a");
+    const links = brief.locator("details ul.sources a");
     assert.equal(await links.count(), 2, "the similar company's source is gone");
     assert.ok(!(await links.first().isVisible()), "sources start collapsed");
     assert.deepEqual(await page.evaluate(() => document.getElementById("log").scrollWidth <= document.getElementById("log").clientWidth), true);
@@ -122,18 +121,18 @@ for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
     const brief = briefCard(page);
     await brief.getByRole("heading", { name: ko.research.mismatch }).waitFor();
     const r = ko.research, text = await brief.innerText();
-    for (const s of [r.snapshot, r.news, r.role, r.match.exact, r.claimMatch.similar, r.mismatchNote, r.origin.mail, r.origin.research, "プロダクトマネジメント（架空）", "デリバリー管理（架空）", "担当業務の割合を確認しましょう（架空）", r.reputation, "12件", r.rep.low, r.polarity.negative, r.questions, r.fit, r.matches, r.gaps, r.confirm, "夜間対応の有無を確認しますか（架空）", r.checkpoints, r.ask.agent, r.confidence.high, r.partial({ n: 1 }), r.salaryNote({ bonus: r.included.yes, overtime: r.included.unknown })]) assert.ok(text.includes(s), s);
-    assert.ok(text.indexOf(r.snapshot) < text.indexOf(r.mismatch) && text.indexOf(r.mismatch) < text.indexOf(r.reputation) && text.indexOf(r.reputation) < text.indexOf(r.questions) && text.indexOf(r.questions) < text.indexOf(r.fit) && text.indexOf(r.fit) < text.indexOf(r.checkpoints), "spec order");
+    for (const s of [r.snapshot, r.news, r.role, r.match.exact, r.claimMatch.similar, r.mismatchNote, r.origin.mail, r.origin.research, "プロダクトマネジメント（架空）", "デリバリー管理（架空）", "担当業務の割合を確認しましょう（架空）", r.questions, r.fit, r.matches, r.gaps, r.confirm, "夜間対応の有無を確認しますか（架空）", r.checkpoints, r.ask.agent, r.confidence.high, r.partial({ n: 1 }), r.salaryNote({ bonus: r.included.yes, overtime: r.included.unknown })]) assert.ok(text.includes(s), s);
+    assert.ok(text.indexOf(r.snapshot) < text.indexOf(r.mismatch) && text.indexOf(r.mismatch) < text.indexOf(r.questions) && text.indexOf(r.questions) < text.indexOf(r.fit) && text.indexOf(r.fit) < text.indexOf(r.checkpoints), "spec order");
     assert.ok(questionRows(text, r).includes("製品のどこを改善しますか（架空）") && questionRows(text, r).includes(r.unverified), "the reported question itself is labelled");
     for (const s of [`${r.origin.research}: デリバリー管理（架空） · s1`, `${r.basis.company_info}: 物流の経験を歓迎（架空） · s1`, `${r.ask.agent}: 残業の実態を確認できますか（架空） · s1`]) assert.ok(text.includes(s), s);
     assert.ok(!text.includes("プロダクトマネジメント（架空） ·") && !text.includes("要件定義を3年（架空） ·"), "no separator without an id");
     assert.ok(text.includes(HOSTILE), "model text is shown as text");
     assert.equal(await brief.locator("img").count(), 0, "and never parsed as HTML");
     assert.equal(await page.evaluate(() => window.__pwned), undefined);
-    await brief.locator("details > summary").click();
-    const links = brief.locator("details a");
+    await brief.locator("details:has(ul.sources) > summary").click();
+    const links = brief.locator("details:has(ul.sources) a");
     assert.equal(await links.count(), 2, "javascript: is no link");
-    assert.ok((await brief.locator("details").innerText()).includes("危険なリンク（架空）"), "that source stays listed as text");
+    assert.ok((await brief.locator("details:has(ul.sources)").innerText()).includes("危険なリンク（架空）"), "that source stays listed as text");
     for (const a of await links.all()) {
       assert.match(await a.getAttribute("href"), /^https?:\/\//);
       assert.match(await a.getAttribute("rel"), /\bnoopener\b/);
@@ -141,7 +140,7 @@ for (const [name, viewport] of [["390", PHONE], ["1280", DASHBOARD]]) {
     }
     assert.ok(await brief.evaluate((c) => c.scrollWidth <= c.clientWidth), "a long URL wraps inside the card");
     assert.ok(await noHorizontalOverflow(page));
-    const b = await brief.locator("details > summary").boundingBox();
+    const b = await brief.locator("details:has(ul.sources) > summary").boundingBox();
     assert.ok(b.height >= 44, `summary is a 44px target (${b.height})`);
     assert.deepEqual(errors, []);
     await context.close();
@@ -194,7 +193,7 @@ for (const lang of ["en", "ja"]) {
     const brief = briefCard(page);
     await brief.getByRole("heading", { name: t.research.snapshot }).waitFor();
     const text = await brief.innerText();
-    for (const s of [t.research.mismatch, t.research.reputation, t.research.checkpoints]) assert.ok(text.includes(s), s);
+    for (const s of [t.research.mismatch, t.research.checkpoints]) assert.ok(text.includes(s), s);
     assert.ok(questionRows(text, t.research).includes(t.research.unverified));
     assert.ok(await noHorizontalOverflow(page));
     assert.deepEqual(errors, []);
@@ -719,7 +718,7 @@ test("save: the research section is in the file; a response after save is droppe
   const md = await readFile(await download.path(), "utf8");
   assert.ok(md.includes(`## ${ko.research.title({ company: COMPANY, position: POSITION })}`));
   assert.ok(md.includes(ko.research.checkpoints) && md.includes(`- ${ko.research.ask.agent}: 残業の実態を確認できますか（架空）`));
-  assert.ok(md.includes("http://example.com/reviews"));
+  assert.ok(md.includes("http://example.com/interviews"));
   assert.ok(!md.includes("javascript:"));
   await page.locator("#mailLater").click();
   assert.ok(await briefCard(page).getByRole("button", { name: ko.research.rerun }).isDisabled(), "a saved company's card cannot research into the next session");
@@ -795,4 +794,80 @@ test("flag off: a brief left in the session is kept for export but draws no card
   } finally {
     off.stop();
   }
+});
+
+// Criteria v2, decision A: the review section is gone; the rest must work without any review data.
+test("decision A: no review themes; plain links and a memo that stays in the browser; conditions run on no review data", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  const fit = [];
+  page.on("request", (q) => { if (q.url().includes("/api/fit")) fit.push(q.postDataJSON()); });
+  await page.evaluate(() => localStorage.setItem("mensetsu-desired-profile", JSON.stringify({ min_salary_man: "500", salary_target_man: "700", excluded_roles: "PMO", locations: "東京", employment_required: "contract" })));
+  await toQuestions(page);
+  const card = confirmCard(page);
+  await card.getByLabel(ko.research.location).fill("東京都");
+  await card.getByLabel(ko.research.postingUrl).fill("https://example.com/sampletech/careers");
+  await start(page);
+  const brief = briefCard(page);
+  await brief.getByRole("heading", { name: ko.research.conditions_ }).waitFor();
+  const r = ko.research, text = await brief.innerText();
+  assert.ok(!/口コミ|리뷰의 주제|polarity|reputation/.test(text.replace(r.memoTitle, "").replace(r.memoNote, "").replace(r.quotePolicy, "")));
+  for (const s of [r.axis.salary_min, r.status.met, r.axis.salary_target, r.status.unknown, r.axis.employment, r.status.unmet, r.conditionsNotice]) assert.ok(text.includes(s), s);
+  assert.ok(!text.includes(r.sameName), "a location was entered");
+  assert.ok(!text.includes(r.nameMatch), "the user's own posting URL speaks for this offer");
+  assert.ok(!/score|grade|合計|총점/i.test(text));
+
+  await brief.getByText(r.memoTitle).click();
+  const links = brief.locator(".review-sites a");
+  assert.ok(await links.count() > 0);
+  for (const a of await links.all()) {
+    assert.equal(await a.getAttribute("rel"), "noopener noreferrer");
+    assert.equal(new URL(await a.getAttribute("href")).pathname, "/", "site root: no company name in the link");
+  }
+  assert.ok((await brief.innerText()).includes(r.memoWarn));
+  await brief.getByLabel(r.memoSite).fill("サイトA（架空）");
+  await brief.getByLabel(r.memoDate).fill("2026-11-01");
+  await brief.getByLabel(r.memoSummary).fill("投稿者の話の要約メモ（架空）");
+  await brief.getByRole("button", { name: r.memoAdd }).click();
+  await brief.getByText(r.memoLabel).first().waitFor();
+  assert.ok((await brief.innerText()).includes(r.memoNoSample));
+  const stored = await page.evaluate(() => ({ session: localStorage.getItem("mensetsu-session"), notes: localStorage.getItem("mensetsu-company-notes") }));
+  assert.ok(stored.notes.includes("投稿者の話の要約メモ"));
+  assert.ok(!stored.session.includes("投稿者の話の要約メモ"), "never in the session the app sends from");
+
+  // Asked for by hand so a fit request exists after the memo, whatever the automatic one did.
+  await brief.getByRole("button", { name: r.refit }).click();
+  await page.waitForResponse("**/api/fit");
+  const body = JSON.stringify(fit.at(-1));
+  assert.ok(!body.includes("投稿者の話の要約メモ") && !body.includes("guides"));
+  for (const k of ["locations", "employment_required", "salary_target_man"]) assert.ok(!(k in fit.at(-1).desired_profile), k);
+  assert.equal(fit.at(-1).desired_profile.min_salary_man, "500");
+
+  // A recorded answer outranks the posting, and the user chooses the status.
+  await brief.locator(".fit-conditions details").nth(1).locator("summary").click();
+  const form = brief.locator(".fit-conditions details").nth(1);
+  await form.getByLabel(r.answerStatus).selectOption("unmet");
+  await form.getByLabel(r.answerSpeaker).fill("人事（架空）");
+  await form.getByRole("button", { name: r.answerSave }).click();
+  await brief.getByText("人事（架空）").first().waitFor();
+
+  // Hiding is the correction path: the claim leaves the stored brief too.
+  const value = (await storedBrief(page)).company_snapshot.business_model.value;
+  await brief.getByText(value).locator("xpath=following-sibling::p[1]").getByRole("button", { name: r.hide }).click();
+  assert.equal((await storedBrief(page)).company_snapshot.business_model.value, "not_found");
+  assert.ok(!(await brief.innerText()).includes(value));
+  assert.ok(await noHorizontalOverflow(page));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("the confirm card reports a refused URL and stays usable", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, DASHBOARD);
+  await toQuestions(page);
+  const card = confirmCard(page);
+  await card.getByLabel(ko.research.postingUrl).fill("https://user:pw@example.com/");
+  await start(page);
+  await bubbles(page, "err").filter({ hasText: ko.errors.url_invalid() }).waitFor();
+  assert.ok(await card.getByRole("button", { name: ko.research.start }).isEnabled());
+  assert.deepEqual(errors.filter((e) => !/400/.test(e)), []);
+  await context.close();
 });

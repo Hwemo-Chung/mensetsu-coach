@@ -77,6 +77,173 @@
     "前職の退職後、正当な理由なく就労資格の活動をしない期間が3か月（高度専門職2号は6か月）以上続くと在留資格取消しの事由になり得るため、退職日と現状は事実だけを短く述べ、取消しの可否は判断しない。",
     "就労資格証明書は本人の申請で任意に取得する書類なので、持っていなくても在留資格名と期限で就労可否を答え、企業に求められれば取得に協力すると述べる。"
   ],
+  "research": {
+    "review_sites": [{"url": "https://www.openwork.jp/"}, {"url": "https://en-hyouban.com/"}, {"url": "https://jobtalk.jp/"}, {"url": "https://careerconnection.jp/"}, {"url": "https://www.onecareer.jp/"}, {"url": "https://www.indeed.com/"}, {"url": "https://www.glassdoor.com/"}],
+    "banned_terms": [
+      "違法",
+      "ブラック企業",
+      "偽装請負",
+      "虚偽",
+      "非推奨",
+      "おすすめしない",
+      "위법",
+      "블랙 기업",
+      "블랙기업",
+      "위장 도급",
+      "허위",
+      "비추천",
+      "illegal",
+      "sham contract",
+      "fraudulent",
+      "not recommended"
+    ],
+    "fair_hiring_patterns": [
+      "本籍|出生地|出身地",
+      "家族|両親|父親|母親|兄弟|姉妹|配偶者",
+      "宗教|信仰|支持政党|政治",
+      "思想|信条|人生観|尊敬する人物|愛読|購読",
+      "労働組合|社会運動|学生運動",
+      "結婚|出産|妊娠|恋人|交際",
+      "生活環境|家庭環境|自宅|住宅|資産"
+    ],
+    "checkpoint_templates": [
+      {
+        "axis": "common",
+        "audience": "agent",
+        "ask": "agent",
+        "text": "正式な法人名とポジション名を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "salary_min",
+        "audience": "agent",
+        "ask": "agent",
+        "text": "この求人の年収の上限と、私に適用される等級の想定を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "employment",
+        "audience": "agent",
+        "ask": "agent",
+        "text": "雇用形態と雇用主となる法人を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "client_site",
+        "audience": "agent",
+        "ask": "agent",
+        "text": "勤務場所と、日々の業務の指示を出す方の所属を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "agent",
+        "ask": "agent",
+        "text": "選考のフローと回数を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "hr",
+        "ask": "interview",
+        "text": "適用される等級と評価制度（頻度、評価軸、昇給の決まり方）を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "hr",
+        "ask": "interview",
+        "text": "残りの選考の回数と形式を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "location",
+        "audience": "hr",
+        "ask": "interview",
+        "text": "勤務地と業務の変更の範囲は、労働条件の明示ではどのように記載されますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "このポジションの業務の時間配分を、割合でおおよそ教えていただけますでしょうか。"
+      },
+      {
+        "axis": "overtime",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "配属チームの残業は月平均と最大でどの程度でしょうか。"
+      },
+      {
+        "axis": "remote",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "配属チームの出社とリモートの実際の運用を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "入社後90日で期待される成果を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "新規開発と保守の割合、最近1年のチームの入退社の状況を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "executive",
+        "ask": "interview",
+        "text": "このポジションの権限（予算、採用）と報告ラインを教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "executive",
+        "ask": "interview",
+        "text": "今回の募集の背景を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "hr",
+        "ask": "agent",
+        "text": "ポジションの確認: 正式名称、配属の事業、チーム構成、新設か後任か、を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "hr",
+        "ask": "agent",
+        "text": "オファーの確認: 等級、基本給、固定残業、賞与と初回賞与の算定、試用期間、書面の有無、競業・返還の条項を教えていただけますでしょうか。"
+      },
+      {
+        "axis": "common",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "担当する業務の範囲と、決裁の権限はどこまででしょうか。",
+        "tags": [
+          "manager"
+        ]
+      },
+      {
+        "axis": "common",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "このポジションは事業・製品・進行管理のどれに比重がありますでしょうか。",
+        "tags": [
+          "pm"
+        ]
+      },
+      {
+        "axis": "common",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "この領域で品質や規制の面で特に注意している点を教えていただけますでしょうか。",
+        "tags": [
+          "regulated"
+        ]
+      },
+      {
+        "axis": "review_memo",
+        "audience": "manager",
+        "ask": "interview",
+        "text": "働き方やチームの雰囲気について、ご自身の見方を教えていただけますでしょうか。"
+      }
+    ]
+  },
   "daily_questions": [
     "自己紹介をお願いします。",
     "転職を考えた理由を教えてください。",

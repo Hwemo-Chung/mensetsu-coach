@@ -73,7 +73,9 @@ export function forgetBrief(session) {
 
 // Desired position profile: reused across companies, so it has its own key and outlives the session. Sent only to the fit call.
 export const DESIRED_KEY = "mensetsu-desired-profile";
-const DESIRED_FIELDS = ["role_content", "excluded_roles", "hard_conditions", "min_salary_man", "max_overtime_hours"];
+const FIT_FIELDS = ["role_content", "excluded_roles", "hard_conditions", "min_salary_man", "max_overtime_hours"];
+// Read only by public/conditions.js, in the browser: fitDesired keeps them out of the one request the profile goes to.
+const DESIRED_FIELDS = [...FIT_FIELDS, "salary_target_man", "employment_required", "locations", "remote_min_days", "exclude_client_site", "job_tag"];
 
 export function loadDesired(storage) {
   try {
@@ -93,6 +95,11 @@ export function saveDesired(storage, values) {
 
 export function clearDesired(storage) {
   try { storage.removeItem(DESIRED_KEY); } catch {}
+}
+
+export function fitDesired(desired) {
+  const kept = Object.fromEntries(FIT_FIELDS.filter((k) => str(desired?.[k])).map((k) => [k, desired[k]]));
+  return Object.keys(kept).length ? kept : null;
 }
 
 // The fit sections can quote the profile, so deleting it takes them too.
@@ -140,4 +147,38 @@ export function saveDebrief(storage, company, values) {
 
 export function clearDebriefs(storage) {
   try { storage.removeItem(DEBRIEF_KEY); } catch {}
+}
+
+// Review-site memos and recorded interview answers, per company. Own key for the same reasons as the debrief, and never in the session,
+// so no request or export can carry a poster's opinion. Memos feed one fixed open question only.
+export const COMPANY_NOTES_KEY = "mensetsu-company-notes";
+
+function allCompanyNotes(storage) {
+  try {
+    const v = JSON.parse(storage.getItem(COMPANY_NOTES_KEY));
+    return isObj(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+export function loadCompanyNotes(storage, company) {
+  const all = allCompanyNotes(storage), k = companyKey(company), v = Object.hasOwn(all, k) && isObj(all[k]) ? all[k] : {};
+  return { memos: Array.isArray(v.memos) ? v.memos.filter(isObj) : [], answers: isObj(v.answers) ? v.answers : {} };
+}
+
+export function saveCompanyNotes(storage, company, notes) {
+  const { [companyKey(company)]: _, ...others } = allCompanyNotes(storage);
+  const empty = !notes.memos.length && !Object.keys(notes.answers).length;
+  const all = empty ? others : { ...others, [companyKey(company)]: notes };
+  try {
+    Object.keys(all).length ? storage.setItem(COMPANY_NOTES_KEY, JSON.stringify(all)) : storage.removeItem(COMPANY_NOTES_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearCompanyNotes(storage) {
+  try { storage.removeItem(COMPANY_NOTES_KEY); } catch {}
 }

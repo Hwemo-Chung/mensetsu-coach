@@ -334,7 +334,7 @@
     ],
     "source_count": 1,
     "single_source": true,
-    "applies_to_position": true,
+    "applies_to_position": false,
     "position_match": "exact"
    },
    "required_skills": [
@@ -346,12 +346,58 @@
      ],
      "source_count": 1,
      "single_source": true,
-     "applies_to_position": true,
+     "applies_to_position": false,
      "position_match": "exact"
     }
-   ]
+   ],
+   "employment": {
+    "value": "Permanent (fictional)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "kind": "seishain"
+   },
+   "overtime": {
+    "value": "About 25 hours a month (fictional)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "monthly_hours": 25
+   },
+   "work_location": {
+    "value": "Tokyo (fictional)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact"
+   },
+   "client_site_work": {
+    "value": "States no client-site work (fictional)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": false,
+    "position_match": "exact",
+    "stated": "stated_no"
+   }
   },
-  "reputation_themes": [],
   "interview_intelligence": {
    "selection_stages": [],
    "reported_questions": [
@@ -415,19 +461,42 @@
    {
     "id": "s1",
     "title": "Sample Logi: company profile (fictional)",
-    "url": "https://example.com/samplelogi/about"
+    "url": "https://example.com/samplelogi/about",
+    "source_type": "official_careers",
+    "fetched": false
    },
    {
     "id": "s2",
     "title": "Sample Logi careers: Engineering Manager (fictional)",
-    "url": "https://example.com/samplelogi/careers"
+    "url": "https://example.com/samplelogi/careers",
+    "source_type": "official_careers",
+    "fetched": false
    },
    {
     "id": "s3",
     "title": "Sample Logi news (fictional)",
     "url": "https://example.com/samplelogi/news",
-    "published_date": "2026-10-01"
+    "published_date": "2026-10-01",
+    "source_type": "official_careers",
+    "fetched": false
    }
-  ]
+  ],
+  "coverage": {
+   "searches": 4,
+   "fetches": 3,
+   "search_ok": 4,
+   "search_failed": 0,
+   "fetch_ok": 3,
+   "fetch_failed": 0,
+   "budget_exhausted": false
+  }
+ },
+ "sample_profile": {
+  "min_salary_man": "700",
+  "max_overtime_hours": "20",
+  "employment_required": "seishain",
+  "locations": "Tokyo",
+  "excluded_roles": "Delivery only",
+  "exclude_client_site": "1"
  }
 }

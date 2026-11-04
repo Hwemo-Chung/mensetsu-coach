@@ -15,7 +15,6 @@ const claim = (value, ids = ["s1"], extra = {}) => ({ value, source_ids: ids, co
 const missing = { value: "not_found", source_ids: [], confidence: "unknown", source_count: 0, single_source: false };
 const WORK = "顧客向け導入プロジェクトのデリバリーマネジメント（進捗・品質・納期の管理）";
 const PAY = "年収600万〜800万円（架空）";
-const REVIEW = "残業の話題が繰り返し挙がる（架空）";
 // TEST-CASES case E.
 const BRIEF = {
   research_status: "ok",
@@ -31,11 +30,10 @@ const BRIEF = {
     salary: claim(PAY, ["s2"], { position_match: "similar", applies_to_position: false, bonus_included: "unknown", overtime_pay_included: "unknown" }),
     conditions: [],
   },
-  reputation_themes: [claim(REVIEW, ["s2"], { polarity: "negative", sample_size: "12件", representativeness: "low" })],
   interview_intelligence: { selection_stages: [], reported_questions: [] },
   sources: [
     { id: "s1", title: "採用情報（架空）", url: "https://example.com/careers/delivery-manager" },
-    { id: "s2", title: "口コミ（架空）", url: "https://example.com/reviews" },
+    { id: "s2", title: "類似の求人（架空）", url: "https://example.com/similar" },
   ],
 };
 const MAIL = "株式会社サンプルテック（仮）/ プロダクトマネージャー募集のご案内\n業務内容：自社SaaSのプロダクトマネジメント（ロードマップ策定、優先順位の判断）";
@@ -74,7 +72,7 @@ test("fit request: material cannot close its own tag", () => {
 
 test("fit request: reads the brief's named facts only, labelled when they do not apply to this position", () => {
   const facts = fitFacts({ ...BRIEF, secret: "混入（架空）", company_snapshot: { ...BRIEF.company_snapshot, size: claim("出典の消えた主張（架空）", ["s99"]) } });
-  assert.deepEqual(facts.map((f) => f.text), ["自社SaaSの開発（架空）", WORK, PAY, REVIEW], "no not_found, no unknown source, no other key");
+  assert.deepEqual(facts.map((f) => f.text), ["自社SaaSの開発（架空）", WORK, PAY], "no not_found, no unknown source, no other key");
   assert.equal(facts.find((f) => f.text === PAY).position_match, "similar");
   assert.ok(!("position_match" in facts.find((f) => f.text === WORK)));
   assert.deepEqual(fitFacts(null), []);

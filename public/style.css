@@ -158,6 +158,9 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .brief .claim, .brief .side { margin: 6px 0 0; }
 .brief .caution { margin: 2px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
 .brief-form label { display: block; margin-top: 10px; font-size: 14px; font-weight: 700; }
+.brief-form textarea, .fold-body select, .fold-body input[type=text], .fold-body input[type=date] { display: block; width: 100%; min-height: 44px; margin-top: 2px; padding: 8px 12px; border: 1px solid var(--field); border-radius: 8px; font-size: 16px; font-weight: 400; }
+.fold-body label { display: block; margin-top: 8px; font-size: 14px; }
+.link-btn { min-height: 24px; padding: 0 4px; border: 0; background: none; color: inherit; font-size: inherit; text-decoration: underline; cursor: pointer; }
 .brief-form input { display: block; width: 100%; min-height: 44px; margin-top: 2px; padding: 8px 12px; border: 1px solid var(--field); border-radius: 8px; font-size: 16px; font-weight: 400; }
 .brief-form input:disabled { background: var(--page); color: var(--muted); }
 .brief .sources { margin: 0; padding: 0; list-style: none; }
@@ -340,7 +343,7 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
 .opt-group legend { font-size: 16px; color: var(--ink); padding: 0; }
 .opt-group .switch { margin: 0; }
 .desired label { display: block; margin-top: 10px; font-size: 14px; font-weight: 700; }
-.desired textarea, .desired input { display: block; width: 100%; min-height: 44px; margin-top: 2px; padding: 8px 12px; border: 1px solid var(--field); border-radius: 8px; font: inherit; font-weight: 400; }
+.desired textarea, .desired input, .desired select { display: block; width: 100%; min-height: 44px; margin-top: 2px; padding: 8px 12px; border: 1px solid var(--field); border-radius: 8px; font: inherit; font-weight: 400; }
 .speed { min-height: 44px; border: 1px solid var(--field); border-radius: 8px; padding: 4px 8px; background: #fff; }
 .mail-msg { min-height: 1.2em; font-size: 14px; color: var(--red); margin: 6px 0 0; }
 .mail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }

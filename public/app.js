@@ -1,10 +1,10 @@
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap } from "./export.js";
-import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, loadDebrief, saveDebrief, clearDebriefs, SESSION_KEY } from "./session.js";
+import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, fitDesired, loadDebrief, saveDebrief, clearDebriefs, clearCompanyNotes, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
-import { renderConfirm, renderBrief, showFit } from "./brief.js";
+import { renderConfirm, renderBrief, showFit, showConditions } from "./brief.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
 
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
@@ -166,7 +166,7 @@ async function startResearch(names, unlock) {
   const my = state.epoch, run = researchRun;
   const current = () => my === state.epoch && run === researchRun;
   try {
-    const { res, data } = await post("/api/research", { ...names, lang: state.lang });
+    const { res, data } = await post("/api/research", { ...names, pack: packOf(), lang: state.lang });
     if (!current()) return;
     if (!res.ok) {
       unlock();
@@ -202,7 +202,7 @@ async function startResearch(names, unlock) {
 }
 
 // A fit needs two of the three sides; with one there is nothing to compare and nothing to pay for.
-const worthComparing = (brief) => [brief.sources?.length, lastMail, loadDesired(LS)].filter(Boolean).length >= 2;
+const worthComparing = (brief) => [brief.sources?.length, lastMail, fitDesired(loadDesired(LS))].filter(Boolean).length >= 2;
 // PDF and image contents can be neither masked nor checked against a quote, so api/fit.js would discard them anyway.
 const maskable = (f) => !!f && !/^image\/|pdf$/.test(f.type) && !/\.pdf$/i.test(f.name);
 
@@ -215,8 +215,8 @@ async function runFit(card) {
   card.firstChild.after(wait);
   if (refit) refit.disabled = true;
   try {
-    const { fit_evaluation, mismatch_flags, company_checkpoints, ...research } = brief; // the question and reverse calls must not see these; here they would only be fed back
-    const desired = loadDesired(LS);
+    const { fit_evaluation, mismatch_flags, company_checkpoints, guides, ...research } = brief; // the question and reverse calls must not see the fit sections; here they would only be fed back
+    const desired = fitDesired(loadDesired(LS));
     const { res, data } = await post("/api/fit", { brief: research, ...(lastMail && { mail: lastMail }), ...(maskable(lastAttachment) && { attachment: lastAttachment }), ...(lastProfile && { profile: lastProfile }), ...(desired && { desired_profile: desired }), lang: state.lang });
     if (!live() || mine !== fitRun) return;
     if (res.status === 401) return failed(res, data);
@@ -666,6 +666,7 @@ function debriefButton(cls) {
 for (const e of debriefInputs) e.addEventListener("input", () => showOverlap(saveDebrief(LS, debriefCompany, Object.fromEntries(debriefInputs.map((i) => [i.dataset.debrief, i.value])))));
 $("debriefDelete").addEventListener("click", () => {
   clearDebriefs(LS);
+  clearCompanyNotes(LS);
   $("debriefStatus").textContent = T().debrief.deleted;
 });
 
@@ -689,7 +690,8 @@ $("opts").addEventListener("click", () => {
   $("debriefStatus").textContent = "";
   $("options").showModal();
 });
-for (const e of desiredInputs) e.addEventListener("input", () => saveDesired(LS, Object.fromEntries(desiredInputs.map((i) => [i.dataset.desired, i.value]))));
+const refreshConditions = () => { const card = [...log.querySelectorAll(".msg.brief")].at(-1), brief = state.session?.company_context.research_brief; if (card && brief) showConditions(card, brief, researchNames().company); };
+for (const e of desiredInputs) e.addEventListener("input", () => { saveDesired(LS, Object.fromEntries(desiredInputs.map((i) => [i.dataset.desired, i.value]))); refreshConditions(); });
 $("desiredDelete").addEventListener("click", () => {
   clearDesired(LS);
   fitRun++;
@@ -699,6 +701,7 @@ $("desiredDelete").addEventListener("click", () => {
     persist();
   }
   for (const card of log.querySelectorAll(".msg.brief")) showFit(card, {});
+  refreshConditions();
   $("desiredStatus").textContent = T().opts.desiredDeleted;
 });
 for (const r of tourEndRadios) r.addEventListener("change", () => { try { localStorage.setItem(TOUR_END, r.value); } catch {} });

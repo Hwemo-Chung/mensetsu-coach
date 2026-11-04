@@ -43,7 +43,6 @@ const BRIEF = {
     salary: found("年収800万円（架空）", { position_match: "exact", applies_to_position: true, bonus_included: "yes", overtime_pay_included: "unknown" }),
     conditions: [found("週2日出社（架空）", { position_match: "exact", applies_to_position: true })],
   },
-  reputation_themes: [found("残業の話題（架空）", { polarity: "negative", sample_size: "12件", representativeness: "low" })],
   interview_intelligence: { selection_stages: [found("面接2回（架空）", { label: "reported_unverified" })], reported_questions: [found("改善点を問う質問（架空）", { source_ids: ["s3"], label: "reported_unverified" })] },
   fit_evaluation: { matches: [{ point: "希望の一致（架空）", basis: "user_material", quote: "希望プロフィールの文面（架空）", source_ids: [] }], gaps: [], needs_user_confirmation: ["希望の確認（架空）"] },
   mismatch_flags: [
