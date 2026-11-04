@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateQuestions, EXPLAIN_LANGS, PACKS, maskInput } from "../lib/coach.js";
+import { loadPack, generateQuestions, readBriefFacts, EXPLAIN_LANGS, PACKS, maskInput } from "../lib/coach.js";
+import { researchEnabled } from "../lib/research.js";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
@@ -32,10 +33,13 @@ export async function POST(request, deps = {}) {
   const profile = typeof body?.profile === "string" ? body.profile.trim() : "";
   if (profile.length > MAX_PROFILE_CHARS) return json(400, { code: "profile_too_long", max: MAX_PROFILE_CHARS });
 
+  // Stage R facts, only when the flag is on; off = today's request whatever the body carries.
+  const brief = (deps.enabled ?? researchEnabled()) ? readBriefFacts(body.brief) : [];
+
   try {
     const blocks = [...(await toContentBlocks(body.attachment)), ...(profile ? [{ type: "text", text: maskInput(profile) }] : [])];
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateQuestions(c, loadPack(pack), maskInput(mail), blocks, lang));
+    return json(200, await generateQuestions(c, loadPack(pack), maskInput(mail), blocks, lang, brief));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded

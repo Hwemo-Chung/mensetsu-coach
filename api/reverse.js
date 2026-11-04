@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateReverse, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
+import { loadPack, generateReverse, readReverseFacts, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
+import { researchEnabled } from "../lib/research.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
@@ -26,9 +27,10 @@ export async function POST(request, deps = {}) {
   const c = body?.context;
   if (!c || typeof c !== "object" || !Array.isArray(c.facts)) return json(400, { code: "context_required" });
   const context = { company: str(c.company, 200), position: str(c.position, 200), facts: c.facts.slice(0, MAX_FACTS).map((f) => str(f, 300)) };
+  const brief = (deps.enabled ?? researchEnabled()) ? readReverseFacts(body.brief) : [];
   try {
     const cl = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateReverse(cl, loadPack("jp"), { context, lang }));
+    return json(200, await generateReverse(cl, loadPack("jp"), { context, lang, brief }));
   } catch (e) {
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded
     console.error("reverse failed:", e?.status ?? "", e?.message);

@@ -1,6 +1,6 @@
 // Shared state and the chat cards. Leaf module: imports only i18n, export.js and session.js.
 import { LANGS } from "./i18n/index.js";
-import { habitCounts, statusOf } from "./export.js";
+import { habitCounts, statusOf, basisTag } from "./export.js";
 import { saveSession } from "./session.js";
 
 export const $ = (id) => document.getElementById(id);
@@ -87,15 +87,17 @@ export const JP_STEPS = [
 // One card per question with a [練習する] button (UIUX §11.2); app.js handles every button[data-pick] (cards, rail,
 // quick replies) like a typed number. Cards of an earlier set, and the demo's, cannot start a practice.
 export function renderQuestions(data) {
-  const { company_context: c, questions, specificity } = data;
+  const { company_context: c, questions, specificity, research_basis } = data;
   const t = T();
   for (const old of log.querySelectorAll("button[data-pick]")) old.disabled = true;
   const b = bubble("coach qs", t.chat.questionsMade({ company: c.company, position: c.position, count: questions.length }));
   // F7: always shown (also on the demo and a restored session), not only when the gate fails.
   if (specificity) b.append(el("p", "legend", t.chat.specificity({ n: specificity.referenced, total: questions.length })));
+  if (research_basis) b.append(el("p", "legend", t.chat.researchRefs({ n: research_basis.referenced, total: questions.length })));
   for (const q of questions) {
     const item = el("div", "q");
     item.append(el("span", "tag", t.stages[q.stage] ?? q.stage), el("span", "tag", t.categories[q.category] ?? q.category));
+    if (basisTag(q, t)) item.append(el("span", "tag", basisTag(q, t)));
     item.append(el("p", "ja", `${q.id.slice(1)}. ${q.question}`));
     if (q.question_tr) item.append(el("p", "tr", q.question_tr));
     item.append(el("p", "basis", `${t.chat.basis}: ${q.basis}`));

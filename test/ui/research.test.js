@@ -4,6 +4,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { LANGS } from "../../public/i18n/index.js";
+import { briefFacts, reverseFacts } from "../../public/export.js";
 import { fixture } from "../fake-claude.js";
 import { startServer, launch, openApp, bubbles, send, noHorizontalOverflow, CODE, MAIL, ANSWER } from "./harness.js";
 
@@ -160,17 +161,22 @@ for (const match of ["similar", "unknown"]) {
   });
 }
 
-test("reverse questions: the brief stays in the browser", async () => {
+test("reverse questions: the stored brief stays in the browser; only sourced facts go, each question shows its source", async () => {
   const { context, page, errors } = await openApp(browser, server.url, PHONE);
   await answerWith(page, FULL);
   let body;
-  await page.route("**/api/reverse", (r) => { body = r.request().postDataJSON(); return r.fulfill({ json: { questions: [] } }); });
+  await page.route("**/api/reverse", (r) => { body = r.request().postDataJSON(); return r.fulfill({ json: { questions: [{ question: "新製品の狙いは何でしょうか（架空）", intent: "의도（架空）", source_ids: ["s1"] }, { question: "評価の基準は何でしょうか（架空）", intent: "의도（架空）", source_ids: [] }], research_basis: { referenced: 0, required: 1, passed: false } } }); });
   await toQuestions(page);
   await start(page);
   await briefCard(page).getByRole("heading", { name: ko.research.snapshot }).waitFor();
   await page.getByRole("button", { name: ko.reverse.button }).click();
-  await page.locator("#log > .msg.reverse").waitFor();
+  const card = page.locator("#log > .msg.reverse");
+  await card.waitFor();
   assert.deepEqual(body.context, questions.company_context, "the summary only, as before research existed");
+  assert.deepEqual(body.brief, reverseFacts(FULL));
+  for (const s of ["要件定義を3年", "夜間対応", "残業の実態", "製品のどこを改善"]) assert.ok(!JSON.stringify(body).includes(s), s);
+  assert.equal(await card.getByText(`${ko.reverse.source}: s1`).count(), 1, "one source line: the question without a source has none");
+  assert.equal(await card.getByText(ko.reverse.lowResearch).count(), 1);
   assert.equal((await storedBrief(page)).research_status, "ok", "the session keeps it");
   assert.deepEqual(errors, []);
   await context.close();
@@ -366,6 +372,170 @@ test("a response that arrives during the career-line regeneration still lands on
   await context.close();
 });
 
+// Registered after toQuestions, so these answers win over the first set's route.
+const regenRoute = async (page, answer) => {
+  const bodies = [];
+  await page.route("**/api/questions", (r) => { bodies.push(r.request().postDataJSON()); return answer(r); });
+  return bodies;
+};
+const labelled = () => ({
+  ...questions,
+  company_context: { ...questions.company_context, facts: ["新製品を発表（架空）"] },
+  research_basis: { referenced: 2, required: 3, passed: false },
+  questions: questions.questions.map((q, i) => ({ ...q, ...[{ basis_type: "research", source_ids: ["s1", "s2"], reported: false }, { basis_type: "research", source_ids: ["s3"], reported: true }, { basis_type: "mail" }][i] ?? { basis_type: "pack" } })),
+});
+
+test("a brief with facts regenerates the questions: sourced facts go, labels show, the first set's cards die", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  const bodies = await regenRoute(page, (r) => r.fulfill({ json: labelled() }));
+  await start(page);
+  const c = ko.chat, sets = page.locator("#log > .msg.qs");
+  await sets.nth(1).waitFor();
+  assert.equal(bodies.length, 1);
+  assert.deepEqual(bodies[0].brief, briefFacts(FULL));
+  assert.equal(bodies[0].mail, MAIL.trim());
+  for (const s of ["要件定義を3年", "残業", "年収", "プロダクトマネジメント"]) assert.ok(!JSON.stringify(bodies[0]).includes(s), s);
+  const items = sets.nth(1).locator(".q");
+  assert.ok((await items.nth(0).innerText()).includes(`${c.basisType.research} · s1 · s2`));
+  assert.ok((await items.nth(1).innerText()).includes(`${c.basisType.reported} · s3`));
+  assert.ok((await items.nth(2).innerText()).includes(c.basisType.mail));
+  assert.ok((await items.nth(3).innerText()).includes(c.basisType.pack));
+  assert.ok((await sets.nth(1).innerText()).includes(c.researchRefs({ n: 2, total: 10 })));
+  await bubbles(page, "coach.note").filter({ hasText: c.lowResearch({ referenced: 2, required: 3 }) }).waitFor();
+  assert.ok(await sets.nth(0).locator("button[data-pick]").first().isDisabled());
+  assert.equal(await page.locator("#log .brief-confirm").count(), 1, "the card is not offered again");
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("mensetsu-session")));
+  assert.equal(stored.company_context.research_brief.research_status, "ok");
+  assert.equal(stored.questions[0].basis_type, "research");
+  assert.equal(stored.research_basis.passed, false);
+  assert.equal(await page.getAttribute("#input", "placeholder"), c.pickPlaceholder);
+  await page.reload();
+  await page.locator(".msg.coach").first().waitFor();
+  await send(page, CODE);
+  await bubbles(page, "coach").filter({ hasText: c.askPickAgain }).waitFor();
+  assert.ok((await page.locator("#log > .msg.qs .q").nth(1).innerText()).includes(c.basisType.reported), "the label survives a reload");
+  // L6: the script call gets the mail-only summary, not what a set made with the brief wrote into its own.
+  assert.deepEqual(stored.company_context.facts, questions.company_context.facts);
+  const script = page.waitForRequest("**/api/script");
+  await send(page, "3");
+  await page.fill("#input", ANSWER);
+  await page.press("#input", "Control+Enter");
+  assert.ok(!(await script).postDataJSON().context.includes("新製品"));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("nothing sourced to add: no regeneration, the first questions stay", async () => {
+  for (const brief of [EMPTY, UNAVAILABLE]) {
+    const { context, page, errors } = await openApp(browser, server.url, PHONE);
+    await answerWith(page, brief);
+    await toQuestions(page);
+    const bodies = await regenRoute(page, (r) => r.fulfill({ json: questions }));
+    await start(page);
+    await briefCard(page).waitFor();
+    await bubbles(page, "coach.typing").waitFor({ state: "detached" });
+    assert.equal(bodies.length, 0);
+    assert.equal(await page.locator("#log .q").count(), 10);
+    assert.deepEqual(errors, []);
+    await context.close();
+  }
+});
+
+test("a practice in progress is not wiped: the button asks first, then the set is replaced", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  const bodies = await regenRoute(page, (r) => r.fulfill({ json: labelled() }));
+  await send(page, "1");
+  await page.locator("#mic").waitFor();
+  await start(page);
+  const r = ko.research, go = page.getByRole("button", { name: r.regenButton });
+  await go.waitFor();
+  assert.equal(bodies.length, 0, "nothing regenerated by itself");
+  assert.ok((await bubbles(page, "coach.note").filter({ has: go }).innerText()).includes(r.regenOffer));
+  await go.click();
+  await page.locator("#log > .msg.qs").nth(1).waitFor();
+  assert.equal(bodies.length, 1);
+  assert.equal(await page.getAttribute("#input", "placeholder"), ko.chat.pickPlaceholder, "back to picking from the new set");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("the career line goes with the brief regeneration", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  const bodies = await regenRoute(page, (r) => r.fulfill({ json: questions }));
+  await page.getByRole("button", { name: ko.chat.profileButton }).click();
+  await send(page, "物流システムの開発7年");
+  await page.locator("#log > .msg.qs").nth(1).waitFor();
+  assert.equal(bodies[0].brief, undefined, "no brief yet");
+  await start(page);
+  await page.locator("#log > .msg.qs").nth(2).waitFor();
+  assert.equal(bodies[1].profile, "物流システムの開発7年");
+  assert.deepEqual(bodies[1].brief, briefFacts(FULL));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("a career line started during the regeneration keeps its stage", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  await regenRoute(page, async (r) => { await gate; return r.fulfill({ json: questions }); });
+  await start(page);
+  const wait = briefCard(page).getByText(ko.research.regenWait);
+  await wait.waitFor();
+  await page.getByRole("button", { name: ko.chat.profileButton }).click();
+  release();
+  await wait.waitFor({ state: "detached" });
+  assert.equal(await page.getAttribute("#input", "placeholder"), ko.chat.profilePlaceholder);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("a save while the set is regenerating: the late answer does not bring the session back", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  await regenRoute(page, async (r) => { await gate; return r.fulfill({ json: labelled() }); });
+  await start(page);
+  const wait = briefCard(page).getByText(ko.research.regenWait);
+  await wait.waitFor();
+  assert.ok(await page.locator("#send").isDisabled(), "no practice starts on a set about to be replaced");
+  await Promise.all([page.waitForEvent("download"), page.click("#end")]);
+  release();
+  await wait.waitFor({ state: "detached" });
+  assert.equal(await page.evaluate(() => localStorage.getItem("mensetsu-session")), null);
+  assert.equal(await page.locator("#log > .msg.qs").count(), 1);
+  assert.ok(await page.locator("#send").isEnabled(), "the composer comes back");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+test("a restored session has no mail to regenerate from: it says so and keeps the questions", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, PHONE);
+  await answerWith(page, FULL);
+  await toQuestions(page);
+  await page.reload();
+  await page.locator(".msg.coach").first().waitFor();
+  const bodies = await regenRoute(page, (r) => r.fulfill({ json: questions }));
+  await send(page, CODE);
+  await bubbles(page, "coach").filter({ hasText: ko.chat.askPickAgain }).waitFor();
+  await start(page);
+  await bubbles(page, "coach.note").filter({ hasText: ko.research.noRegen }).waitFor();
+  assert.equal(bodies.length, 0);
+  assert.equal(await page.locator("#log .q").count(), 10);
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
 test("a long brief opens at its top, not at its last line", async () => {
   const { context, page, errors } = await openApp(browser, server.url, PHONE);
   await answerWith(page, FULL);
@@ -455,6 +625,11 @@ test("flag off: a brief left in the session is kept for export but draws no card
     await bubbles(page, "coach").filter({ hasText: ko.chat.askPickAgain }).waitFor();
     assert.equal(await page.locator("#log .brief").count(), 0);
     assert.equal((await storedBrief(page)).research_status, "ok");
+    let body;
+    await page.route("**/api/reverse", (r) => { body = r.request().postDataJSON(); return r.fulfill({ json: { questions: [] } }); });
+    await page.getByRole("button", { name: ko.reverse.button }).click();
+    await page.locator("#log > .msg.reverse").waitFor();
+    assert.ok(!("brief" in body), "flag off sends what it sent before");
     assert.deepEqual(errors, []);
     await context.close();
   } finally {

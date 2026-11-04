@@ -1,5 +1,5 @@
 import { LANGS } from "./i18n/index.js";
-import { sessionToMarkdown, exportFileName, compareAttempts, statusOf } from "./export.js";
+import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts } from "./export.js";
 import { loadSession, clearSession, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
@@ -16,11 +16,12 @@ function keepCode(v) {
   try { v ? sessionStorage.setItem("code", v) : sessionStorage.removeItem("code"); } catch {}
 }
 let stage = "code"; // code → mail → pick ⇄ answer
-let lastMail = null, lastAttachment = null; // memory only, for the optional career-line regeneration
+let lastMail = null, lastAttachment = null, lastProfile = ""; // memory only, for the career-line and brief regenerations
 let destPack = "jp"; // destination pack for the next question set (jp, or kr beta)
 const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
 let researchOn = false; // from /api/access; off = no card and no call
 let researchRun = 0; // finish() does not bump state.epoch, so this drops a response meant for an earlier question set
+let regenerating = false; // Ctrl+Enter submits even with #send disabled, and a practice must not start on a set about to be replaced
 
 const LANG_KEY = "mensetsu-lang";
 const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
@@ -177,7 +178,12 @@ async function startResearch(names, unlock) {
       state.session.research_names = names;
       persist();
     }
-    renderBrief(data, names, () => offerResearch(names), kept);
+    const card = renderBrief(data, names, () => offerResearch(names), kept);
+    if (!kept) {
+      const top = log.scrollTop; // a long card is read from its top; what follows it must not move the view
+      followBrief(data, card);
+      log.scrollTop = top;
+    }
   } catch {
     if (!current()) return;
     unlock();
@@ -187,20 +193,51 @@ async function startResearch(names, unlock) {
   }
 }
 
+// Stage R step 4: the questions follow the brief. Practice already done is never wiped without asking.
+function followBrief(brief, card) {
+  if (!briefFacts(brief).length) return; // nothing sourced to add: the first questions stay
+  if (!lastMail) return bubble("coach note", T().research.noRegen); // restored session: the mail was never stored
+  const { attempts, notes } = state.session;
+  if (!send.disabled && !state.current && stage !== "profile" && !attempts.length && !Object.values(notes ?? {}).some((n) => n?.trim())) return regenerate({ card });
+  const b = bubble("coach note", T().research.regenOffer), btn = el("button", "inline-btn research-ctl", T().research.regenButton);
+  btn.type = "button";
+  btn.addEventListener("click", () => {
+    if (send.disabled) return;
+    btn.disabled = true;
+    regenerate({});
+  });
+  b.append(el("br"), btn);
+}
+async function regenerate({ card }) {
+  regenerating = send.disabled = true;
+  try {
+    await requestQuestions(lastMail, lastAttachment, lastProfile, T().research.regenWait, { fromBrief: true, card });
+  } catch {
+    bubble("err", message({ code: "network" }));
+  } finally {
+    regenerating = send.disabled = false;
+  }
+}
+
 // F10: reverse questions from the company summary already in the session (no mail re-sent).
 async function makeReverse() {
   const wait = waiting(T().reverse.wait);
   const my = state.epoch;
   try {
-    // The brief can quote the desired profile, which only the fit call may receive; this endpoint uses none of it.
+    // The stored brief can quote the desired profile, which only the fit call may receive; reverseFacts picks what may leave.
     const { research_brief, ...context } = state.session.company_context;
-    const { res, data } = await post("/api/reverse", { context, lang: state.lang, pack: packOf() });
+    const brief = researchOn ? reverseFacts(research_brief) : [];
+    const { res, data } = await post("/api/reverse", { context, lang: state.lang, pack: packOf(), ...(brief.length ? { brief } : {}) });
     if (my !== state.epoch) return;
     if (!res.ok) return failed(res, data);
     const t = T().reverse;
     const b = bubble("coach script reverse", null);
     b.append(el("p", "title", t.title));
-    data.questions.forEach((q, i) => b.append(el("p", "ja", `${i + 1}. ${q.question}`), el("p", "tr", `${t.intent}: ${q.intent}`)));
+    data.questions.forEach((q, i) => {
+      b.append(el("p", "ja", `${i + 1}. ${q.question}`), el("p", "tr", `${t.intent}: ${q.intent}`));
+      if (q.source_ids?.length) b.append(el("p", "legend", `${t.source}: ${q.source_ids.join(", ")}`));
+    });
+    if (data.research_basis && !data.research_basis.passed) b.append(el("p", "legend", t.lowResearch));
     b.append(iel("p", "legend", "tip", t.tip));
     state.session.reverse = data.questions;
     persist();
@@ -229,29 +266,40 @@ async function onMail(text) {
   await requestQuestions(text, attachment, "", T().chat.waitQuestions);
 }
 
-async function requestQuestions(mail, file, profile, waitText) {
-  const wait = waiting(waitText);
-  const my = state.epoch;
+// card: show the wait inside it and leave the view alone, so the brief being read is not scrolled away.
+async function requestQuestions(mail, file, profile, waitText, { fromBrief = false, card = null } = {}) {
+  const regen = !!profile || fromBrief;
+  const wait = card ? el("p", "legend", waitText) : waiting(waitText);
+  card?.firstChild.after(wait);
+  const my = state.epoch, run = researchRun;
   try {
-    const { res, data } = await post("/api/questions", { mail, attachment: file, lang: state.lang, pack: destPack, ...(profile ? { profile } : {}) });
-    if (my !== state.epoch) return;
+    const brief = regen && researchOn ? briefFacts(state.session.company_context.research_brief) : [];
+    const { res, data } = await post("/api/questions", { mail, attachment: file, lang: state.lang, pack: destPack, ...(profile ? { profile } : {}), ...(brief.length ? { brief } : {}) });
+    if (my !== state.epoch || (fromBrief && run !== researchRun)) return;
     if (!res.ok) return failed(res, data);
+    const top = log.scrollTop;
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
-    // A regenerated set (career line) starts fresh, notes included; it is the same company, so a paid brief stays.
-    const prev = profile ? state.session : null, research_brief = prev?.company_context.research_brief;
-    if (!profile) endResearch();
-    state.session = { pack: data.pack, company_context: research_brief ? { ...data.company_context, research_brief } : data.company_context, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(prev?.research_names && { research_names: prev.research_names }) };
+    // A regenerated set (career line, brief) starts fresh, notes included; it is the same company, so a paid brief and reverse questions stay.
+    const prev = regen ? state.session : null, research_brief = prev?.company_context.research_brief;
+    if (!regen) endResearch();
+    lastProfile = profile;
+    // A set made with the brief keeps the mail-only summary: these facts reach the script call, which must not receive research (L6).
+    const summary = brief.length ? prev.company_context : data.company_context;
+    state.session = { pack: data.pack, company_context: research_brief ? { ...summary, research_brief } : summary, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(data.research_basis && { research_basis: data.research_basis }), ...(prev?.research_names && { research_names: prev.research_names }), ...(researchOn && prev?.reverse && { reverse: prev.reverse }) };
     state.current = null;
     persist();
     renderNotes();
     attachment = null;
     $("chip").hidden = true;
-    renderQuestions(data);
+    renderQuestions(state.session);
     openByDefault();
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
-    if (!profile && researchOn) offerResearch();
-    if (!profile) offerProfile();
-    askForPick(false);
+    if (data.research_basis && !data.research_basis.passed) bubble("coach note", T().chat.lowResearch(data.research_basis));
+    if (!regen && researchOn) offerResearch();
+    if (!regen) offerProfile();
+    // A 401 elsewhere or a career line being typed keeps its stage: the new set must not take over the composer.
+    if (!(fromBrief && ["profile", "code"].includes(stage))) askForPick(false);
+    if (card) log.scrollTop = top;
   } finally {
     wait.remove();
   }
@@ -366,7 +414,7 @@ $("chipX").addEventListener("click", () => { attachment = null; $("chip").hidden
 
 $("composer").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  if (state.tour) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled)
+  if (state.tour || regenerating) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled)
   const text = input.value.trim();
   if (!text) return;
   voiceSent();

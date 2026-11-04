@@ -17,7 +17,7 @@ export function sessionToMarkdown(session, t) {
   if (c.facts?.length) out.push(...c.facts.map((f) => `- ${f}`), "");
   out.push(`## ${t.export.questions} (${session.questions.length})`, "");
   for (const q of session.questions) {
-    out.push(`${q.id.slice(1)}. [${t.stages[q.stage] ?? q.stage} · ${t.categories[q.category] ?? q.category}] ${q.question}`, ...(q.question_tr ? [`   - ${q.question_tr}`] : []), `   - ${t.chat.basis}: ${q.basis}`);
+    out.push(`${q.id.slice(1)}. [${t.stages[q.stage] ?? q.stage} · ${t.categories[q.category] ?? q.category}] ${q.question}`, ...(q.question_tr ? [`   - ${q.question_tr}`] : []), `   - ${t.chat.basis}: ${q.basis}${basisTag(q, t) ? ` (${inert(basisTag(q, t))})` : ""}`);
     const note = session.notes?.[q.id]?.trim();
     if (note) out.push(`   - ${t.export.notes}: ${note.replace(/\n/g, "\n     ")}`); // indented so a multi-line memo stays in the item
   }
@@ -50,7 +50,7 @@ export function sessionToMarkdown(session, t) {
   });
   if (session.reverse?.length) {
     out.push("", `## ${t.reverse.title}`, "");
-    session.reverse.forEach((q, i) => out.push(`${i + 1}. ${q.question}`, `   - ${t.reverse.intent}: ${q.intent}`));
+    session.reverse.forEach((q, i) => out.push(`${i + 1}. ${q.question}`, `   - ${t.reverse.intent}: ${q.intent}`, ...(citedIds(q).length ? [`   - ${t.reverse.source}: ${citedIds(q).map(inert).join(", ")}`] : [])));
   }
   const habits = habitCounts(session);
   if (habits.length) {
@@ -77,6 +77,39 @@ export const claimFound = (c) => typeof c?.value === "string" && c.value !== "no
 export const citedIds = (c) => (Array.isArray(c?.source_ids) ? c.source_ids : []);
 export const claimMeta = (c, r) => [r.confidence[c.confidence] ?? r.confidence.unknown, c.single_source ? r.singleSource : r.sources({ n: c.source_count }), ...citedIds(c)];
 const listOf = (v) => (Array.isArray(v) ? v : []);
+
+const objects = (v) => listOf(v).filter((x) => x && typeof x === "object");
+
+// What may leave the browser for the question call: sourced facts only. Reputation, pay and conditions stay out, and the fit
+// sections stay out because they can quote the desired profile, which only the fit call may receive.
+export function briefFacts(b) {
+  if (b?.research_status !== "ok") return [];
+  const fact = (kind) => (c) => (claimFound(c) ? [{ kind, text: c.value, source_ids: citedIds(c) }] : []);
+  const co = b.company_snapshot, pos = b.position_analysis;
+  const thisPosition = [pos?.actual_work, pos?.team_context, ...listOf(pos?.required_skills), ...listOf(pos?.preferred_skills)].filter((c) => c?.applies_to_position === true);
+  return [
+    ...SNAPSHOT_FIELDS.flatMap((k) => fact("company")(co?.[k])),
+    ...listOf(co?.recent_news).flatMap(fact("news")),
+    ...thisPosition.flatMap(fact("role")),
+    ...listOf(b.interview_intelligence?.reported_questions).flatMap(fact("reported_question")),
+  ];
+}
+
+// For reverse questions: the facts minus candidate reports, plus what to verify at the interview. Agent items and anything from the desired profile stay out.
+export function reverseFacts(b) {
+  if (b?.research_status !== "ok") return [];
+  const quotable = (s) => ["mail", "research"].includes(s?.origin) && typeof s.quote === "string";
+  const flags = objects(b.mismatch_flags).filter((f) => quotable(f.side_a) && quotable(f.side_b)).map((f) => ({ text: `${f.topic ?? ""}: ${f.side_a.quote} / ${f.side_b.quote}`, source_ids: [...citedIds(f.side_a), ...citedIds(f.side_b)] }));
+  const checks = objects(b.company_checkpoints).filter((c) => c.ask === "interview" && typeof c.question === "string").map((c) => ({ text: c.question, source_ids: citedIds(c) }));
+  return [...briefFacts(b).filter((f) => f.kind !== "reported_question"), ...[...flags, ...checks].filter((c) => c.source_ids.length).map((c) => ({ kind: "check", ...c }))];
+}
+
+// Label from the fields code computed (lib/questions.js); a session without them gets none.
+export function basisTag(q, t) {
+  const research = q.basis_type === "research";
+  const label = t.chat.basisType[research && q.reported ? "reported" : q.basis_type];
+  return label ? [label, ...(research ? citedIds(q) : [])].join(" · ") : "";
+}
 
 // Real links come only from a source that passed gate 1. Prefix only: Japanese has no spaces, so taking the rest of the token would eat the sentence.
 export const noBareLinks = (s) => s.replace(/(?:https?|ftp):\/\/(?:www\.)?|www\./gi, "[url]");
