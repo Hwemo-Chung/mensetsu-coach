@@ -1,6 +1,6 @@
 import { LANGS } from "./i18n/index.js";
-import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts } from "./export.js";
-import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, SESSION_KEY } from "./session.js";
+import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap } from "./export.js";
+import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, loadDebrief, saveDebrief, clearDebriefs, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
@@ -140,6 +140,7 @@ function restore(saved) {
   again.addEventListener("click", finish); // same as 끝내기·저장: download first, never a delete-only button
   b.append(el("br"), again);
   if (packOf() === "jp") b.append(" ", reverseButton());
+  if (researchOn) b.append(" ", debriefButton("inline-btn"));
   renderQuestions(state.session);
   openByDefault();
   const last = state.session.attempts.findLast((a) => a.review);
@@ -432,6 +433,7 @@ function quickReplies() {
   });
   if (packOf() === "jp") row.append(reverseButton(null, t.quick.reverse));
   if (lastMail) row.append(profileButton(null, t.quick.profile));
+  if (researchOn) row.append(debriefButton(null));
   if (row.children.length) log.append(row);
   log.scrollTop = log.scrollHeight;
 }
@@ -515,7 +517,7 @@ function finish() {
   if (!state.session) return bubble("coach", T().export.empty);
   const file = exportFileName(new Date());
   try {
-    const url = URL.createObjectURL(new Blob([sessionToMarkdown(state.session, T())], { type: "text/markdown;charset=utf-8" }));
+    const url = URL.createObjectURL(new Blob([sessionToMarkdown(state.session, T(), researchOn ? loadDebrief(LS, researchNames().company) : null)], { type: "text/markdown;charset=utf-8" }));
     const a = Object.assign(document.createElement("a"), { href: url, download: file });
     document.body.append(a);
     a.click();
@@ -639,6 +641,34 @@ function resetChat() {
   renderNotes();
 }
 
+// Stage R step 6: the debrief. Saved per keystroke like the desired profile; the figure stays on this screen, out of the file and every request.
+const debriefDialog = $("debrief"), debriefInputs = [...debriefDialog.querySelectorAll("[data-debrief]")];
+let debriefCompany = null;
+function showOverlap(saved = true) {
+  const { asked, matched, ids } = questionOverlap(state.session?.questions ?? [], debriefInputs[0].value);
+  const t = T().debrief;
+  $("debriefOverlap").textContent = [saved ? "" : t.notSaved, asked ? t.overlap({ matched, asked, ids: ids.map((id) => `Q${id.slice(1)}`).join(", ") }) : ""].filter(Boolean).join(" ");
+}
+function debriefButton(cls) {
+  const b = el("button", cls, T().debrief.button);
+  b.type = "button";
+  b.addEventListener("click", () => {
+    if (!state.session) return; // a button left in the log after finish
+    debriefCompany = researchNames().company;
+    const saved = loadDebrief(LS, debriefCompany) ?? {};
+    for (const e of debriefInputs) e.value = saved[e.dataset.debrief] ?? "";
+    $("debriefCompany").textContent = debriefCompany;
+    showOverlap();
+    debriefDialog.showModal();
+  });
+  return b;
+}
+for (const e of debriefInputs) e.addEventListener("input", () => showOverlap(saveDebrief(LS, debriefCompany, Object.fromEntries(debriefInputs.map((i) => [i.dataset.debrief, i.value])))));
+$("debriefDelete").addEventListener("click", () => {
+  clearDebriefs(LS);
+  $("debriefStatus").textContent = T().debrief.deleted;
+});
+
 // Esc: a mobile panel closes first, else the tour is skipped. Open dialogs handle their own Esc.
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
@@ -655,6 +685,8 @@ $("opts").addEventListener("click", () => {
   const desired = loadDesired(LS) ?? {};
   for (const e of desiredInputs) e.value = desired[e.dataset.desired] ?? "";
   $("desiredStatus").textContent = "";
+  $("debriefOpts").hidden = !researchOn;
+  $("debriefStatus").textContent = "";
   $("options").showModal();
 });
 for (const e of desiredInputs) e.addEventListener("input", () => saveDesired(LS, Object.fromEntries(desiredInputs.map((i) => [i.dataset.desired, i.value]))));

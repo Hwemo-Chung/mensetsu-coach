@@ -87,7 +87,20 @@ export default {
   read: { start: "Read aloud and check pronunciation", checking: "Checking your pronunciation…", ok: (d) => `Well read (${d.pct}% match)`, miss: (d) => `${d.pct}% match · read the underlined sentences again`, diff: (d) => `Heard: ${d.heard} → Expected: ${d.expected}`, none: "(not heard)", listen: "Listen to this part", again: "Slowly, once more", retry: "I couldn't make out the reading. Please read it once more.", note: "Estimated by speech recognition; it may differ from how you actually sounded." },
   habits: { title: (d) => `Today's speech habits (${d.n} ${d.n === 1 ? "answer" : "answers"})`, times: (d) => `${d.c}×`, summary: "Speech habit summary", rule: "Expression", count: "Count" },
   reverse: { button: "Make 3 questions to ask", wait: "Writing questions to ask this company…", title: "Questions to ask the interviewer", intent: "Why", source: "Source", lowResearch: "No question could be based on the research, so none carries a source.", tip: "Ask your agent about pay, overtime and start date." },
+  debrief: {
+    button: "After the interview",
+    title: "After the interview",
+    hint: "Saved per company in this browser only and sent nowhere. Finish & save does not erase it. Empty the fields to erase this company's notes; erase them all from Settings.",
+    asked: "Questions you were actually asked (one per line)",
+    difficult: "Difficult or re-asked moments",
+    outcome: "Outcome and next step",
+    deleteAll: "Erase all interview notes",
+    deleted: "All interview notes are erased.",
+    notSaved: "Could not save. Please check your browser storage.",
+    overlap: (d) => `${d.matched} of the ${d.asked} questions you were asked overlap with the generated ones${d.ids ? ` (${d.ids})` : ""}. This figure appears only on this screen.`,
+  },
   research: {
+    fictional: "Fictional example (no AI call)",
     regenWait: "Regenerating questions from the research…",
     regenOffer: "The research can be reflected in your questions. Regenerating removes your answers and notes for the current set.",
     regenButton: "Regenerate questions from the research",
@@ -173,6 +186,7 @@ export default {
     steps: [
       { title: "Paste the company's email", body: "Paste the email into the box (files: the clip button) and press Send." },
       { title: "10 questions for that company", body: "Likely questions made from the email." },
+      { title: "Company research (fictional example)", body: "Using only the company and position you confirm, it gathers public information with sources. Differences from the mail appear as points to verify." },
       { title: "Pick a question", body: "Tap Practice, or send the question number." },
       { title: "Write your answer and send it", body: "Answer in English or Japanese. You can also speak with the mic; after voice input, check the sentence before sending." },
       { title: "Off-target answers show in red", body: "Whether you answered the question, and which of the 4 steps is missing." },

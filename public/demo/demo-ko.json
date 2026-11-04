@@ -261,5 +261,168 @@
     "issues": []
    }
   }
- ]
+ ],
+ "brief": {
+  "research_status": "ok",
+  "research_date": "2026-11-04",
+  "tool_errors": 0,
+  "company_snapshot": {
+   "business": {
+    "value": "물류 창고용 재고 관리 SaaS를 제공한다 (가상)",
+    "confidence": "high",
+    "source_ids": [
+     "s1",
+     "s2"
+    ],
+    "source_count": 2,
+    "single_source": false
+   },
+   "business_model": {
+    "value": "자사 제품 중심. 수탁 개발 여부는 공개 정보에서 확인되지 않았다 (가상)",
+    "confidence": "medium",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "size": {
+    "value": "직원 약 100명 (가상)",
+    "confidence": "high",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "founded": {
+    "value": "2018년 (가상)",
+    "confidence": "high",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "locations": {
+    "value": "not_found"
+   },
+   "recent_news": [
+    {
+     "value": "올해 해외 거점 창고 도입을 시작했다고 발표했다 (가상)",
+     "confidence": "medium",
+     "source_ids": [
+      "s3"
+     ],
+     "source_count": 1,
+     "single_source": true
+    }
+   ]
+  },
+  "position_analysis": {
+   "position_match": "exact",
+   "actual_work": {
+    "value": "개발 팀 관리와 함께 업무의 약 절반은 직접 코드 리뷰와 구현을 맡는다 (가상)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": true,
+    "position_match": "exact"
+   },
+   "required_skills": [
+    {
+     "value": "팀 관리 경험 (가상)",
+     "confidence": "high",
+     "source_ids": [
+      "s2"
+     ],
+     "source_count": 1,
+     "single_source": true,
+     "applies_to_position": true,
+     "position_match": "exact"
+    }
+   ]
+  },
+  "reputation_themes": [],
+  "interview_intelligence": {
+   "selection_stages": [],
+   "reported_questions": [
+    {
+     "value": "최근 프로젝트에서 일정이 어긋났을 때 어떻게 판단했나요? (가상)",
+     "confidence": "medium",
+     "source_ids": [
+      "s2"
+     ],
+     "source_count": 1,
+     "single_source": true
+    }
+   ]
+  },
+  "fit_evaluation": {
+   "matches": [],
+   "gaps": [
+    {
+     "point": "공개된 내용에는 직접 구현이 업무의 절반으로 적혀 있습니다 (가상)",
+     "basis": "company_info",
+     "quote": "업무의 약 절반은 직접 코드 리뷰와 구현을 맡는다 (가상)",
+     "source_ids": [
+      "s2"
+     ]
+    }
+   ],
+   "needs_user_confirmation": [
+    "급여에 상여와 잔업 수당이 포함되는지 확인할 수 있나요?"
+   ]
+  },
+  "mismatch_flags": [
+   {
+    "topic": "직접 구현의 비중 (가상)",
+    "side_a": {
+     "origin": "mail",
+     "quote": "5名の開発チーム",
+     "source_ids": []
+    },
+    "side_b": {
+     "origin": "research",
+     "quote": "업무의 절반은 직접 구현 (가상)",
+     "source_ids": [
+      "s2"
+     ]
+    },
+    "verify_prompt": "관리와 구현의 비율을 면접에서 확인해 봅시다.",
+    "ask": "interview"
+   }
+  ],
+  "company_checkpoints": [
+   {
+    "question": "관리 업무와 직접 구현의 비율은 어느 정도인가요?",
+    "ask": "interview",
+    "origin": "research",
+    "source_ids": [
+     "s2"
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "id": "s1",
+    "title": "샘플 로지 회사 소개 (가상)",
+    "url": "https://example.com/samplelogi/about"
+   },
+   {
+    "id": "s2",
+    "title": "샘플 로지 채용 정보: 엔지니어링 매니저 (가상)",
+    "url": "https://example.com/samplelogi/careers"
+   },
+   {
+    "id": "s3",
+    "title": "샘플 로지 소식 (가상)",
+    "url": "https://example.com/samplelogi/news",
+    "published_date": "2026-10-01"
+   }
+  ]
+ }
 }

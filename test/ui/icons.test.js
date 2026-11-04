@@ -74,7 +74,7 @@ for (const lang of ["ko", "en", "ja"]) {
     await iconsResolve(page);
     assert.deepEqual(await chromeGlyphs(page), []);
     await page.getByRole("button", { name: t.demo.button }).click();
-    await tourTo(page, TOUR.try); // 9-step tour (11/03)
+    await tourTo(page, TOUR.try);
     await bubbles(page, "coach").filter({ hasText: t.demo.done }).waitFor();
     const reviews = page.locator("#log > .msg.review");
     // Steps: x-circle on a missing step, check-circle on a present one; the verdict carries its own icon.

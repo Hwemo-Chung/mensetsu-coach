@@ -1,7 +1,8 @@
-// No-code demo and tutorial: replays a real recorded run (public/demo/demo-<lang>.json). No API, no session, no storage.
+// No-code demo and tutorial: replays a real recorded run (public/demo/demo-<lang>.json; only its "brief" is hand-written, and its card says so). No API, no session, no storage.
 import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { showReview, resetPanel, openByDefault, wide } from "./panel.js";
 import { addListen } from "./voice.js";
+import { renderBrief } from "./brief.js";
 import { compareAttempts } from "./export.js";
 
 const log = $("log"), input = $("input"), send = $("send");
@@ -82,7 +83,7 @@ function demoScenes(d, me, onTry) {
   ];
 }
 
-// Tutorial (UIUX-SPEC (k), rework 11/03): popup n/9 above the composer and a page-wide dimmer. Each step spotlights the
+// Tutorial (UIUX-SPEC (k), rework 11/03): popup n/10 above the composer and a page-wide dimmer. Each step spotlights the
 // user's action first (composer row with 📎, then Send), then its result; on desktop the readable panel copy is the
 // result. prefers-reduced-motion: no typing, no pauses, no fade (the spotlight is not motion and stays).
 const tourBox = $("tour"), dim = $("tourDim"), row = document.querySelector(".composer .row");
@@ -107,6 +108,7 @@ function tourScenes(d, say, onTry) {
   return [
     async () => (await say(d.mail.length > 300 ? `${d.mail.slice(0, 300)}…` : d.mail)) && send,
     async () => { const b = renderQuestions(d); openByDefault(); return b; },
+    async () => { const b = renderBrief(d.brief, d.company_context); b.querySelector(".title").after(el("p", "caution", T().research.fictional), b.querySelector(".fit-flags")); return b; }, // a tall spotlit card shows its head only, so the flag moves up
     async () => { if (!(await say(String(d.pick + 1)))) return; return bubble("coach", `Q${d.pick + 1}. ${withTr(q)}`); },
     async () => say(d.steps[0].answer),
     async () => { const b = reviewed(d.steps[0].review); showReview(d.steps[0].review); return inPanel(":scope > .review", b); },

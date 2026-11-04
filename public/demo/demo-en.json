@@ -266,5 +266,168 @@
     "issues": []
    }
   }
- ]
+ ],
+ "brief": {
+  "research_status": "ok",
+  "research_date": "2026-11-04",
+  "tool_errors": 0,
+  "company_snapshot": {
+   "business": {
+    "value": "Provides inventory-management SaaS for logistics warehouses (fictional)",
+    "confidence": "high",
+    "source_ids": [
+     "s1",
+     "s2"
+    ],
+    "source_count": 2,
+    "single_source": false
+   },
+   "business_model": {
+    "value": "Mainly its own product. Whether it also does contract development was not found in public information (fictional)",
+    "confidence": "medium",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "size": {
+    "value": "About 100 employees (fictional)",
+    "confidence": "high",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "founded": {
+    "value": "2018 (fictional)",
+    "confidence": "high",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "locations": {
+    "value": "not_found"
+   },
+   "recent_news": [
+    {
+     "value": "Announced that rollout to overseas warehouses has begun this year (fictional)",
+     "confidence": "medium",
+     "source_ids": [
+      "s3"
+     ],
+     "source_count": 1,
+     "single_source": true
+    }
+   ]
+  },
+  "position_analysis": {
+   "position_match": "exact",
+   "actual_work": {
+    "value": "Besides managing the team, about half of the work is hands-on code review and implementation (fictional)",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": true,
+    "position_match": "exact"
+   },
+   "required_skills": [
+    {
+     "value": "Team management experience (fictional)",
+     "confidence": "high",
+     "source_ids": [
+      "s2"
+     ],
+     "source_count": 1,
+     "single_source": true,
+     "applies_to_position": true,
+     "position_match": "exact"
+    }
+   ]
+  },
+  "reputation_themes": [],
+  "interview_intelligence": {
+   "selection_stages": [],
+   "reported_questions": [
+    {
+     "value": "When a schedule slipped on a recent project, how did you decide what to do? (fictional)",
+     "confidence": "medium",
+     "source_ids": [
+      "s2"
+     ],
+     "source_count": 1,
+     "single_source": true
+    }
+   ]
+  },
+  "fit_evaluation": {
+   "matches": [],
+   "gaps": [
+    {
+     "point": "The public posting puts hands-on work at half the role (fictional)",
+     "basis": "company_info",
+     "quote": "About half of the work is hands-on code review and implementation (fictional)",
+     "source_ids": [
+      "s2"
+     ]
+    }
+   ],
+   "needs_user_confirmation": [
+    "Can you confirm whether the salary includes bonus and overtime pay?"
+   ]
+  },
+  "mismatch_flags": [
+   {
+    "topic": "Share of hands-on work (fictional)",
+    "side_a": {
+     "origin": "mail",
+     "quote": "5名の開発チーム",
+     "source_ids": []
+    },
+    "side_b": {
+     "origin": "research",
+     "quote": "Half the work is hands-on coding (fictional)",
+     "source_ids": [
+      "s2"
+     ]
+    },
+    "verify_prompt": "Ask about the split in the interview.",
+    "ask": "interview"
+   }
+  ],
+  "company_checkpoints": [
+   {
+    "question": "What is the split between management and hands-on implementation?",
+    "ask": "interview",
+    "origin": "research",
+    "source_ids": [
+     "s2"
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "id": "s1",
+    "title": "Sample Logi: company profile (fictional)",
+    "url": "https://example.com/samplelogi/about"
+   },
+   {
+    "id": "s2",
+    "title": "Sample Logi careers: Engineering Manager (fictional)",
+    "url": "https://example.com/samplelogi/careers"
+   },
+   {
+    "id": "s3",
+    "title": "Sample Logi news (fictional)",
+    "url": "https://example.com/samplelogi/news",
+    "published_date": "2026-10-01"
+   }
+  ]
+ }
 }

@@ -38,7 +38,7 @@ for (const [lang, vp] of [["ko", "mobile"], ["ko", "desktop"], ["ja", "desktop"]
     page.on("request", (r) => { if (new URL(r.url()).pathname.startsWith("/api/")) api.push(r.url()); });
     await page.getByRole("button", { name: t.button }).click();
     await bubbles(page, "demo-banner").filter({ hasText: t.banner }).waitFor();
-    await tourTo(page, TOUR.try); // 9-step tour (11/03): the questions arrive at step 2, so they are counted at the end
+    await tourTo(page, TOUR.try); // the questions arrive at step 2, so they are counted at the end
     assert.equal(await page.locator("#log .q").count(), 10);
     await bubbles(page, "coach").filter({ hasText: t.done }).waitFor();
     assert.equal(await page.locator(".next-btn").count(), 0);

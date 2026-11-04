@@ -140,7 +140,7 @@ export function showFit(card, brief) {
   checkpoints(rest, objects(brief.company_checkpoints), r);
 }
 
-// names: what was searched. kept: a failed re-run, with the earlier brief still stored. onFit: absent when a re-run could only lose the mail's side.
+// names: what was searched. onRerun: absent in the tour, which calls no API. kept: a failed re-run, with the earlier brief still stored. onFit: absent when a re-run could only lose the mail's side.
 export function renderBrief(brief, names, onRerun, kept = false, onFit = null) {
   const r = T().research, b = bubble("coach brief", null), log = $("log");
   b.append(el("p", "title", r.title({ company: names.company, position: names.position })));
@@ -165,10 +165,12 @@ export function renderBrief(brief, names, onRerun, kept = false, onFit = null) {
     b.append(el("p", "caution", r.unavailable));
     if (kept) b.append(el("p", "legend", r.kept));
   }
-  const again = el("button", "inline-btn research-ctl", r.rerun);
-  again.type = "button";
-  again.addEventListener("click", () => { again.disabled = true; onRerun(); });
-  b.append(again);
+  if (onRerun) {
+    const again = el("button", "inline-btn research-ctl", r.rerun);
+    again.type = "button";
+    again.addEventListener("click", () => { again.disabled = true; onRerun(); });
+    b.append(again);
+  }
   if (brief.research_status === "ok" && onFit) {
     const refit = el("button", "inline-btn research-ctl refit", r.refit);
     refit.type = "button";

@@ -196,7 +196,7 @@ test("V4 hidden: same-language screen (jp + ja), KR pack, demo/tutorial replay",
     const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop);
     await page.evaluate(() => localStorage.setItem("mensetsu-tour-tips", "1"));
     await page.getByRole("button", { name: ko.demo.button }).click();
-    await tourTo(page, TOUR.script); // 9-step tour (11/03)
+    await tourTo(page, TOUR.script);
     await scriptCard(page).waitFor();
     assert.equal(await page.locator(".readaloud").count(), 0);
     assert.deepEqual(errors, []);

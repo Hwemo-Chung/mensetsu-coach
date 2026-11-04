@@ -1,4 +1,4 @@
-// Tutorial (rework 11/03, 9 steps): each step spotlights the user's action (input, 📎, Send), then its result; a fixed
+// Tutorial (rework 11/03; 10 steps since 11/04, the fictional brief became step 3, the rest moved up by one and keep their intent): each step spotlights the user's action (input, 📎, Send), then its result; a fixed
 // dimmer covers the whole page (header and panel too); spotlit elements never exceed the viewport. Plus prev/skip/Esc,
 // reduced motion and the tips-off replay (unchanged).
 // Replays public/demo/demo-<lang>.json only: every test asserts zero /api/ requests.
@@ -39,9 +39,16 @@ async function framed(page, label) {
   assert.equal(m.top, "tourDim", `${label}: the dimmer covers the header`);
 }
 
-test("tour: 9 steps — action then result is spotlit, whole page dimmed, Back undoes a step, Close at the end (desktop)", async () => {
+// A tall spotlit card is clipped to its head and the popup covers the rest: the sample mismatch must stay readable above both.
+const flagInSight = (page) => page.locator("#log > .msg.brief.spot").evaluate((card) => {
+  const last = card.querySelector(".fit-flags").lastElementChild.getBoundingClientRect();
+  const limit = Math.min(card.getBoundingClientRect().top + card.clientHeight, document.querySelector("#tour").getBoundingClientRect().top);
+  if (last.bottom > limit) throw new Error(`the mismatch flag ends at ${last.bottom}, visible until ${limit}`);
+});
+
+test("tour: 10 steps — action then result is spotlit, whole page dimmed, Back undoes a step, Close at the end (desktop)", async () => {
   const { context, page, errors, api } = await open(VIEWPORTS.desktop);
-  assert.equal(N, 9);
+  assert.equal(N, 10); // was 9; +1 for the fictional brief step (Stage R step 6)
   await page.getByRole("button", { name: ko.demo.button }).click();
   await stepIs(page, 1);
   assert.equal(await page.textContent("#tourTitle"), ko.tour.steps[0].title);
@@ -61,57 +68,70 @@ test("tour: 9 steps — action then result is spotlit, whole page dimmed, Back u
   await page.locator("#log > .msg.spot .q").first().waitFor();
   await framed(page, "2");
 
-  await next(page, 3); // 3: pick by number → Send → the picked question
+  await next(page, 3); // 3: the fictional brief, labelled as such, with its sample mismatch; no re-run button because nothing may call the API
+  const card = page.locator("#log > .msg.brief.spot");
+  await card.waitFor();
+  const text = await card.innerText();
+  for (const s of [ko.research.fictional, ko.research.mismatch, demo.brief.mismatch_flags[0].side_a.quote, demo.brief.mismatch_flags[0].verify_prompt]) assert.ok(text.includes(s), s);
+  assert.equal(await card.getByRole("button", { name: ko.research.rerun }).count(), 0);
+  await framed(page, "3");
+  await flagInSight(page);
+  await page.click("#tourPrev");
+  await stepIs(page, 2);
+  assert.equal(await page.locator("#log > .msg.brief").count(), 0, "Back removes the brief card");
+  await next(page, 3);
+
+  await next(page, 4); // 4: pick by number → Send → the picked question
   await bubbles(page, "me").filter({ hasText: new RegExp(`^${demo.pick + 1}$`) }).waitFor();
   await page.locator("#log > .msg.coach.spot", { hasText: `Q${demo.pick + 1}.` }).waitFor();
-  await framed(page, "3");
+  await framed(page, "4");
 
-  await next(page, 4); // 4: the answer is typed (Next waits), sent, and the sent answer is spotlit
+  await next(page, 5); // 5: the answer is typed (Next waits), sent, and the sent answer is spotlit
   await page.waitForFunction((len) => { const i = document.querySelector("#input"); return i.readOnly && i.value.length > 0 && i.value.length < len; }, demo.steps[0].answer.length);
   assert.equal(await page.isDisabled("#tourNext"), true, "Next waits while the step plays");
   await page.locator("#log > .msg.me.spot").waitFor();
-  await framed(page, "4");
+  await framed(page, "5");
 
-  await next(page, 5); // 5: desktop spotlights the readable copy in the panel
+  await next(page, 6); // 6: desktop spotlights the readable copy in the panel
   const review = page.locator("#log > .msg.review");
   await review.waitFor();
   assert.ok(await review.evaluate((e) => e.classList.contains("appear")), "result card fades in");
   await page.locator("#reviewBox > .review.spot").waitFor();
   assert.equal(await page.inputValue("#input"), "");
-  await framed(page, "5");
+  await framed(page, "6");
   await shot(page, "desktop-14-tour-5");
 
-  await page.click("#tourPrev"); // Back removes what step 5 added
-  await stepIs(page, 4);
+  await page.click("#tourPrev"); // Back removes what step 6 added
+  await stepIs(page, 5);
   assert.equal(await review.count(), 0);
-  assert.equal(await page.locator("#reviewBox > *").count(), 0, "panel back to its state before step 5");
+  assert.equal(await page.locator("#reviewBox > *").count(), 0, "panel back to its state before step 6");
   await page.locator("#log > .msg.me.spot").waitFor();
-  await next(page, 5);
+  await next(page, 6);
   await review.waitFor();
 
-  await next(page, 6); // 6: script copy in the panel, with 🔊 (device voice in the tour)
+  await next(page, 7); // 7: script copy in the panel, with 🔊 (device voice in the tour)
   await page.locator("#reviewBox > .script.spot:not(.review) .listen").waitFor();
-  await framed(page, "6");
+  await framed(page, "7");
 
-  await next(page, 7); // 7: corrected answer typed and sent → before/after in the panel
+  await next(page, 8); // 8: corrected answer typed and sent → before/after in the panel
   await page.locator("#reviewBox > .compare.spot").waitFor();
   assert.equal(await review.count(), 2);
-  await framed(page, "7");
+  await framed(page, "8");
   await shot(page, "desktop-15-tour-7");
 
-  await next(page, 8); // 8: notes tab and Finish·save
+  await next(page, 9); // 9: notes tab and Finish·save
   await page.locator("#tabNotes.spot").waitFor();
   await page.locator("#end.spot").waitFor();
   // A spotlit control is opaque: a transparent tab let the dimmer show through (11/03).
   assert.equal(await page.locator("#tabNotes").evaluate((e) => getComputedStyle(e).backgroundColor), "rgb(255, 255, 255)");
-  await framed(page, "8");
+  await framed(page, "9");
 
-  await next(page, 9);
+  await next(page, 10);
   assert.equal(await page.locator(".next-btn").count(), 0, "no Next on the last step");
   assert.equal(await page.textContent("#tourNext"), ko.tour.close);
   assert.equal(await page.locator("#tourSkip").isHidden(), true);
   await page.getByRole("button", { name: ko.demo.try }).and(page.locator(".spot")).waitFor();
-  await framed(page, "9");
+  await framed(page, "10");
   await page.click("#tourNext");
   await page.locator("#tour").waitFor({ state: "hidden" });
   assert.equal(await page.locator(".spot").count(), 0);
@@ -131,13 +151,16 @@ test("tour: reduced motion shows each step at once; Esc skips to the code button
   await stepIs(page, 1);
   assert.ok(await noHorizontalOverflow(page), "popup fits 390px");
   await shot(page, "mobile-12-tour-1");
-  for (let n = 2; n <= 5; n++) await next(page, n);
+  await next(page, 2);
+  await next(page, 3);
+  await flagInSight(page);
+  for (let n = 4; n <= 6; n++) await next(page, n);
   // No typing: the review is there well before the 1.5s the typing motion would take.
   await page.locator("#log > .msg.review").waitFor({ timeout: 500 });
   assert.equal(await page.locator("#log .appear").count(), 0, "no fade-in");
   assert.equal(await page.inputValue("#input"), "");
   await page.locator("#log > .msg.review.spot").waitFor(); // phone: the chat card (the panel is an overlay); not motion: kept
-  await framed(page, "mobile 5");
+  await framed(page, "mobile 6");
   await page.keyboard.press("Escape");
   await page.locator("#tour").waitFor({ state: "hidden" });
   assert.equal(await page.locator(".spot").count(), 0);

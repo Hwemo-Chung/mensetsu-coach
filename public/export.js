@@ -10,7 +10,7 @@ export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHO
 // JP labels are the fallback for sessions saved before the server sent pack meta.
 const JP_STEPS = [{ key: "fukusho", label: "復唱", optional: true }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "締め" }];
 
-export function sessionToMarkdown(session, t) {
+export function sessionToMarkdown(session, t, debrief = null) {
   const c = session.company_context;
   const target = session.pack?.target ?? "ja"; // sessions saved before pack meta are Japan
   const out = [`# ${t.export.title} — ${c.company} · ${c.position}`, ""];
@@ -57,7 +57,33 @@ export function sessionToMarkdown(session, t) {
     out.push("", `## ${t.habits.summary}`, "", `| ${t.habits.rule} | ${t.habits.count} |`, "|---|---|");
     for (const h of habits) out.push(`| ${h.label}${h.habit ? " ⚠" : ""} | ${h.count} |`);
   }
+  const written = ["asked", "difficult", "outcome"].filter((k) => debrief?.[k]?.trim());
+  if (written.length) out.push("", `## ${t.debrief.title}`, "", written.map((k) => `**${t.debrief[k]}**\n\n${debrief[k].trim()}`).join("\n\n"));
   return mask(out.join("\n")) + researchSection(session, t) + "\n";
+}
+
+// Overlap between generated questions and those really asked. Text only, no AI. The tails are what nearly every question ends with; left in, they alone would match.
+const QUESTION_TAIL = /(?:を|について|に関して)?(?:教えて|聞かせて|お聞かせ|話して|お話し|説明して|ご説明)?(?:ください|下さい|いただけますか|もらえますか|お願いします)$|(?:でしょうか|ですか|ますか|ますでしょうか)$|(?:에대해)?(?:말씀해|알려|설명해|얘기해|이야기해)?주세요$|(?:인가요|입니까|습니까|나요)$/;
+const questionBigrams = (s) => {
+  const t = s.normalize("NFKC").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "").replace(QUESTION_TAIL, "");
+  return new Set(Array.from({ length: Math.max(t.length - 1, 0) }, (_, i) => t.slice(i, i + 2)));
+};
+// Against the shorter side: an asked line is usually short notes, a generated question long and company-specific.
+// shortcut: character pairs, so a paraphrase with other words is missed; enough for a private figure, no AI by design.
+const sameQuestion = (a, b) => {
+  if (Math.min(a.size, b.size) < 2) return false;
+  return [...a].filter((x) => b.has(x)).length / Math.min(a.size, b.size) >= 0.6;
+};
+
+export function questionOverlap(questions, askedText) {
+  const lines = String(askedText ?? "").normalize("NFKC").split(/[\n。?!]+/).map((l) => questionBigrams(l.replace(/^\s*\d+[.)、]/, ""))).filter((b) => b.size);
+  const ids = new Set();
+  let matched = 0;
+  for (const line of lines) {
+    const hit = questions.find((q) => [q.question, q.question_tr].some((text) => typeof text === "string" && sameQuestion(line, questionBigrams(text))));
+    if (hit) { matched++; ids.add(hit.id); }
+  }
+  return { asked: lines.length, matched, ids: [...ids] };
 }
 
 // http(s) only, for the card's links and this file: a stored or model-written URL can carry any scheme.

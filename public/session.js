@@ -103,3 +103,41 @@ export function forgetFit(session) {
   delete b.mismatch_flags;
   delete b.company_checkpoints;
 }
+
+// Post-interview debrief, one entry per company. Own key on purpose: it must survive finish and reset (the interview comes after
+// practice, and the next round of the same company reuses it), and it is never part of the session the app sends from.
+// It goes away by emptying the fields (that company) or from the options dialog (all). No API call receives it.
+export const DEBRIEF_KEY = "mensetsu-debriefs";
+const DEBRIEF_FIELDS = ["asked", "difficult", "outcome"];
+const companyKey = (company) => String(company ?? "").normalize("NFKC").replace(/株式会社|\(株\)|\s/g, "").toLowerCase();
+
+function allDebriefs(storage) {
+  try {
+    const v = JSON.parse(storage.getItem(DEBRIEF_KEY));
+    return isObj(v) ? v : {};
+  } catch {
+    return {};
+  }
+}
+
+export function loadDebrief(storage, company) {
+  const all = allDebriefs(storage), k = companyKey(company);
+  return Object.hasOwn(all, k) && isObj(all[k]) ? all[k] : null;
+}
+
+// false = not stored (full or blocked storage), so the dialog can say so.
+export function saveDebrief(storage, company, values) {
+  const { [companyKey(company)]: _, ...others } = allDebriefs(storage);
+  const kept = Object.fromEntries(DEBRIEF_FIELDS.filter((k) => str(values[k]) && values[k].trim()).map((k) => [k, values[k]]));
+  const all = Object.keys(kept).length ? { ...others, [companyKey(company)]: kept } : others;
+  try {
+    Object.keys(all).length ? storage.setItem(DEBRIEF_KEY, JSON.stringify(all)) : storage.removeItem(DEBRIEF_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function clearDebriefs(storage) {
+  try { storage.removeItem(DEBRIEF_KEY); } catch {}
+}

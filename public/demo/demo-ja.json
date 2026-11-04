@@ -248,5 +248,168 @@
     "issues": []
    }
   }
- ]
+ ],
+ "brief": {
+  "research_status": "ok",
+  "research_date": "2026-11-04",
+  "tool_errors": 0,
+  "company_snapshot": {
+   "business": {
+    "value": "物流倉庫向けの在庫管理SaaSを提供している（架空）",
+    "confidence": "high",
+    "source_ids": [
+     "s1",
+     "s2"
+    ],
+    "source_count": 2,
+    "single_source": false
+   },
+   "business_model": {
+    "value": "自社製品が中心。受託開発の有無は公開情報では確認できなかった（架空）",
+    "confidence": "medium",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "size": {
+    "value": "従業員 約100名（架空）",
+    "confidence": "high",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "founded": {
+    "value": "2018年（架空）",
+    "confidence": "high",
+    "source_ids": [
+     "s1"
+    ],
+    "source_count": 1,
+    "single_source": true
+   },
+   "locations": {
+    "value": "not_found"
+   },
+   "recent_news": [
+    {
+     "value": "今期から海外拠点の倉庫への導入を開始したと発表（架空）",
+     "confidence": "medium",
+     "source_ids": [
+      "s3"
+     ],
+     "source_count": 1,
+     "single_source": true
+    }
+   ]
+  },
+  "position_analysis": {
+   "position_match": "exact",
+   "actual_work": {
+    "value": "チームのマネジメントに加え、業務の約半分は自らコードレビューと実装を担当する（架空）",
+    "confidence": "medium",
+    "source_ids": [
+     "s2"
+    ],
+    "source_count": 1,
+    "single_source": true,
+    "applies_to_position": true,
+    "position_match": "exact"
+   },
+   "required_skills": [
+    {
+     "value": "チームマネジメントの経験（架空）",
+     "confidence": "high",
+     "source_ids": [
+      "s2"
+     ],
+     "source_count": 1,
+     "single_source": true,
+     "applies_to_position": true,
+     "position_match": "exact"
+    }
+   ]
+  },
+  "reputation_themes": [],
+  "interview_intelligence": {
+   "selection_stages": [],
+   "reported_questions": [
+    {
+     "value": "最近のプロジェクトで予定がずれたとき、どう判断しましたか？（架空）",
+     "confidence": "medium",
+     "source_ids": [
+      "s2"
+     ],
+     "source_count": 1,
+     "single_source": true
+    }
+   ]
+  },
+  "fit_evaluation": {
+   "matches": [],
+   "gaps": [
+    {
+     "point": "公開情報では実装が業務の半分とされています（架空）",
+     "basis": "company_info",
+     "quote": "業務の約半分は自らコードレビューと実装を担当する（架空）",
+     "source_ids": [
+      "s2"
+     ]
+    }
+   ],
+   "needs_user_confirmation": [
+    "給与に賞与と残業代が含まれるか確認できますか？"
+   ]
+  },
+  "mismatch_flags": [
+   {
+    "topic": "自ら実装する割合（架空）",
+    "side_a": {
+     "origin": "mail",
+     "quote": "5名の開発チーム",
+     "source_ids": []
+    },
+    "side_b": {
+     "origin": "research",
+     "quote": "業務の半分は自ら実装（架空）",
+     "source_ids": [
+      "s2"
+     ]
+    },
+    "verify_prompt": "割合を面接で確認しましょう。",
+    "ask": "interview"
+   }
+  ],
+  "company_checkpoints": [
+   {
+    "question": "マネジメントと自ら実装する業務の割合はどのくらいですか？",
+    "ask": "interview",
+    "origin": "research",
+    "source_ids": [
+     "s2"
+    ]
+   }
+  ],
+  "sources": [
+   {
+    "id": "s1",
+    "title": "サンプルロジ 会社概要（架空）",
+    "url": "https://example.com/samplelogi/about"
+   },
+   {
+    "id": "s2",
+    "title": "サンプルロジ 採用情報: エンジニアリングマネージャー（架空）",
+    "url": "https://example.com/samplelogi/careers"
+   },
+   {
+    "id": "s3",
+    "title": "サンプルロジ ニュース（架空）",
+    "url": "https://example.com/samplelogi/news",
+    "published_date": "2026-10-01"
+   }
+  ]
+ }
 }

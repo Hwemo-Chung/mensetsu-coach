@@ -18,7 +18,7 @@ async function open(viewport, lang = "ko") {
   o.page.on("request", (r) => { if (new URL(r.url()).pathname.startsWith("/api/")) o.api.push(r.url()); });
   return o;
 }
-// Steps renumbered for the 9-step tour (11/03): review 3→5, compare 5→7; each test keeps its intent.
+// Steps are named (harness TOUR); the tour grew to 10 steps on 11/04 and each test keeps its intent.
 const stepIs = (page, n) => page.locator("#tourStep", { hasText: `${n}/${ko.tour.steps.length}` }).waitFor();
 const next = (page) => page.locator(".next-btn").click();
 const panelEmpty = async (page) => (await page.locator("#reviewBox > *").count()) === 0 && (await page.locator("#reviewEmpty").isVisible() || await page.locator("#panel").isHidden());

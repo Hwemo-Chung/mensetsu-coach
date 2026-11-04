@@ -123,6 +123,22 @@
         <p id="desiredStatus" class="legend" role="status"></p>
         <div class="mail-actions"><button type="button" id="desiredDelete" data-i18n="opts.desiredDelete"></button></div>
       </fieldset>
+      <div id="debriefOpts" class="opt-group" hidden>
+        <p id="debriefStatus" class="legend" role="status"></p>
+        <div class="mail-actions"><button type="button" id="debriefDelete" data-i18n="debrief.deleteAll"></button></div>
+      </div>
+      <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
+    </form>
+  </dialog>
+  <dialog id="debrief" class="mail desired" aria-labelledby="debriefTitle">
+    <form method="dialog">
+      <h2 id="debriefTitle" data-i18n="debrief.title"></h2>
+      <p id="debriefCompany" class="mail-body"></p>
+      <p class="legend" data-i18n="debrief.hint"></p>
+      <label><span data-i18n="debrief.asked"></span><textarea data-debrief="asked" rows="4" maxlength="2000"></textarea></label>
+      <label><span data-i18n="debrief.difficult"></span><textarea data-debrief="difficult" rows="2" maxlength="1000"></textarea></label>
+      <label><span data-i18n="debrief.outcome"></span><textarea data-debrief="outcome" rows="2" maxlength="500"></textarea></label>
+      <p id="debriefOverlap" class="legend" role="status"></p>
       <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
     </form>
   </dialog>
