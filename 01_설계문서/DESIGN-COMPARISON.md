@@ -1,3 +1,5 @@
+> 却下案。最新の仕様は `PRD-INTERVIEW-COACH.md` を参照してください。
+
 # Built with Claude 提出案の比較（1枚まとめ）
 
 最終選択は選考結果（10/30）の後にユーザーが決定。設計書: DESIGN-KAKAOTALK-INTERVIEW-COACH.md / DESIGN-INTL-MAIL-AGENT.md
