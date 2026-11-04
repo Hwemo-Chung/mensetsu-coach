@@ -246,7 +246,6 @@ function sources(b, list, r) {
     } else li.append(s.title ?? "");
     if (s.source_type === "job_board") li.append(el("span", "legend", ` · ${r.jobBoard}`));
     if (s.published_date) li.append(el("span", "legend", ` · ${r.published({ date: s.published_date })}`));
-    if (s.page_age) li.append(el("span", "legend", ` · ${r.pageAge({ age: s.page_age })}`));
     li.append(el("span", "legend", ` · ${s.fetched ? r.fetched : r.searchOnly}`));
     if (s.retrieved_at) li.append(el("span", "legend", ` · ${r.retrieved({ at: s.retrieved_at })}`));
     ul.append(li);

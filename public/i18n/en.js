@@ -218,7 +218,6 @@ export default {
     elapsed: (d) => `${d.n} day${d.n === 1 ? "" : "s"} ago`,
     coverage: (d) => `Searches: ${d.searches}. Page fetch attempts: ${d.fetches} (${d.ok} succeeded).`,
     bannedRemoved: (d) => `Items removed for assertive wording: ${d.n}.`,
-    pageAge: (d) => `Page age: ${d.age}`,
     retrieved: (d) => `Fetched at ${d.at}`,
   },
   demo: {

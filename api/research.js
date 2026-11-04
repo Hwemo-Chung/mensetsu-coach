@@ -7,7 +7,7 @@ import { POST as fit } from "../lib/fit-api.js";
 import { researchEnabled, runResearch, today } from "../lib/research.js";
 
 const MAX_NAME_CHARS = 100; // a name, not a pasted mail: this cap is part of what keeps candidate text out of the search
-const DEADLINE_MS = 105_000; // under maxDuration 120, so a slow run still answers "unavailable" instead of a platform 504
+const DEADLINE_MS = 165_000; // real runs reached 86 s alone and over 120 s beside others; under maxDuration 180, so a slow run still answers "unavailable" instead of a platform 504
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 // さん stays: it can be part of a name, and a search still finds it, whereas dropping it would search a name nobody confirmed.
 const name = (v) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().replace(/\s*(?:様|殿|御中|님)$/, "") : "");

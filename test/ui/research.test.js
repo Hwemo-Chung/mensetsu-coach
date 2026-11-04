@@ -837,6 +837,7 @@ test("decision A: no review themes; plain links and a memo that stays in the bro
   assert.ok(text.includes(r.financials) && text.includes("平均年間給与 700万円"), "public workforce figures are shown");
   await brief.getByText(r.sourcesTitle({ n: 2 })).click();
   assert.ok((await brief.locator(".sources").innerText()).includes(r.jobBoard), "a job board says so in the source list");
+  assert.doesNotMatch(await brief.locator(".sources").innerText(), /days? ago|October/, "the search index's page age reads as the age of the figures, and it is not translated");
 
   await brief.getByText(r.memoTitle).click();
   const links = brief.locator(".review-sites a");

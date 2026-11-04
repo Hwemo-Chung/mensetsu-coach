@@ -218,7 +218,6 @@ export default {
     elapsed: (d) => `${d.n}日経過`,
     coverage: (d) => `検索${d.searches}回、ページ取得の試行${d.fetches}回（成功${d.ok}回）`,
     bannedRemoved: (d) => `断定的な表現を含む${d.n}件を除外しました。`,
-    pageAge: (d) => `ページの表示時期 ${d.age}`,
     retrieved: (d) => `取得時刻 ${d.at}`,
   },
   demo: {

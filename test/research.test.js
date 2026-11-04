@@ -775,7 +775,7 @@ test("degrade path: the whole run has one deadline, so it answers before Vercel 
   assert.equal(seen.length, 2);
   assert.ok(seen[0] instanceof AbortSignal);
   assert.equal(seen[0], seen[1], "resumes share the first call's deadline");
-  assert.ok(Number(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration) * 1000 > 105_000, "the deadline fits maxDuration");
+  assert.ok(Number(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration) * 1000 > 165_000, "the deadline fits maxDuration");
 });
 
 test("tool failure vs honest empty: a real search on a fictional name is ok and all not_found", async () => {
@@ -862,8 +862,8 @@ test("query log: a run writes its real queries from every turn and nothing else;
   rmSync(dir, { recursive: true });
 });
 
-test("vercel.json gives the route 120 s, as the spec fixes", () => {
-  assert.equal(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration, 120);
+test("vercel.json gives the route 180 s, as the spec fixes", () => {
+  assert.equal(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url))).functions["api/research.js"].maxDuration, 180); // Intent changed: real runs reached 86 s alone and over 120 s beside others
 });
 
 // Criteria v2.
