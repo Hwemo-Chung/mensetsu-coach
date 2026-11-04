@@ -1,10 +1,10 @@
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts } from "./export.js";
-import { loadSession, clearSession, forgetBrief, SESSION_KEY } from "./session.js";
+import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
-import { renderConfirm, renderBrief } from "./brief.js";
+import { renderConfirm, renderBrief, showFit } from "./brief.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
 
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
@@ -22,6 +22,7 @@ const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps
 let researchOn = false; // from /api/access; off = no card and no call
 let researchRun = 0; // finish() does not bump state.epoch, so this drops a response meant for an earlier question set
 let regenerating = false; // Ctrl+Enter submits even with #send disabled, and a practice must not start on a set about to be replaced
+let fitRun = 0; // deleting the profile must also void an answer still on its way, which can quote it
 
 const LANG_KEY = "mensetsu-lang";
 const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { return null; } })();
@@ -181,11 +182,13 @@ async function startResearch(names, unlock) {
       state.session.research_names = names;
       persist();
     }
-    const card = renderBrief(data, names, () => offerResearch(names), kept);
+    if (!kept) for (const e of log.querySelectorAll(".refit")) e.disabled = true; // that card's brief is gone
+    const card = renderBrief(data, names, () => offerResearch(names), kept, runFit);
     if (!kept) {
       const top = log.scrollTop; // a long card is read from its top; what follows it must not move the view
       if (hadReverse) offerReverseAgain();
       followBrief(data, card);
+      if (data.research_status === "ok" && worthComparing(data)) runFit(card);
       log.scrollTop = top;
     }
   } catch {
@@ -194,6 +197,38 @@ async function startResearch(names, unlock) {
     bubble("err", message({ code: "network" }));
   } finally {
     wait.remove();
+  }
+}
+
+// A fit needs two of the three sides; with one there is nothing to compare and nothing to pay for.
+const worthComparing = (brief) => [brief.sources?.length, lastMail, loadDesired(LS)].filter(Boolean).length >= 2;
+// PDF and image contents can be neither masked nor checked against a quote, so api/fit.js would discard them anyway.
+const maskable = (f) => !!f && !/^image\/|pdf$/.test(f.type) && !/\.pdf$/i.test(f.name);
+
+// Stage R step 5. Fills the card it is given and never blocks anything: a failure leaves the paid brief as it is.
+async function runFit(card) {
+  const r = T().research, brief = state.session.company_context.research_brief, my = state.epoch, run = researchRun, mine = ++fitRun;
+  const live = () => my === state.epoch && run === researchRun && state.session?.company_context.research_brief === brief;
+  const wait = el("p", "legend", r.fitWait), refit = card.querySelector(".refit"), rest = card.querySelector(".fit-rest");
+  const failure = (m) => { showFit(card, brief); rest.append(el("p", "caution", `${r.fitFailed} ${m}`)); };
+  card.firstChild.after(wait);
+  if (refit) refit.disabled = true;
+  try {
+    const { fit_evaluation, mismatch_flags, company_checkpoints, ...research } = brief; // the question and reverse calls must not see these; here they would only be fed back
+    const desired = loadDesired(LS);
+    const { res, data } = await post("/api/fit", { brief: research, ...(lastMail && { mail: lastMail }), ...(maskable(lastAttachment) && { attachment: lastAttachment }), ...(lastProfile && { profile: lastProfile }), ...(desired && { desired_profile: desired }), lang: state.lang });
+    if (!live() || mine !== fitRun) return;
+    if (res.status === 401) return failed(res, data);
+    if (!res.ok) return failure(message(data));
+    Object.assign(brief, data); // in place: a question set being made compares this object to see whether the brief was replaced
+    persist();
+    showFit(card, brief);
+    if (lastAttachment && !maskable(lastAttachment)) rest.append(el("p", "legend", r.fitNoFile));
+  } catch {
+    if (live() && mine === fitRun) failure(message({ code: "network" }));
+  } finally {
+    wait.remove();
+    if (refit && live()) refit.disabled = false;
   }
 }
 
@@ -612,10 +647,27 @@ document.addEventListener("keydown", (e) => {
 });
 
 const tourEndRadios = document.querySelectorAll("input[name=tourEnd]");
+const desiredInputs = [...document.querySelectorAll("[data-desired]")];
 $("opts").addEventListener("click", () => {
   $("tourTips").checked = tourTipsOn();
   for (const r of tourEndRadios) r.checked = r.value === tourEndMode();
+  $("desired").hidden = !researchOn;
+  const desired = loadDesired(LS) ?? {};
+  for (const e of desiredInputs) e.value = desired[e.dataset.desired] ?? "";
+  $("desiredStatus").textContent = "";
   $("options").showModal();
+});
+for (const e of desiredInputs) e.addEventListener("input", () => saveDesired(LS, Object.fromEntries(desiredInputs.map((i) => [i.dataset.desired, i.value]))));
+$("desiredDelete").addEventListener("click", () => {
+  clearDesired(LS);
+  fitRun++;
+  for (const e of desiredInputs) e.value = "";
+  if (state.session) {
+    forgetFit(state.session);
+    persist();
+  }
+  for (const card of log.querySelectorAll(".msg.brief")) showFit(card, {});
+  $("desiredStatus").textContent = T().opts.desiredDeleted;
 });
 for (const r of tourEndRadios) r.addEventListener("change", () => { try { localStorage.setItem(TOUR_END, r.value); } catch {} });
 $("tourTips").addEventListener("change", (e) => { try { localStorage.setItem(TOUR_TIPS, e.target.checked ? "1" : "0"); } catch {} });

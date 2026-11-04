@@ -339,6 +339,8 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
 .opt-group { border: 0; padding: 0; margin: 12px 0 0; }
 .opt-group legend { font-size: 16px; color: var(--ink); padding: 0; }
 .opt-group .switch { margin: 0; }
+.desired label { display: block; margin-top: 10px; font-size: 14px; font-weight: 700; }
+.desired textarea, .desired input { display: block; width: 100%; min-height: 44px; margin-top: 2px; padding: 8px 12px; border: 1px solid var(--field); border-radius: 8px; font: inherit; font-weight: 400; }
 .speed { min-height: 44px; border: 1px solid var(--field); border-radius: 8px; padding: 4px 8px; background: #fff; }
 .mail-msg { min-height: 1.2em; font-size: 14px; color: var(--red); margin: 6px 0 0; }
 .mail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }

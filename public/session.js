@@ -70,3 +70,36 @@ export function forgetBrief(session) {
   delete session.reverse;
   return hadReverse;
 }
+
+// Desired position profile: reused across companies, so it has its own key and outlives the session. Sent only to the fit call.
+export const DESIRED_KEY = "mensetsu-desired-profile";
+const DESIRED_FIELDS = ["role_content", "excluded_roles", "hard_conditions", "min_salary_man", "max_overtime_hours"];
+
+export function loadDesired(storage) {
+  try {
+    const v = JSON.parse(storage.getItem(DESIRED_KEY));
+    return isObj(v) ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveDesired(storage, values) {
+  const kept = Object.fromEntries(DESIRED_FIELDS.filter((k) => str(values[k]) && values[k].trim()).map((k) => [k, values[k]]));
+  try {
+    Object.keys(kept).length ? storage.setItem(DESIRED_KEY, JSON.stringify(kept)) : storage.removeItem(DESIRED_KEY);
+  } catch {}
+}
+
+export function clearDesired(storage) {
+  try { storage.removeItem(DESIRED_KEY); } catch {}
+}
+
+// The fit sections can quote the profile, so deleting it takes them too.
+export function forgetFit(session) {
+  const b = session?.company_context?.research_brief;
+  if (!b) return;
+  delete b.fit_evaluation;
+  delete b.mismatch_flags;
+  delete b.company_checkpoints;
+}

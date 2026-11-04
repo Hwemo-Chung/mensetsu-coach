@@ -63,10 +63,11 @@ function mismatches(b, flags, r) {
   if (!flags.length) return;
   heading(b, r.mismatch);
   b.append(el("p", "legend", r.mismatchNote));
-  const side = (s) => el("p", "side", withIds(`${r.origin[s?.origin] ?? ""}: ${s?.quote ?? ""}`, s));
+  // Gate 5 holds here too: a figure from a similar posting says so next to the quote.
+  const side = (s) => [el("p", "side", withIds(`${r.origin[s?.origin] ?? ""}: ${s?.quote ?? ""}`, s)), ...(s?.position_match ? [el("p", "caution", r.claimMatch[s.position_match] ?? r.claimMatch.unknown)] : [])];
   for (const f of flags) {
     bold(b, f.topic ?? "");
-    b.append(side(f.side_a), side(f.side_b), el("p", "caution", f.verify_prompt ?? ""));
+    b.append(...side(f.side_a), ...side(f.side_b), el("p", "caution", f.verify_prompt ?? ""));
   }
 }
 
@@ -128,8 +129,19 @@ function sources(b, list, r) {
   fold(b, r.sourcesTitle({ n: list.length }), "fold-body").append(ul);
 }
 
-// names: what was searched. kept: a failed re-run, with the earlier brief still stored.
-export function renderBrief(brief, names, onRerun, kept = false) {
+// The fit call answers after the card is up, so its sections have their own places and keep the spec's order. An empty brief clears them.
+export function showFit(card, brief) {
+  const r = T().research, flags = card.querySelector(".fit-flags"), rest = card.querySelector(".fit-rest");
+  if (!flags) return;
+  flags.replaceChildren();
+  rest.replaceChildren();
+  mismatches(flags, objects(brief.mismatch_flags), r);
+  fit(rest, brief.fit_evaluation, r);
+  checkpoints(rest, objects(brief.company_checkpoints), r);
+}
+
+// names: what was searched. kept: a failed re-run, with the earlier brief still stored. onFit: absent when a re-run could only lose the mail's side.
+export function renderBrief(brief, names, onRerun, kept = false, onFit = null) {
   const r = T().research, b = bubble("coach brief", null), log = $("log");
   b.append(el("p", "title", r.title({ company: names.company, position: names.position })));
   if (brief.research_status === "ok") {
@@ -143,11 +155,11 @@ export function renderBrief(brief, names, onRerun, kept = false) {
     if (news.length) heading(b, r.news);
     for (const c of news) claim(b, null, c);
     position(b, brief.position_analysis, r);
-    mismatches(b, objects(brief.mismatch_flags), r);
+    b.append(el("div", "fit-flags"));
     reputation(b, objects(brief.reputation_themes).filter(claimFound), r);
     interview(b, brief.interview_intelligence, r);
-    fit(b, brief.fit_evaluation, r);
-    checkpoints(b, objects(brief.company_checkpoints), r);
+    b.append(el("div", "fit-rest"));
+    showFit(b, brief);
     sources(b, found, r);
   } else {
     b.append(el("p", "caution", r.unavailable));
@@ -157,6 +169,12 @@ export function renderBrief(brief, names, onRerun, kept = false) {
   again.type = "button";
   again.addEventListener("click", () => { again.disabled = true; onRerun(); });
   b.append(again);
+  if (brief.research_status === "ok" && onFit) {
+    const refit = el("button", "inline-btn research-ctl refit", r.refit);
+    refit.type = "button";
+    refit.addEventListener("click", () => onFit(b));
+    b.append(" ", refit);
+  }
   log.scrollTop = b.offsetTop - log.offsetTop; // a long card is read from its top, not its last line
   return b;
 }

@@ -1,5 +1,5 @@
 // Stage R in the browser: confirm card, brief card, re-run, restore, export. MOCK, 0 tokens. The route-fulfilled briefs
-// keep the server's 5-per-10-minutes limit out of the way and carry the fit sections, which the server adds in a later step.
+// keep the server's 5-per-10-minutes limit out of the way. The fit call is answered with FULL's own sections here, so these tests keep their subject; test/ui/fit.test.js covers the call itself.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -70,6 +70,7 @@ const answerWith = (page, ...bodies) => {
 };
 async function toQuestions(page, t = ko) {
   await page.route("**/api/questions", (r) => r.fulfill({ json: questions }));
+  await page.route("**/api/fit", (r) => r.fulfill({ json: { fit_evaluation: FULL.fit_evaluation, mismatch_flags: FULL.mismatch_flags, company_checkpoints: FULL.company_checkpoints } }));
   await send(page, CODE);
   await bubbles(page, "coach").filter({ hasText: t.chat.askMail.split("\n")[0] }).waitFor();
   await send(page, MAIL);

@@ -95,8 +95,7 @@ export function briefFacts(b) {
   ];
 }
 
-// For reverse questions: facts minus candidate reports, plus interview checks; an unlabelled item or a research side without a real source stays out, so the desired profile cannot leave that way.
-// shortcut: profile wording labelled research with a real source still passes, until S5 compares it with the stored profile.
+// For reverse questions: facts minus candidate reports, plus interview checks; an unlabelled item or a research side without a real source stays out, so the desired profile cannot leave that way (gateFit traces quotes and relabels profile wording before this).
 export function reverseFacts(b) {
   if (b?.research_status !== "ok") return [];
   const known = new Set(objects(b.sources).map((s) => s.id));

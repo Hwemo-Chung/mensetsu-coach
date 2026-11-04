@@ -112,6 +112,17 @@
         <select id="ttsSpeed" class="speed" aria-describedby="ttsSpeedHint"><option value="0.8">0.8×</option><option value="1">1.0×</option><option value="1.2">1.2×</option></select>
       </div>
       <p id="ttsSpeedHint" class="legend" data-i18n="opts.speedHint"></p>
+      <fieldset id="desired" class="opt-group desired" aria-describedby="desiredHint" hidden>
+        <legend data-i18n="opts.desired"></legend>
+        <p id="desiredHint" class="legend" data-i18n="opts.desiredHint"></p>
+        <label><span data-i18n="opts.desiredRole"></span><textarea data-desired="role_content" rows="2" maxlength="500"></textarea></label>
+        <label><span data-i18n="opts.desiredExcluded"></span><textarea data-desired="excluded_roles" rows="2" maxlength="500"></textarea></label>
+        <label><span data-i18n="opts.desiredHard"></span><textarea data-desired="hard_conditions" rows="2" maxlength="500"></textarea></label>
+        <label><span data-i18n="opts.desiredSalary"></span><input data-desired="min_salary_man" type="number" min="0" max="99999" step="1" inputmode="numeric"></label>
+        <label><span data-i18n="opts.desiredOvertime"></span><input data-desired="max_overtime_hours" type="number" min="0" max="999" step="1" inputmode="numeric"></label>
+        <p id="desiredStatus" class="legend" role="status"></p>
+        <div class="mail-actions"><button type="button" id="desiredDelete" data-i18n="opts.desiredDelete"></button></div>
+      </fieldset>
       <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
     </form>
   </dialog>

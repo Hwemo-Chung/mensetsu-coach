@@ -1,0 +1,18 @@
+{
+  "fit_evaluation": {
+    "matches": [{ "point": "技術スタックの記載があります（架空）", "basis": "user_material", "quote": "Python / AWS", "source_ids": [] }],
+    "gaps": [
+      { "point": "公開された必須スキルとの比較が必要です（架空）", "basis": "company_info", "quote": "要件定義の経験（架空）", "source_ids": ["s1"] },
+      { "point": "資料にない経験を確認できますか（架空）", "basis": "user_material", "quote": "資料にない経験（架空）", "source_ids": [] }
+    ],
+    "needs_user_confirmation": []
+  },
+  "mismatch_flags": [
+    { "topic": "業務の範囲（架空）", "side_a": { "origin": "mail", "quote": "需要予測機能の刷新プロジェクトの推進", "source_ids": [] }, "side_b": { "origin": "research", "quote": "製品の要件定義と開発チームとの進行管理（架空）", "source_ids": ["s1"] }, "verify_prompt": "担当業務の割合を確認しましょう（架空）", "ask": "interview" },
+    { "topic": "どこにも書かれていない相違（架空）", "side_a": { "origin": "mail", "quote": "メールにない文面（架空）", "source_ids": [] }, "side_b": { "origin": "research", "quote": "調査にない文面（架空）", "source_ids": ["s1"] }, "verify_prompt": "表示されないはずです（架空）", "ask": "agent" }
+  ],
+  "company_checkpoints": [
+    { "question": "担当業務の割合（架空）を確認できますか？", "ask": "interview", "origin": "research", "source_ids": ["s1"] },
+    { "question": "この職種は避けるべきです（架空）", "ask": "agent", "origin": "research", "source_ids": ["s1"] }
+  ]
+}
