@@ -78,7 +78,8 @@
     "就労資格証明書は本人の申請で任意に取得する書類なので、持っていなくても在留資格名と期限で就労可否を答え、企業に求められれば取得に協力すると述べる。"
   ],
   "research": {
-    "review_sites": [{"url": "https://www.openwork.jp/"}, {"url": "https://en-hyouban.com/"}, {"url": "https://jobtalk.jp/"}, {"url": "https://careerconnection.jp/"}, {"url": "https://www.onecareer.jp/"}, {"url": "https://www.indeed.com/"}, {"url": "https://www.glassdoor.com/"}],
+    "review_sites": [{"url": "https://www.openwork.jp/"}, {"url": "https://en-hyouban.com/"}, {"url": "https://jobtalk.jp/"}, {"url": "https://careerconnection.jp/"}, {"url": "https://www.onecareer.jp/"}, {"url": "https://www.indeed.com/"}, {"url": "https://www.glassdoor.com/"},
+      { "url": "https://syukatsu-kaigi.jp/" }],
     "banned_terms": [
       "違法",
       "ブラック企業",

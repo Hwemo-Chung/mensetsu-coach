@@ -1028,8 +1028,11 @@ test("handler: pack, optional URLs and location are validated before any spend",
   assert.ok(sent().tools.every((t) => t.blocked_domains.length > 0));
   assert.match(sent().messages[0].content, /<confirmed_location>東京都</);
   assert.doesNotMatch(sent().messages[0].content, /company_url/);
-  await call({ pack: "kr" });
-  assert.ok(sent().tools.every((t) => !("blocked_domains" in t)), "kr has no research settings yet");
+  // Intent changed 11/04: kr has no block list or banned terms, so research refuses it instead of running unguarded.
+  const krCalls = client.requests.length;
+  const kr = await call({ pack: "kr" });
+  assert.equal(kr.status, 400);
+  assert.equal(client.requests.length, krCalls, "no model call for kr");
   if (savedCode === undefined) delete process.env.ACCESS_CODE; else process.env.ACCESS_CODE = savedCode;
 });
 

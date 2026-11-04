@@ -52,6 +52,7 @@ export async function POST(request, deps = {}) {
   if (location.length > MAX_NAME_CHARS || hasContact(location) || leavesTag(location)) return json(400, { code: "name_invalid" });
   const packId = body?.pack ?? "jp";
   if (!PACKS.includes(packId)) return json(400, { code: "pack_unsupported" });
+  if (!loadPack(packId).research) return json(400, { code: "research_unsupported" }); // no block list or banned terms for this pack
   const urls = {};
   for (const k of ["company_url", "posting_url"]) {
     if (body?.[k] === undefined || body[k] === "") continue;

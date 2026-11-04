@@ -350,7 +350,7 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
     if (data.research_basis && !data.research_basis.passed) bubble("coach note", T().chat.lowResearch(data.research_basis));
     if (outrun && !briefFacts(research_brief).length) offerRegen(false);
-    if (!regen && researchOn) offerResearch();
+    if (!regen && researchOn && state.session.pack?.id === "jp") offerResearch(); // kr has no research safety settings
     if (!regen) offerProfile();
     // A 401 elsewhere or a career line being typed keeps its stage: the new set must not take over the composer.
     if (!(fromBrief && ["profile", "code"].includes(stage))) askForPick(false);
