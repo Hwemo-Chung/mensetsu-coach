@@ -3,6 +3,7 @@ import { EXPLAIN_LANGS } from "../lib/lang.js";
 import { maskInput } from "../lib/privacy.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
+import { PACKS, loadPack } from "../lib/pack.js";
 import { desiredProfileText, generateFit, researchEnabled } from "../lib/research.js";
 
 const MAX_MAIL_CHARS = 8000, MAX_PROFILE_CHARS = 200; // the same limits as /api/questions: this is the same material
@@ -27,6 +28,8 @@ export async function POST(request, deps = {}) {
   }
   const lang = body?.lang ?? "ko";
   if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
+  const packId = body?.pack ?? "jp";
+  if (!PACKS.includes(packId)) return json(400, { code: "pack_unsupported" });
   const brief = body?.brief;
   if (brief?.research_status !== "ok" || JSON.stringify(brief).length > MAX_BRIEF_CHARS) return json(400, { code: "bad_request" });
   const mail = str(body.mail), line = str(body.profile);
@@ -38,7 +41,7 @@ export async function POST(request, deps = {}) {
     const attached = (await toContentBlocks(body.attachment)).filter((b) => b.type === "text").map((b) => b.text);
     const material = [maskInput(line), ...attached].filter(Boolean).join("\n");
     const c = deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 }));
-    return json(200, await generateFit(c, { brief, material, profile: desiredProfileText(body.desired_profile), mail: maskInput(mail), lang }));
+    return json(200, await generateFit(c, { brief, material, profile: desiredProfileText(body.desired_profile), mail: maskInput(mail), lang, banned: loadPack(packId).research?.banned_terms }));
   } catch (e) {
     if (e instanceof AttachmentError) return json(400, { code: e.code, ...e.extra });
     if (e instanceof Anthropic.RateLimitError || e?.status === 529) return json(503, { code: "ai_busy" }); // 529 = Anthropic overloaded

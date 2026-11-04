@@ -1,7 +1,7 @@
 // Stage R fit call and mismatch flags: the request shape and the code gates (model quotes are not trusted). Offline, synthetic data only.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { MODELS } from "../lib/claude.js";
 import { POST as fit } from "../api/fit.js";
 import { POST as research } from "../api/research.js";
@@ -325,6 +325,35 @@ test("/api/fit: no mail in memory still works (a restored session), and a model 
   assert.deepEqual([res.status, await res.json()], [502, { code: "generation_failed" }]);
   const busy = await fitCall(base, { ip: "10.9.6.3", client: fakeClient({ fail: Object.assign(new Error("x"), { status: 529 }) }) });
   assert.deepEqual([busy.status, await busy.json()], [503, { code: "ai_busy" }]);
+});
+
+test("gateFit drops the pack's assertive words from what the model wrote, never from a quote", () => {
+  const ctx = { ...CTX, banned: ["非推奨", "虚偽", "おすすめしない", "違法"], mail: `${MAIL}\n違法な残業はありません（架空）` };
+  const out = gate({
+    fit_evaluation: { matches: [], gaps: [item("この職種は非推奨です", "user_material", "要件定義を3年")], needs_user_confirmation: ["違法ではありませんか？", "担当範囲はどこまでですか？"] },
+    mismatch_flags: [
+      flagOf(side("mail", "自社SaaSのプロダクトマネジメント"), side("research", "デリバリーマネジメント", ["s1"]), { verify_prompt: "メールは虚偽です" }),
+      flagOf(side("mail", "違法な残業はありません"), side("research", "デリバリーマネジメント", ["s1"])),
+    ],
+    company_checkpoints: [check("おすすめしない理由は何ですか？"), check("担当業務の割合はどの程度ですか？")],
+  }, ctx);
+  assert.deepEqual(out.fit_evaluation.gaps, []);
+  assert.deepEqual(out.fit_evaluation.needs_user_confirmation, ["担当範囲はどこまでですか？"]);
+  assert.deepEqual(out.mismatch_flags.map((f) => f.side_a.quote), ["違法な残業はありません"]);
+  assert.deepEqual(out.company_checkpoints.map((c) => c.question), ["担当業務の割合はどの程度ですか？"]);
+});
+
+test("/api/fit reads the assertive words from the session's pack", async () => {
+  const client = fakeClient({ result: { ...empty, company_checkpoints: [check("偽装請負ではありませんか？")] } });
+  const res = await fitCall({ ...base, pack: "jp" }, { ip: "10.9.9.1", client });
+  assert.deepEqual((await res.json()).company_checkpoints, []);
+  assert.equal((await (await fitCall({ ...base, pack: "xx" }, { ip: "10.9.9.2" })).json()).code, "pack_unsupported");
+});
+
+test("every route that loads a pack ships the pack files to Vercel", () => {
+  const { functions } = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+  const dir = new URL("../api/", import.meta.url);
+  for (const f of readdirSync(dir).filter((x) => x.endsWith(".js") && readFileSync(new URL(x, dir), "utf8").includes("loadPack("))) assert.equal(functions[`api/${f}`]?.includeFiles, "packs/**", f);
 });
 
 test("vercel.json gives the fit call its own function entry", () => {

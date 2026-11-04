@@ -14,11 +14,11 @@ const name = (v) => (typeof v === "string" ? v.replace(/\s+/g, " ").trim().repla
 const hasContact = (n) => redact(n) !== n || /\[(?:email|phone|〒|氏名)\]/.test(n);
 const leavesTag = (n) => /[<>\p{Cc}]/u.test(n);
 const MAX_URL_CHARS = 250;
-// A URL the user typed goes to Anthropic's fetch: public pages only, so no credentials and no contact details in it.
+// A URL the user typed goes to Anthropic's fetch: public pages only, so no credentials and no address in it. The phone pattern stays out: it takes a job board's posting id for a number.
 const publicUrl = (v) => {
   try {
     const u = new URL(v);
-    return typeof v === "string" && (u.protocol === "http:" || u.protocol === "https:") && !u.username && !u.password && v.length <= MAX_URL_CHARS && redact(v) === v && !leavesTag(v);
+    return typeof v === "string" && (u.protocol === "http:" || u.protocol === "https:") && !u.username && !u.password && v.length <= MAX_URL_CHARS && !/[@＠]/.test(v) && !leavesTag(v);
   } catch {
     return false;
   }

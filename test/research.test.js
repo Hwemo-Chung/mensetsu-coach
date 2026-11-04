@@ -918,6 +918,34 @@ test("source conflicts need both sides sourced; an empty list claims no agreemen
   assert.deepEqual(gate(model([source("s1")])).source_conflicts, []);
 });
 
+test("a 万 figure copied as yen is no yen figure, and Korean 만 is read like 万", () => {
+  const m = model([source("s1")]);
+  m.position_analysis.salary = { ...claim("年収500万〜800万円", "s1"), min_jpy: 500, max_jpy: 800, fixed_overtime_hours: null };
+  const raw = gate(m).position_analysis.salary;
+  assert.deepEqual([raw.min_jpy, raw.max_jpy], [null, null], "800 would read as under any floor and show a false unmet");
+  m.position_analysis.salary = { ...claim("연봉 500만~800만 엔", "s1"), min_jpy: 5_000_000, max_jpy: 8_000_000, fixed_overtime_hours: null };
+  const ko = gate(m).position_analysis.salary;
+  assert.deepEqual([ko.min_jpy, ko.max_jpy], [5_000_000, 8_000_000]);
+});
+
+test("a conflict whose topic is an assertive word is dropped and counted", () => {
+  const m = model([source("s1"), source("s2")]);
+  m.source_conflicts = [{ topic: "違法性の有無", side_a: claim("100名", "s1"), side_b: claim("120名", "s2") }];
+  const b = gateBrief(m, { content: [searchBlock("s1"), searchBlock("s2")], usage: ran, date: DATE, pack: JP });
+  assert.deepEqual(b.source_conflicts, []);
+  assert.equal(b.banned_removed, 1);
+});
+
+test("handler: a job board's numeric posting id is not a phone number", async () => {
+  const savedCode = process.env.ACCESS_CODE;
+  process.env.ACCESS_CODE = "c0de";
+  let n = 1;
+  const call = (posting_url) => research(new Request("http://x/api/research", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `10.78.0.${n++}` }, body: JSON.stringify({ company: COMPANY, position: POSITION, posting_url }) }), { enabled: true, client: fakeClient({ turns: [researchMessage] }) });
+  for (const url of ["https://example.com/View/JobSearchDetail/j_jid__3012345678/", "https://example.com/jobinfo-123456-1-2-1/"]) assert.equal((await call(url)).status, 200, url);
+  assert.equal((await call("https://example.com/?e=a%40b.co&m=a@b.co")).status, 400, "an address in a URL is still refused");
+  if (savedCode === undefined) delete process.env.ACCESS_CODE; else process.env.ACCESS_CODE = savedCode;
+});
+
 test("assertive and grading words are dropped and only counted; reported questions on fair-hiring topics too, never blamed on the company", () => {
   const m = model([source("s1")]);
   m.company_snapshot.business = claim("違法な派遣を行う（架空）", "s1");

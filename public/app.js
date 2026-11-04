@@ -217,7 +217,7 @@ async function runFit(card) {
   try {
     const { fit_evaluation, mismatch_flags, company_checkpoints, guides, ...research } = brief; // the question and reverse calls must not see the fit sections; here they would only be fed back
     const desired = fitDesired(loadDesired(LS));
-    const { res, data } = await post("/api/fit", { brief: research, ...(lastMail && { mail: lastMail }), ...(maskable(lastAttachment) && { attachment: lastAttachment }), ...(lastProfile && { profile: lastProfile }), ...(desired && { desired_profile: desired }), lang: state.lang });
+    const { res, data } = await post("/api/fit", { brief: research, ...(lastMail && { mail: lastMail }), ...(maskable(lastAttachment) && { attachment: lastAttachment }), ...(lastProfile && { profile: lastProfile }), ...(desired && { desired_profile: desired }), pack: packOf(), lang: state.lang });
     if (!live() || mine !== fitRun) return;
     if (res.status === 401) return failed(res, data);
     if (!res.ok) return failure(message(data));

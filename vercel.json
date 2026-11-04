@@ -5,8 +5,8 @@
     "api/script.js": { "maxDuration": 120, "includeFiles": "packs/**" },
     "api/review.js": { "maxDuration": 120, "includeFiles": "packs/**" },
     "api/reverse.js": { "maxDuration": 60, "includeFiles": "packs/**" },
-    "api/research.js": { "maxDuration": 120 },
-    "api/fit.js": { "maxDuration": 120 },
+    "api/research.js": { "maxDuration": 120, "includeFiles": "packs/**" },
+    "api/fit.js": { "maxDuration": 120, "includeFiles": "packs/**" },
     "api/tts.js": { "maxDuration": 60, "includeFiles": "packs/**" },
     "api/stt.js": { "maxDuration": 60, "includeFiles": "packs/**" },
     "api/cron/daily.js": { "maxDuration": 300, "includeFiles": "packs/**" }
