@@ -815,6 +815,9 @@ test("decision A: no review themes; plain links and a memo that stays in the bro
   assert.ok(!text.includes(r.sameName), "a location was entered");
   assert.ok(!text.includes(r.nameMatch), "the user's own posting URL speaks for this offer");
   assert.ok(!/score|grade|合計|총점/i.test(text));
+  assert.ok(text.includes(r.financials) && text.includes("平均年間給与 700万円"), "public workforce figures are shown");
+  await brief.getByText(r.sourcesTitle({ n: 2 })).click();
+  assert.ok((await brief.locator(".sources").innerText()).includes(r.jobBoard), "a job board says so in the source list");
 
   await brief.getByText(r.memoTitle).click();
   const links = brief.locator(".review-sites a");
@@ -826,10 +829,12 @@ test("decision A: no review themes; plain links and a memo that stays in the bro
   assert.ok((await brief.innerText()).includes(r.memoWarn));
   await brief.getByLabel(r.memoSite).fill("サイトA（架空）");
   await brief.getByLabel(r.memoDate).fill("2026-11-01");
+  await brief.getByLabel(r.memoScore).fill("3.4");
   await brief.getByLabel(r.memoSummary).fill("投稿者の話の要約メモ（架空）");
   await brief.getByRole("button", { name: r.memoAdd }).click();
   await brief.getByText(r.memoLabel).first().waitFor();
   assert.ok((await brief.innerText()).includes(r.memoNoSample));
+  assert.ok((await brief.innerText()).includes(r.memoScoreShown({ n: "3.4" })), "the score the user read, next to the unverified label");
   const stored = await page.evaluate(() => ({ session: localStorage.getItem("mensetsu-session"), notes: localStorage.getItem("mensetsu-company-notes") }));
   assert.ok(stored.notes.includes("投稿者の話の要約メモ"));
   assert.ok(!stored.session.includes("投稿者の話の要約メモ"), "never in the session the app sends from");

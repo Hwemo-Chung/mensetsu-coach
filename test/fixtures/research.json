@@ -6,7 +6,8 @@
     { "type": "server_tool_use", "id": "srvtoolu_s2", "name": "web_search", "input": { "query": "株式会社サンプルテック（仮） 面接" } },
     { "type": "web_search_tool_result", "tool_use_id": "srvtoolu_s1", "content": [
       { "type": "web_search_result", "title": "株式会社サンプルテック（仮） 採用情報", "url": "https://example.com/sampletech/careers", "encrypted_content": "synthetic", "page_age": "October 1, 2026" },
-      { "type": "web_search_result", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "encrypted_content": "synthetic", "page_age": null }
+      { "type": "web_search_result", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "encrypted_content": "synthetic", "page_age": null },
+      { "type": "web_search_result", "title": "株式会社サンプルテック（仮） の求人", "url": "https://example.com/board/sampletech", "encrypted_content": "synthetic", "page_age": null }
     ] },
     { "type": "web_search_tool_result", "tool_use_id": "srvtoolu_s2", "content": [
       { "type": "web_search_result", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "encrypted_content": "synthetic", "page_age": "September 12, 2026" },
@@ -22,14 +23,15 @@
       "size": { "value": "別企業の従業員数", "source_ids": ["similar"], "confidence": "high" },
       "founded": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
       "locations": { "value": "本社は東京（架空）", "source_ids": ["official"], "confidence": "high" },
-      "recent_news": []
+      "recent_news": [],
+      "financials": [{ "value": "平均年間給与 700万円（2026年3月期、架空）", "source_ids": ["official"], "confidence": "high" }]
     },
     "position_analysis": {
       "position_match": "exact",
       "actual_work": { "value": "製品の要件定義と開発チームとの進行管理（架空）", "source_ids": ["official"], "confidence": "medium" },
       "team_context": { "value": "not_found", "source_ids": [], "confidence": "unknown" },
       "required_skills": [{ "value": "要件定義の経験（架空）", "source_ids": ["official"], "confidence": "medium" }],
-      "preferred_skills": [],
+      "preferred_skills": [{ "value": "SaaS の経験（架空）", "source_ids": ["board"], "confidence": "medium" }],
       "salary": { "value": "年収600万〜800万円（架空。保証ではない）", "source_ids": ["official"], "confidence": "medium", "bonus_included": "unknown", "overtime_pay_included": "unknown", "min_jpy": 6000000, "max_jpy": 8000000, "fixed_overtime_hours": null },
       "employment": { "value": "正社員（架空）", "source_ids": ["official"], "confidence": "medium", "kind": "seishain" },
       "overtime": { "value": "not_found", "source_ids": ["official"], "confidence": "unknown", "monthly_hours": null },
@@ -41,13 +43,14 @@
     },
     "interview_intelligence": {
       "selection_stages": [{ "value": "面接2回（架空）", "source_ids": ["post"], "confidence": "medium" }],
-      "reported_questions": [{ "value": "当社の製品のどこを改善しますか（架空）", "source_ids": ["post"], "confidence": "medium" }]
+      "reported_questions": [{ "value": "当社の製品のどこを改善しますか（架空）", "source_ids": ["official"], "confidence": "medium" }]
     },
     "sources": [
       { "id": "official", "title": "株式会社サンプルテック（仮） 採用情報", "url": "https://example.com/sampletech/careers", "published_date": "2026-10-01", "entity_match": "exact", "position_match": "exact", "source_type": "official_careers" },
       { "id": "similar", "title": "サンプルテクノ株式会社（仮） 会社概要", "url": "https://example.com/sampletechno/about", "published_date": "", "entity_match": "similar", "position_match": "unknown", "source_type": "official_other" },
       { "id": "reviews", "title": "株式会社サンプルテック（仮） の口コミ", "url": "https://example.com/reviews/sampletech", "published_date": "2026-09-12", "entity_match": "exact", "position_match": "unknown", "source_type": "review_site" },
-      { "id": "post", "title": "株式会社サンプルテック（仮） 面接体験", "url": "https://example.com/interviews/sampletech", "published_date": "", "entity_match": "exact", "position_match": "unknown", "source_type": "interview_post" }
+      { "id": "post", "title": "株式会社サンプルテック（仮） 面接体験", "url": "https://example.com/interviews/sampletech", "published_date": "", "entity_match": "exact", "position_match": "unknown", "source_type": "interview_post" },
+      { "id": "board", "title": "株式会社サンプルテック（仮） の求人", "url": "https://example.com/board/sampletech", "published_date": "", "entity_match": "exact", "position_match": "similar", "source_type": "job_board" }
     ]
   }
 }

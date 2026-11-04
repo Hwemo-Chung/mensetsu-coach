@@ -12,7 +12,7 @@ import { join } from "node:path";
 import {
   researchEnabled, extractionSchema, fitSchema, briefSchema, NOT_FOUND, EXCERPT_MAX,
   resultUrls, gateSourceUrls, gateEntity, gateClaim, gatePosition, clipExcerpt, researchStatus, gateBrief,
-  buildResearchRequest, runResearch, searchQueries, queryLogPath, logQueries, today, extractionWireSchema,
+  buildResearchRequest, runResearch, searchQueries, queryLogPath, logQueries, today, extractionWireSchema, fitFacts,
 } from "../lib/research.js";
 
 const COMPANY = "株式会社サンプルテック（仮）";
@@ -25,7 +25,7 @@ const rateLimited = { type: "web_search_tool_result", tool_use_id: "t6", content
 const fetchError = { type: "web_fetch_tool_result", tool_use_id: "t4", content: { type: "web_fetch_tool_error", error_code: "url_not_accessible" } };
 const ran = { server_tool_use: { web_search_requests: 2, web_fetch_requests: 1 } };
 const none = { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } };
-const source = (id, extra = {}) => ({ id, title: `${COMPANY} ${id}`, url: url(id), published_date: "", entity_match: "exact", position_match: "exact", source_type: "news", ...extra });
+const source = (id, extra = {}) => ({ id, title: `${COMPANY} ${id}`, url: url(id), published_date: "", entity_match: "exact", position_match: "exact", source_type: "official_other", ...extra }); // an official page backs both sections; news backs company facts only
 const claim = (value, ...source_ids) => ({ value, source_ids, confidence: "medium" });
 const DATE = "2026-11-04";
 
@@ -342,11 +342,52 @@ test("gate 6: no page text is stored: long summaries are cut, tool results and u
 
 // Intent changed: official_careers was trusted as the model's own reading, so a review page saying it is official could strip the label.
 test("interview reports stay unverified: the model's official_careers mark cannot remove the label", () => {
-  for (const source_type of ["interview_post", "official_careers"]) { // review_site no longer survives at all (decision A)
+  for (const source_type of ["official_careers"]) { // review_site and interview_post no longer survive at all (trusted sources only, 11/05)
     const iv = gate(model([source("s1", { url: url("review-site/company/1"), source_type })]), [searchBlock("review-site/company/1")]).interview_intelligence;
     assert.equal(iv.reported_questions[0].label, "reported_unverified", source_type);
     assert.equal(iv.selection_stages[0].label, "reported_unverified", source_type);
   }
+});
+
+test("company facts rest on official pages, filings and news only", () => {
+  for (const [source_type, kept] of [["official_other", true], ["official_careers", true], ["official_filing", true], ["news", true], ["job_board", false], ["company_db", false], ["other", false], ["interview_post", false]]) {
+    const b = gate(model([source("s1", { source_type })]));
+    assert.equal(b.company_snapshot.size.source_count, kept ? 1 : 0, source_type);
+    assert.equal(b.company_snapshot.size.value === NOT_FOUND, !kept, source_type);
+  }
+});
+
+test("position facts rest on official pages and job boards, and the job board stays labelled", () => {
+  for (const [source_type, kept] of [["official_careers", true], ["official_other", true], ["official_filing", true], ["job_board", true], ["news", false], ["company_db", false], ["other", false]]) {
+    const b = gate(model([source("s1", { source_type })]));
+    assert.equal(b.position_analysis.salary.source_count, kept ? 1 : 0, source_type);
+  }
+  assert.equal(gate(model([source("s1", { source_type: "job_board" })])).sources[0].source_type, "job_board");
+});
+
+test("a claim citing a trusted page and a dropped one keeps only the trusted page", () => {
+  const b = gate(model([source("s1"), source("s2", { source_type: "company_db" })], ["s1", "s2"]));
+  assert.deepEqual(b.sources.map((s) => s.url), [url("s1")]);
+  assert.deepEqual(b.company_snapshot.size.source_ids, ["s1"]);
+  assert.equal(b.company_snapshot.size.source_count, 1);
+});
+
+test("workforce figures sit in financials, gated like any company fact, and reach the fit call", () => {
+  const m = model([source("s1"), source("s2", { source_type: "job_board" })]);
+  m.company_snapshot.financials = [claim("平均年間給与 700万円（2026年3月期、架空）", "s1"), claim("平均年収 900万円（架空）", "s2")];
+  const b = gate(m);
+  assert.deepEqual(b.company_snapshot.financials.map((c) => c.value), ["平均年間給与 700万円（2026年3月期、架空）"]);
+  assert.ok(fitFacts(b).some((f) => JSON.stringify(f).includes("平均年間給与")));
+});
+
+test("the prompt asks for trusted sources and the newest figure, not interview posts", () => {
+  const { system } = buildResearchRequest(COMPANY, "職種", "ja", DATE, { pack: loadPack("jp") });
+  const text = typeof system === "string" ? system : system.map((s) => s.text).join("\n");
+  assert.doesNotMatch(text, /面接体験の公開投稿/);
+  assert.match(text, /企業データベース/);
+  assert.match(text, /最も新しい/);
+  assert.match(text, /単体か連結か/);
+  assert.match(text, /平均年間給与/);
 });
 
 test("every list is capped, so a page cannot be stored whole by splitting it into items", () => {
@@ -481,7 +522,7 @@ test("a good brief keeps sourced facts, know-how fields and the research date", 
   assert.deepEqual(b.position_analysis.salary.bonus_included, "yes");
   assert.deepEqual(b.position_analysis.salary.overtime_pay_included, "no");
   assert.equal(b.position_analysis.salary.position_match, "exact"); // applies_to_position now needs the user's posting URL
-  assert.deepEqual(b.sources[0], { id: "s1", title: `${COMPANY} s1`, url: url("s1"), accessed_date: DATE, retrieved_at: "", page_age: "", fetched: false, published_date: "2026-10-01", entity_match: "exact", position_match: "exact", source_type: "news" });
+  assert.deepEqual(b.sources[0], { id: "s1", title: `${COMPANY} s1`, url: url("s1"), accessed_date: DATE, retrieved_at: "", page_age: "", fetched: false, published_date: "2026-10-01", entity_match: "exact", position_match: "exact", source_type: "official_other" });
   for (const c of allClaims(b)) assert.ok(Array.isArray(c.source_ids) && c.source_count > 0, JSON.stringify(c));
 });
 
@@ -551,7 +592,8 @@ test("the search prompt: Japanese first, source priority, public pages only, web
   assert.match(system, /日本語.*先/);
   // Intent changed (decision A): review sites left the priority order because the server no longer collects them.
   assert.doesNotMatch(system, /口コミ/);
-  const order = ["公式", "IR", "採用", "報道", "面接体験"].map((w) => system.indexOf(w));
+  // Intent changed: interview posts left the list of usable sources (trusted sources only, 11/05).
+  const order = ["公式", "IR", "採用", "報道"].map((w) => system.indexOf(w));
   assert.ok(order.every((n) => n >= 0), "every source class is named");
   assert.deepEqual([...order].sort((a, b) => a - b), order, "in priority order");
   assert.match(system, /12か月/);
@@ -636,14 +678,16 @@ test("POST: the fixture run gives a gated brief, with the similar-name company's
   const b = await res.json();
   assert.equal(b.research_status, "ok");
   assert.equal(b.research_date, today());
-  assert.deepEqual(b.sources.map((s) => s.url), ["https://example.com/sampletech/careers", "https://example.com/interviews/sampletech"], "the review page is dropped by the code gate (decision A)");
+  assert.deepEqual(b.sources.map((s) => s.url), ["https://example.com/sampletech/careers", "https://example.com/board/sampletech"], "review and interview-post pages are dropped by the code gate");
   assert.equal(b.company_snapshot.size.value, NOT_FOUND);
   // Intent changed: this claim cites the official page and a similar company's, and used to survive on the official one; gate 4 cannot tell whose fact it states.
   assert.equal(b.company_snapshot.business.value, NOT_FOUND);
   assert.equal(b.company_snapshot.business_model.source_count, 1);
   assert.equal(b.position_analysis.salary.position_match, "exact"); // applies_to_position now needs the user's posting URL
   assert.equal(b.position_analysis.salary.bonus_included, "unknown");
+  // Intent changed: only a report on a trusted page survives; the stage citing the interview post goes (trusted sources only, 11/05).
   assert.equal(b.interview_intelligence.reported_questions[0].label, "reported_unverified");
+  assert.deepEqual(b.interview_intelligence.selection_stages, []);
   assert.ok(!JSON.stringify(b).includes("架空の企業の架空の採用ページ"), "no page text");
   assert.ok(!JSON.stringify(b).includes("synthetic"), "no tool payload");
 });

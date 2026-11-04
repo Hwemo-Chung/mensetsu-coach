@@ -164,7 +164,7 @@ function reviewCheck(b, brief, company, r) {
   const list = el("div"), form = el("form", "brief-form");
   const input = (label, attrs, tag = "input") => { const l = el("label", null, label), e = el(tag, "research-ctl"); Object.assign(e, attrs); l.append(e); form.append(l); return e; };
   const site = input(r.memoSite, { type: "text", maxLength: 50, required: true, autocomplete: "off" }), date = input(r.memoDate, { type: "date", required: true });
-  const sample = input(r.memoSample, { type: "text", maxLength: 20, autocomplete: "off" }), summary = input(r.memoSummary, { maxLength: MEMO_MAX, rows: 2, required: true }, "textarea");
+  const score = input(r.memoScore, { type: "text", maxLength: 10, autocomplete: "off" }), sample = input(r.memoSample, { type: "text", maxLength: 20, autocomplete: "off" }), summary = input(r.memoSummary, { maxLength: MEMO_MAX, rows: 2, required: true }, "textarea");
   const add = el("button", "inline-btn research-ctl", r.memoAdd);
   form.append(el("p", "caution", r.memoWarn), add);
   const save = (memos) => { saveCompanyNotes(LS, company, { ...loadCompanyNotes(LS, company), memos }); draw(); showConditions(b, brief, company); };
@@ -176,14 +176,14 @@ function reviewCheck(b, brief, company, r) {
       gone.type = "button";
       gone.addEventListener("click", () => save(memos.filter((_, j) => j !== i)));
       const days = elapsedDays(m.date);
-      const meta = el("p", "legend", [m.site, m.date, ...(days ? [r.elapsed({ n: days })] : []), m.sample ? r.memoShown({ n: m.sample }) : r.memoNoSample, r.memoLabel].join(" · "));
+      const meta = el("p", "legend", [m.site, m.date, ...(days ? [r.elapsed({ n: days })] : []), ...(m.score ? [r.memoScoreShown({ n: m.score })] : []), m.sample ? r.memoShown({ n: m.sample }) : r.memoNoSample, r.memoLabel].join(" · "));
       meta.append(" ", gone);
       list.append(el("p", "side", m.summary ?? ""), meta);
     });
   };
   form.addEventListener("submit", (e) => {
     e.preventDefault();
-    save([...loadCompanyNotes(LS, company).memos, { site: site.value.trim(), date: date.value, sample: sample.value.trim(), summary: summary.value.trim() }]);
+    save([...loadCompanyNotes(LS, company).memos, { site: site.value.trim(), date: date.value, score: score.value.trim(), sample: sample.value.trim(), summary: summary.value.trim() }]);
     form.reset();
   });
   body.append(list, form);
@@ -242,6 +242,7 @@ function sources(b, list, r) {
       Object.assign(a, { href: url, target: "_blank", rel: "noopener noreferrer" });
       li.append(a);
     } else li.append(s.title ?? "");
+    if (s.source_type === "job_board") li.append(el("span", "legend", ` · ${r.jobBoard}`));
     if (s.published_date) li.append(el("span", "legend", ` · ${r.published({ date: s.published_date })}`));
     if (s.page_age) li.append(el("span", "legend", ` · ${r.pageAge({ age: s.page_age })}`));
     li.append(el("span", "legend", ` · ${s.fetched ? r.fetched : r.searchOnly}`));
