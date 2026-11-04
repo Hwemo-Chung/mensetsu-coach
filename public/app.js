@@ -690,7 +690,7 @@ $("opts").addEventListener("click", () => {
   $("debriefStatus").textContent = "";
   $("options").showModal();
 });
-const refreshConditions = () => { const card = [...log.querySelectorAll(".msg.brief")].at(-1), brief = state.session?.company_context.research_brief; if (card && brief) showConditions(card, brief, researchNames().company); };
+const refreshConditions = () => { const card = [...log.querySelectorAll(".msg.brief:not(.brief-confirm)")].at(-1), brief = state.session?.company_context.research_brief; if (card && brief) showConditions(card, brief, researchNames().company); };
 for (const e of desiredInputs) e.addEventListener("input", () => { saveDesired(LS, Object.fromEntries(desiredInputs.map((i) => [i.dataset.desired, i.value]))); refreshConditions(); });
 $("desiredDelete").addEventListener("click", () => {
   clearDesired(LS);

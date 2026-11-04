@@ -850,6 +850,14 @@ test("decision A: no review themes; plain links and a memo that stays in the bro
   await form.getByRole("button", { name: r.answerSave }).click();
   await brief.getByText("人事（架空）").first().waitFor();
 
+  // A re-run offer also carries .brief, and must not stop the card below it from following the profile.
+  await brief.getByRole("button", { name: r.rerun }).click();
+  await confirmCard(page).last().waitFor();
+  await page.locator("#opts").click();
+  await page.locator('[data-desired="max_overtime_hours"]').fill("30");
+  await brief.locator(".fit-conditions").getByText(r.axis.overtime).waitFor();
+  await page.evaluate(() => document.getElementById("options").close());
+
   // Hiding is the correction path: the claim leaves the stored brief too.
   const value = (await storedBrief(page)).company_snapshot.business_model.value;
   await brief.getByText(value).locator("xpath=following-sibling::p[1]").getByRole("button", { name: r.hide }).click();
