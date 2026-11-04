@@ -15,14 +15,12 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - `npm run eval` — real-API evals (F4/F3/F2/consistency, costs credits): `ENV_FILE=… node scripts/eval.mjs --only …`.
 - `npm i --no-save @huggingface/transformers@=4.3.2 && npm run vendor:stt` — re-copy the in-browser STT runtime into `public/vendor/` (`--no-save` keeps it out of the Vercel install). Then `STT_SAMPLES=<dir> node --test test/stt-local.live.test.js` runs the real Whisper model in Node (0 credits, ~260 MB download once).
 
-## Code map
-- `api/questions.js`, `api/script.js`, `api/review.js`, `api/reverse.js` — Vercel web-standard `POST` handlers (access code → rate limit → validation incl. `lang` → Claude). `api/access.js` checks the code only (no AI). All errors are `{ code }`; the UI turns codes into sentences. `dev.js` runs the same handlers locally with `vercel.json` headers; `MOCK_CLAUDE=1` uses per-route fixtures (0 tokens). Also `api/tts.js`, `api/stt.js` (Gemini voice; fail closed on missing key or flag; STT now serves only the read-aloud check `?kana=1`), `api/subscribe.js`, `api/unsubscribe.js` (`GET`), `api/demand.js`, `api/cron/daily.js` (Vercel cron `0 0 * * *`, `CRON_SECRET`).
-- `lib/coach.js` — barrel re-exporting `claude.js` (`MODELS`: questions/script/reverse = Sonnet 5.5, review = Opus 5.5, IDs verified via Models API 11/02; `askJson`), `pack.js` (`PACKS`, `loadPack`), `lang.js` (`EXPLAIN_LANGS`, `TARGET_LANGS`), `privacy.js` (`redact`), `questions.js` (`countSpecific`, `MIN_SPECIFIC` = 6), `script.js`, `review.js`, `reverse.js`. Together: pack loading, prompts, question/script/review requests (structured JSON output), `EXPLAIN_LANGS` (language registry + gates, 1 retry), F2 specificity gate (`countSpecific`, ≥6/10), review gate (drop corrections not quoting the answer), `maskInput` (before Claude) / `redact` (output)
-- `lib/attachment.js` — resume upload → Claude content blocks (PDF/image native, DOCX via mammoth, text); nothing touches disk
-- `lib/tts.js` (Gemini TTS, `gemini-3.8-flash-lite-tts` with `gemini-3.8-flash-tts` fallback), `lib/stt.js` (Gemini STT, `STT_ENABLED` gate; `speechQuality` re-exported from `public/stt-whisper.js`), `lib/kana.js` (kana → Hangul/romaji), `lib/mail.js` (daily tip, Resend + Upstash/KV), `lib/consistency-metrics.js` (eval metrics)
-- `lib/guard.js` — fail-closed access code, in-memory rate limit
-- `public/` — static chat UI (no inline script; CSP `script-src 'self' 'wasm-unsafe-eval'`, COOP/COEP for threaded WASM). Answer 🎤 = open-source Whisper-small in the browser: `stt-local.js` (decode + worker; MOCK swaps in `test/fixtures/stt-local.mock.js`), `stt-worker.js`, `stt-whisper.js` (shared with Node: language fixed to the pack target, filler prompt, 30 s chunks, `speechQuality`), runtime vendored in `public/vendor/`, model from huggingface.co (`research/STT-OSS-EVAL.md`). Stages code → mail → pick ⇄ answer, plus an optional `profile` stage (one-line career summary that regenerates the questions), entered from the offerProfile button. Enter = newline, Ctrl/Cmd+Enter = send (keep). `public/i18n/{ko,en,ja}.js` + `index.js`; `test/i18n.test.js` fails on a missing key. Session JSON lives in browser localStorage only. `public/conditions.js` = per-condition matching (met/unmet/unknown per row, no totals, browser only); review-site memos and recorded answers live under their own localStorage key, never in the session.
-- Deploy: Vercel, `outputDirectory: public`. `.vercelignore` excludes `01_설계문서/`, `02_로컬원본/`.
+## Code map (only what the code does not show)
+- All errors are `{ code }`; the UI turns codes into sentences. `dev.js` runs the same handlers with `vercel.json` headers; `MOCK_CLAUDE=1` uses per-route fixtures (0 tokens). Model ids live only in `lib/claude.js` `MODELS`.
+- `public/`: no inline script (CSP `script-src 'self' 'wasm-unsafe-eval'`, COOP/COEP for threaded WASM). Enter = newline, Ctrl/Cmd+Enter = send (keep). `test/i18n.test.js` fails on a missing key. Session JSON stays in browser localStorage.
+- Answer 🎤 is on-device Whisper (`research/STT-OSS-EVAL.md`); Gemini STT serves only the read-aloud check (`?kana=1`, `STT_ENABLED`).
+- Stage R (`RESEARCH_ENABLED=1`, jp pack only; spec `01_설계문서/SUPPLEMENT-AUTO-RESEARCH.md`): Haiku needs the basic `web_search_20250305` tools (the newer ones made zero real searches). The extraction schema sits near the API's compiled-grammar limit: adding fields returns 400 for every call, and offline tests cannot see it. Review sites are never collected.
+- Vercel Hobby allows 12 functions (`api/` is at the limit, a test guards it): `/api/fit` is `lib/fit-api.js` behind a `vercel.json` rewrite to `/api/research?route=fit`.
 
 Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非公開フォルダ). DESIGN-KAKAOTALK-INTERVIEW-COACH.md still says 11/10 — that date is stale.
 
@@ -41,15 +39,10 @@ Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非
 - No code/data without rights. Avoid generic project types (AI resume screening, basic RAG, Streamlit app).
 - Submission needs a **public GitHub repo** (account in the private notes) with README covering overview, how to run, and how Claude is used; plus a public 3-min demo video.
 
-## Planned architecture (from PRD)
-
-- Standalone web chat UI, LINE-like styling, single screen. No messenger-platform integration (contest penalizes platform tie-ins). Stack: Node + `@anthropic-ai/sdk` + `mammoth`, no framework, deployed on Vercel.
-- Claude API does question generation, coaching and grading; responses streamed.
-- **Country pack** separation: all rules/prompts for Japan live in `packs/jp.json` (interview target language from the pack (ja or ko); explanation language = one of `EXPLAIN_LANGS` ko/en/ja, chosen by the UI language; correction rules, model-answer format, question categories, culture notes). Two packs exist: `packs/jp.json` and `packs/kr.json` (marked `beta`); `PACKS = ["jp", "kr"]`. Reverse questions are JP-only. Structure must allow adding other packs without code changes.
-  - Rule = `{ pattern, type: delete|replace|structure, replacement, reason, example_before, example_after }`
-  - Session (local JSON, no names/contacts stored) = `{ company_context, questions[], attempts[{ question_id, answer, feedback{ structure, corrections[], model_answer } }] }`
-- System prompt = coach role + pack rules injected + company context + fixed output order: ① structure check (4文型 復唱→結論→基準・数字→選択肢) ② Japanese corrections (before/after + 1-line reason) ③ 60-second model answer (Japanese + pronunciation + Korean).
-- Prompt principle: no corrections outside the rule DB; if unsure, ask a clarifying question instead of guessing.
+## Architecture rules
+- Standalone web UI, no messenger-platform integration (the contest penalizes platform tie-ins).
+- All country rules, prompts data and question categories live in `packs/`; adding a pack must not need code changes. Reverse questions are JP-only.
+- No corrections outside the rule DB; if unsure, ask a clarifying question instead of guessing.
 
 ## Acceptance checks (PRD §5)
 
