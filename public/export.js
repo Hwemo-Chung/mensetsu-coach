@@ -91,7 +91,7 @@ function researchSection(session, t) {
   out.push(`### ${r.snapshot}`, "");
   for (const k of SNAPSHOT_FIELDS) {
     const c = b.company_snapshot?.[k];
-    out.push(`- ${r.fields[k]}: ${claimFound(c) ? `${inert(c.value)} (${claimMeta(c, r).join(", ")})` : r.notFound}`);
+    out.push(`- ${r.fields[k]}: ${claimFound(c) ? `${inert(c.value)} (${claimMeta(c, r).map(inert).join(", ")})` : r.notFound}`);
   }
   out.push("", `### ${r.role}`, "", r.match[b.position_analysis?.position_match] ?? r.match.unknown);
   const checks = listOf(b.company_checkpoints).filter((c) => c?.question);

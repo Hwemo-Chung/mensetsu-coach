@@ -51,7 +51,9 @@ export function migrateSession(s) {
   // A bad brief loses only the brief: the questions and attempts must still come back.
   const { research_brief, ...context } = c;
   if (isObj(research_brief) && RESEARCH_STATUSES.includes(research_brief.research_status)) context.research_brief = research_brief;
-  const out = { ...s, version: SESSION_VERSION, company_context: { ...context, facts: Array.isArray(c.facts) ? c.facts : [] }, questions, attempts, notes: isObj(s.notes) ? s.notes : {} };
+  const { research_names, ...rest } = s;
+  const out = { ...rest, version: SESSION_VERSION, company_context: { ...context, facts: Array.isArray(c.facts) ? c.facts : [] }, questions, attempts, notes: isObj(s.notes) ? s.notes : {} };
+  if (isObj(research_names) && str(research_names.company) && str(research_names.position)) out.research_names = research_names;
   if (Array.isArray(s.reverse)) out.reverse = s.reverse.filter(isObj).map(({ question_ja, ...r }) => ({ ...r, question: r.question ?? question_ja }));
   return out;
 }

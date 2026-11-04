@@ -151,6 +151,8 @@ test("research export: web text cannot become a link, image or HTML; only http(s
   assert.ok(!md.includes("[click]("), "link syntax is escaped");
   assert.ok(!md.includes("javascript:"));
   assert.ok(md.includes("危険なリンク"), "the source stays listed, without its link");
+  const edited = sessionToMarkdown(withBrief({ ...brief, company_snapshot: { business: claim("架空", { source_ids: ["[x](https://example.com/y)"] }) } }), LANGS.ko);
+  assert.ok(!edited.includes("[x]("), "a source id edited in storage is inert too");
 });
 
 test("research export: an honest empty brief says so; unavailable or absent adds no section", () => {

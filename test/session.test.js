@@ -73,6 +73,16 @@ test("a malformed brief is dropped; the practice session still loads", () => {
   }
 });
 
+test("confirmed research names: kept when both are strings, otherwise dropped without losing the session", () => {
+  const names = { company: "株式会社サンプルテック（仮）", position: "PM（仮）" };
+  assert.deepEqual(migrateSession({ ...session, research_names: names }).research_names, names);
+  for (const bad of ["text", 1, [], null, {}, { company: null, position: "PM" }, { company: "A" }]) {
+    const s = migrateSession({ ...session, research_names: bad });
+    assert.ok(s, JSON.stringify(bad));
+    assert.ok(!("research_names" in s), JSON.stringify(bad));
+  }
+});
+
 test("version-1 sessions (question_ja, script.ja, reverse question_ja) migrate to the neutral names", () => {
   const old = {
     company_context: { company: "〇〇株式会社", position: "SE" }, // no facts in very old sessions
