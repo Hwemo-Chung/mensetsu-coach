@@ -540,8 +540,8 @@ test("the schema on the wire shares repeated shapes through $defs and means exac
     assert.deepEqual([...d.required].sort(), Object.keys(d.properties).sort());
   }
   const shapes = Object.values($defs).filter((d) => "value" in d.properties && "confidence" in d.properties);
-  // Intent changed: the reputation theme left with decision A; employment, overtime and client_site_work joined.
-  assert.equal(shapes.length, 5, "plain claim, salary, employment, overtime, client site: 40 claims must not expand into the grammar");
+  // Intent changed: per-claim extras moved into one details string for the grammar limit, so one claim shape is left to share.
+  assert.equal(shapes.length, 1, "40 claims must not expand into the grammar");
 });
 
 test("the search prompt: Japanese first, source priority, public pages only, web content is untrusted data", () => {
@@ -863,6 +863,27 @@ test("coverage is counted from the blocks; the use cap is budget, not failure", 
   const b = gate(model([source("s1")]), [call("web_search", "a"), call("web_search", "b"), call("web_fetch", "c"), call("web_fetch", "d"), searchBlock("s1"), maxUsesError, fetched("s1"), fetchError]);
   assert.deepEqual(b.coverage, { searches: 2, fetches: 2, search_ok: 1, search_failed: 1, fetch_ok: 1, fetch_failed: 1, budget_exhausted: true });
   assert.equal(gate(model([source("s1")])).coverage.budget_exhausted, false);
+});
+
+// A real call 11/04 answered 400 "compiled grammar is too large" (req_011CghvK3qpnzUGc1GkXY1P1) once claims carried extras and nullable figures. Offline tests cannot see the limit, so this pins the shape a live probe accepted.
+test("position details travel in one string and are back on their claims after the gate", () => {
+  const pos = extractionSchema.properties.position_analysis.properties;
+  for (const k of ["salary", "employment", "overtime", "client_site_work"]) assert.deepEqual(Object.keys(pos[k].properties), ["value", "source_ids", "confidence"]);
+  assert.equal(pos.details.type, "string");
+  assert.ok(!JSON.stringify(extractionWireSchema).includes('"null"'), "a nullable type costs more grammar than the limit leaves");
+
+  const m = model([source("s1")]);
+  Object.assign(m.position_analysis, {
+    salary: claim("年収700〜900万円（賞与込み）、固定残業45時間", "s1"), employment: claim("正社員", "s1"), overtime: claim("月平均20時間", "s1"), client_site_work: claim("常駐なし", "s1"),
+    details: "bonus_included=yes; overtime_pay_included=no; min_jpy=7,000,000; fixed_overtime_hours=45; kind=seishain; monthly_hours=20; stated=stated_no;",
+  });
+  const p = gate(m).position_analysis;
+  assert.deepEqual([p.salary.bonus_included, p.salary.overtime_pay_included, p.salary.min_jpy, p.salary.max_jpy, p.salary.fixed_overtime_hours], ["yes", "no", 7_000_000, null, 45]);
+  assert.deepEqual([p.employment.kind, p.overtime.monthly_hours, p.client_site_work.stated], ["seishain", 20, "stated_no"]);
+
+  m.position_analysis.details = "bonus_included=maybe; min_jpy=たぶん700万; kind=freelance; stated=nope";
+  const bad = gate(m).position_analysis;
+  assert.deepEqual([bad.salary.bonus_included, bad.salary.min_jpy, bad.employment.kind, bad.client_site_work.stated], ["unknown", null, "unknown", "unstated"], "a malformed string falls to unknown, it is never trusted");
 });
 
 test("figures survive only if the claim's own text states them", () => {
