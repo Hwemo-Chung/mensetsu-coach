@@ -1,16 +1,16 @@
-// Builds the whole demo video v4 from the storyboard in the private DEMO-SCRIPT: ① the failed interview → ② the promise →
-// ③ the one-take demo (scripts/record-video.mjs output) with a headline panel on the left → ④ the same review in Korean
-// and English with a Japanese explanation beside it → ⑤ how Claude is used → ⑥ who it is for and the closing line.
+// Builds the whole demo video v6: ① the 15-second opening → ② the promise → ③ the one-take demo (scripts/record-video.mjs
+// output) with a headline panel on the left → the prep document → ④ the same review in Korean and English, phone and web →
+// ⑤ how Claude is used and how this was built, in fast cuts → ⑥ who it is for, ending on the next person (user 11/05).
 // Screens are the live app (MOCK server, recorded real outputs, 0 AI calls). Scene changes use a green wipe, never a fade
 // through black (v3 blinked black on every still: scene cut measured 11/04).
-// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): Japanese narration (scripts/narration.mjs); each scene lasts as long as its
+// NARRATE=1 (+ a local VOICEVOX engine): Japanese narration (scripts/narration.mjs); each scene lasts as long as its
 // line. Without it, scenes keep the same reading time, so a silent preview has the final length.
-// Usage: [NARRATE=1 ENV_FILE=…] node scripts/build-video.mjs <section3.mp4> <out.mp4>   (needs system Chrome and ffmpeg)
+// Usage: [NARRATE=1] node scripts/build-video.mjs <section3.mp4> <out.mp4>   (needs system Chrome and ffmpeg)
 import { readFileSync, writeFileSync, mkdtempSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
-import { startServer, launch, CODE } from "../test/ui/harness.js";
+import { startServer, launch, CODE, MAIL } from "../test/ui/harness.js";
 
 const [take, out = "demo-full.mp4"] = process.argv.slice(2);
 if (!take) throw new Error("usage: node scripts/build-video.mjs <section3.mp4> <out.mp4>");
@@ -22,7 +22,8 @@ const MAX_SEC = 180;
 const INK = "#0c1411", GREEN = "#06c755", SOFT = "#a9d8bd", RED = "#ff7a7a", YELLOW = "#ffe14d";
 const FONT = "'Hiragino Sans','Noto Sans JP',sans-serif";
 const ffmpeg = (...a) => execFileSync("ffmpeg", ["-y", "-loglevel", "error", ...a]);
-const enc = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", "30", "-crf", "20", "-c:a", "aac", "-ar", "48000", "-ac", "1"];
+// All limited range: the JPEG screencasts are full range, and the final pass read the stills after the take as full (washed out, also in v5).
+const enc = ["-c:v", "libx264", "-pix_fmt", "yuv420p", "-color_range", "tv", "-r", "30", "-crf", "20", "-c:a", "aac", "-ar", "48000", "-ac", "1"];
 const durationOf = (f) => Number(execFileSync("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", f]).toString());
 
 const server = await startServer({ STT_ENABLED: "0" });
@@ -119,7 +120,7 @@ const big = (a, b, bg = INK, ca = "#fff", cb = GREEN) => `<div style="position:a
     { file: await snap(slam("以前の面接で、同じ質問を", "")), sec: 0.7 },
     { file: await snap(slam("以前の面接で、同じ質問を", "3回、聞き返された。", YELLOW, 92)), sec: 2.6 },
     { file: await snap(slam("結果は、", "見送り。", RED, 180)), sec: 2.2 },
-  ], "韓国出身のエンジニアとして、以前受けた面接で、同じ質問を3回、聞き返されました。結果は、見送り。");
+  ], "以前の面接で、同じ質問を3回、聞き返されました。結果は、見送り。");
 
   const d = JSON.parse(readFileSync(new URL("../public/demo/demo-ja.json", import.meta.url), "utf8"));
   const [first, last] = [d.steps[0].review, d.steps[1].review];
@@ -129,19 +130,21 @@ const big = (a, b, bg = INK, ca = "#fff", cb = GREEN) => `<div style="position:a
     <table style="width:100%;border-collapse:collapse;font-size:44px;font-weight:800"><tr style="font-size:26px;color:${SOFT}"><td></td><td style="text-align:center;width:190px">最初</td><td style="text-align:center;width:190px">答え直し</td></tr>
     ${rows.map(([label], i) => `<tr style="border-top:2px solid #22332b"><td style="padding:16px 0">${label}</td><td style="text-align:center;color:${RED};font-size:62px">✗</td><td data-row="${i}" style="text-align:center;color:${GREEN};font-size:62px">${i < flipped ? "✓" : ""}</td></tr>`).join("")}</table>
     <div style="position:absolute;right:90px;bottom:26px;font-size:20px;color:${SOFT};font-weight:600">実際の出力の録画</div></div>`;
-  const frames = [...(await reveal("聞かれたことに、", "答えていなかった。", INK, "#fff", RED)), { file: await snap(table(0)), sec: 1.1 }];
+  const frames = [...(await reveal("聞かれたことに、", "答えていなかった。", INK, "#fff", RED)).map((f) => ({ ...f, sec: f.sec * 0.75 })), { file: await snap(table(0)), sec: 0.5 }];
   for (let k = 1; k <= rows.length; k++) {
     const file = await snap(table(k)), r = await rectOf(`[data-row="${k - 1}"]`);
     frames.push({ file, sec: 0.6, arrow: { x: r.x + r.w - 20, y: r.y + r.h / 2, dir: "left" } });
   }
-  await scene(1, frames, "聞かれたことに、答えていなかったんです。答え方を直すと、同じ質問で、バツがチェックに変わります。");
+  await scene(1, frames, "聞かれたことに、答えていなかったんです。答え方を直すと、バツがチェックに変わります。");
   await scene(1, [{ file: await snap(`<div style="position:absolute;inset:0;background:${GREEN};color:${INK};display:flex;flex-direction:column;justify-content:center;align-items:center"><div style="font-size:110px;font-weight:900;color:#fff;letter-spacing:18px">✓✓✓✓</div><div style="font-size:82px;font-weight:900;margin-top:12px">見送りで、終わらせない。</div><div style="font-size:40px;font-weight:800;margin-top:22px">面接コーチ</div></div>`), sec: 2.3 }], "見送りで、終わらせない。面接コーチ。");
+  const opening = segs.reduce((sum, s) => sum + durationOf(s.file), 0);
+  if (opening > 15) throw new Error(`the opening is ${opening.toFixed(1)} s, over 15 s`);
 }
 
 // A live page in the take's width (one column), for the split screens.
 const APP = { width: 854, height: 720 };
-async function live(lang, dest) {
-  const ctx = await browser.newContext({ viewport: APP, deviceScaleFactor: 1.5, locale: lang });
+async function live(lang, dest, viewport = APP) {
+  const ctx = await browser.newContext({ viewport, deviceScaleFactor: 1.5, locale: lang });
   await ctx.addInitScript((l) => { try { localStorage.setItem("mensetsu-lang", l); } catch {} }, lang);
   const page = await ctx.newPage();
   await page.goto(server.url);
@@ -156,7 +159,12 @@ const appShot = async (page) => { const file = join(dir, `a${String(++n).padStar
 {
   const { ctx, page } = await live("ja");
   const box = await page.locator("#input").boundingBox(), S = 853 / 854;
-  await scene(2, [{ file: await snap(splitHtml(await appShot(page), panelHtml({ title: "メールを\n貼るだけ", note: "その会社専用の面接コーチになります" }))), sec: 2.5, arrow: { x: 427 + (box.x + box.width / 2) * S, y: box.y * S - 6, dir: "down" } }], "メールを貼るだけで、その会社専用の面接コーチになります。");
+  const promise = { title: "メールを\n貼るだけ", note: "その会社専用の面接コーチになります" }, arrow = { x: 427 + (box.x + box.width / 2) * S, y: box.y * S - 6, dir: "down" };
+  const empty = await snap(splitHtml(await appShot(page), panelHtml(promise)));
+  await page.fill("#input", JSON.parse(readFileSync(new URL("../public/demo/demo-ja.json", import.meta.url), "utf8")).mail);
+  await page.waitForTimeout(150);
+  const after = await page.locator("#input").boundingBox();
+  await scene(2, [{ file: empty, sec: 1.2, arrow }, { file: await snap(splitHtml(await appShot(page), panelHtml(promise))), sec: 2.3, arrow: { ...arrow, y: after.y * S - 6 } }], "メールを貼るだけで、その会社専用の面接コーチになります。");
   await ctx.close();
 }
 
@@ -171,7 +179,7 @@ for (const p of panels) panelFiles.push(await snap(panelHtml(p), panelPage));
     return `[${i + 1}:v]scale=640:1080[p${i}];[v${i}][p${i}]overlay=x='if(lt(t-${t},0.2),-640+640*(t-${t})/0.2,0)':y=0:enable='gte(t,${t})':eof_action=repeat[v${i + 1}]`;
   }).join(";");
   const file = segFile();
-  const filter = `[0:v]scale=1280:1080:flags=lanczos,pad=1920:1080:640:0:color=${INK}[v0];${chain}`;
+  const filter = `[0:v]scale=1280:1080:flags=lanczos:out_range=tv,pad=1920:1080:640:0:color=${INK}[v0];${chain}`;
   const audio = hasAudio ? ["-map", "0:a"] : ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono", "-map", `${panels.length + 1}:a`];
   ffmpeg("-i", take, ...panelFiles.flatMap((f) => ["-i", f]), ...(hasAudio ? [] : audio.slice(0, 4)), "-filter_complex", filter, "-map", `[v${panels.length}]`, ...(hasAudio ? audio : audio.slice(4)), "-t", takeSec.toFixed(3), ...enc, file);
   segs.push({ file, chapter: 3 });
@@ -180,8 +188,8 @@ for (const p of panels) panelFiles.push(await snap(panelHtml(p), panelPage));
 // ④ The same review in Korean and English, with a Japanese explanation beside the screen (user 11/04): each note sits at
 // the height of the line it explains, joined by a short rule.
 const demoOf = (lang) => JSON.parse(readFileSync(new URL(`../public/demo/demo-${lang}.json`, import.meta.url), "utf8"));
-async function reviewed(lang) {
-  const demo = demoOf(lang), { ctx, page } = await live(lang);
+async function reviewed(lang, viewport) {
+  const demo = demoOf(lang), { ctx, page } = await live(lang, undefined, viewport);
   const answers = {
     "/api/access": () => ({ ok: true, stt: false }),
     "/api/questions": () => ({ company_context: demo.company_context, questions: demo.questions, specificity: demo.specificity, pack: { id: "jp", target: "ja", steps } }),
@@ -199,21 +207,23 @@ async function reviewed(lang) {
   await page.waitForTimeout(250);
   return { ctx, page };
 }
-async function annotated(page, target, sels, panel) {
+async function annotated(page, target, sels, panel, sec = 1.15) {
   await page.evaluate((s) => { const el = document.querySelector(s); let sc = el.parentElement; while (sc && !/(auto|scroll)/.test(getComputedStyle(sc).overflowY)) sc = sc.parentElement; if (sc) sc.scrollTop += el.getBoundingClientRect().top - sc.getBoundingClientRect().top - 8; }, target);
   await page.waitForTimeout(150);
   const rects = await page.evaluate((list) => list.map(([s]) => { const r = document.querySelector(s)?.getBoundingClientRect(); return r && { x: r.x, y: r.y, w: r.width, h: Math.min(r.height, 720 - r.y) }; }), sels);
   const scale = 853 / 854, shot = await appShot(page), out = [];
+  let prev = -99;
+  const ys = rects.map((r) => (r ? (prev = Math.max(panel.note ? 320 : 250, r.y * scale + 22, prev + 50)) : 0));
   const mark = (i) => {
-    const r = rects[i], [, label] = sels[i], y = Math.max(250, r.y * scale + 22), left = 427 + r.x * scale;
-    return `<div style="position:absolute;left:${left - 6}px;top:${r.y * scale}px;width:${r.w * scale + 12}px;height:${r.h * scale}px;border:3px solid ${YELLOW};box-sizing:border-box;border-radius:6px"></div>
+    const r = rects[i], [, label] = sels[i], y = ys[i], left = 427 + r.x * scale, reaches = y >= r.y * scale && y <= (r.y + r.h) * scale;
+    return `<div style="position:absolute;left:${left - 6}px;top:${r.y * scale - 5}px;width:${r.w * scale + 12}px;height:${r.h * scale + 10}px;border:3px solid ${YELLOW};box-sizing:border-box;border-radius:6px"></div>
       <div style="position:absolute;left:28px;top:${y - 22}px;width:320px;color:${YELLOW};font-size:27px;font-weight:800;line-height:1.3">${label}</div>
-      <div style="position:absolute;left:350px;top:${y}px;width:${left - 356}px;height:3px;background:${YELLOW}"></div>`;
+      ${reaches ? `<div style="position:absolute;left:350px;top:${y}px;width:${left - 356}px;height:3px;background:${YELLOW}"></div>` : ""}`;
   };
   const shown = sels.map((_, i) => i).filter((i) => rects[i] && rects[i].y <= 640);
   for (let k = 1; k <= shown.length; k++) {
-    const r = rects[shown[k - 1]];
-    out.push({ file: await snap(splitHtml(shot, panelHtml(panel, " ")) + shown.slice(0, k).map(mark).join("")), sec: 1.15, arrow: { x: 427 + r.x * scale - 8, y: r.y * scale + Math.min(r.h, 60) / 2, dir: "right" } });
+    const r = rects[shown[k - 1]], down = sels[shown[k - 1]][2] === "down"; // an inline target: from the side the arrow would cover its sentence
+    out.push({ file: await snap(splitHtml(shot, panelHtml(panel, " ")) + shown.slice(0, k).map(mark).join("")), sec, arrow: down ? { x: 427 + (r.x + r.w / 2) * scale, y: r.y * scale - 2, dir: "down" } : { x: 427 + r.x * scale - 8, y: r.y * scale + Math.min(r.h, 60) / 2, dir: "right" } });
   }
   return out;
 }
@@ -228,11 +238,103 @@ const langScene = async (lang, say, screen, reading, trans) => {
   await ctx.close();
   return scene(4, [...a, ...b, ...c], say);
 };
+// The prep document (user 11/05): the real flow on the MOCK server, fictional data only (test/fixtures/prep.json, research.json),
+// shown as a question map, ending on the card and the Markdown it really downloads.
+{
+  const prepServer = await startServer({ PREP_ENABLED: "1", RESEARCH_ENABLED: "1", STT_ENABLED: "0" });
+  const ctx = await browser.newContext({ viewport: APP, deviceScaleFactor: 1.5, locale: "ja", acceptDownloads: true });
+  await ctx.addInitScript(() => { try { localStorage.setItem("mensetsu-lang", "ja"); localStorage.setItem("mensetsu-tour-tips", "1"); } catch {} });
+  const page = await ctx.newPage();
+  await page.goto(prepServer.url);
+  await page.locator(".msg.coach").first().waitFor();
+  const send = async (t) => { await page.fill("#input", t); await page.click("#send"); };
+  await send(CODE); await page.waitForTimeout(400);
+  await send(MAIL); await page.locator(".brief-confirm .inline-btn").waitFor();
+  await page.locator(".brief-confirm input").first().fill("株式会社サンプルテック（仮）");
+  await page.locator(".brief-confirm input").nth(1).fill("プロダクトマネージャー");
+  await page.locator(".brief-confirm .inline-btn").first().click();
+  await page.locator("#log > .msg.brief:not(.brief-confirm)").last().waitFor();
+  await page.waitForFunction(() => !document.querySelector("#send").disabled, null, { timeout: 20000 });
+  await page.evaluate(() => { for (const e of document.querySelectorAll("#log .q .tr")) e.style.display = "none"; }); // the fixture's Korean line: a Japanese screen has none
+  const panel = { title: "答えではなく\n質問の地図", note: "全文を読まない" };
+  const opened = await page.locator("#log .prep-ctl").count();
+  if (!opened) throw new Error("no prep button: PREP_ENABLED did not reach the app");
+  const flow = [...await annotated(page, "#log .prep-ctl", [["#log .prep-ctl", "このボタンから"]], panel, 0.9)];
+  await page.locator("#log .prep-ctl").first().click();
+  await page.locator("#prepMaterial").fill("サンプル物流（架空） 在庫管理システムの開発を担当。");
+  // The app's file control is drawn by Chrome in the machine's language, not the page's: hidden for this one frame.
+  await page.evaluate(() => { document.querySelector("#prepFile").style.visibility = "hidden"; });
+  flow.push(...await annotated(page, "#prep", [["#prepMaterial", "履歴書を貼る（架空）"]], panel, 0.9));
+  let release;
+  const gate = new Promise((r) => { release = r; });
+  await page.route("**/api/prep", async (r) => { await gate; await r.continue(); });
+  await page.locator("#prepSubmit").click();
+  await page.locator("#log .msg.typing .wait-label").waitFor({ state: "visible", timeout: 6000 });
+  flow.push(...await annotated(page, "#log .msg.typing", [["#log .msg.typing", "資料を作っています"]], panel, 0.7));
+  release();
+  const CARD = "#log > .msg.prep";
+  await page.locator(CARD).waitFor({ timeout: 30000 });
+  await page.waitForTimeout(200);
+  flow.push(...await annotated(page, CARD, [[`${CARD} .title`, "架空の会社の資料"]], panel, 0.9));
+  await scene(8, flow, "面接準備資料。暗記用の答えではなく、質問の地図です。");
+  const notice = await annotated(page, CARD, [[`${CARD} .caution`, "誤りを含む。必ず確認"]], panel, 1.2);
+  await page.evaluate((C) => { document.querySelector(`${C} .caution`).style.zoom = "1.5"; }, CARD);
+  notice.push(...await annotated(page, CARD, [[`${CARD} .caution`, "誤りを含む。必ず確認"]], panel, 2.4));
+  await page.evaluate((C) => { document.querySelector(`${C} .caution`).style.zoom = ""; }, CARD);
+  await scene(8, notice, "最初に、誤りを含むことがある、必ず確認、と出ます。");
+  await page.evaluate((C) => {
+    const c = document.querySelector(C), sec = (k) => c.querySelector(`[data-section=${k}]`);
+    sec("how_to_use").open = true;
+    const by = (box, sel, t) => [...box.querySelectorAll(sel)].find((e) => e.textContent.includes(t));
+    by(sec("how_to_use"), ".claim", "全文を読まない").id = "rec-howto";
+    by(sec("self_intro"), ".legend", "聞かれていること").id = "rec-asked";
+    by(sec("self_intro"), ".legend", "話す順序").id = "rec-order";
+  }, CARD);
+  await scene(8, await annotated(page, "#rec-howto", [["#rec-howto", "全文を読まない"], ["#rec-asked", "聞かれていること"], ["#rec-order", "話す順序"]], panel, 1.1), "全文を読まず、聞かれていることと話す順序だけを見ます。");
+  await page.evaluate((C) => {
+    const c = document.querySelector(C), sec = (k) => c.querySelector(`[data-section=${k}]`);
+    sec("how_to_use").open = false;
+    sec("company_position").open = true;
+    const fact = sec("company_position").querySelector(".claim");
+    fact.id = "rec-fact";
+    fact.nextElementSibling.querySelector("a").id = "rec-link";
+    const p = [...sec("self_intro").querySelectorAll("p.ja")].find((e) => e.textContent.includes("［ここに"));
+    p.id = "rec-example";
+    p.innerHTML = p.textContent.replace(/［ここに[^］]*］/, (m) => `<span id="rec-blank">${m}</span>`);
+    document.querySelector("#rec-blank").style.background = "#ffe14d";
+  }, CARD);
+  const fact = await annotated(page, "#rec-fact", [["#rec-fact", "会社の事実"], ["#rec-link", "出典のリンク"]], panel, 1);
+  const blank = await annotated(page, "#rec-example", [["#rec-blank", "空欄は自分の事実で", "down"]], panel, 1.3);
+  await scene(8, [...fact, ...blank], "事実には出典のリンク。経験は空欄のまま、自分で埋めます。");
+  // Its Markdown: the real downloaded file, those lines verbatim.
+  await page.evaluate((C) => document.querySelector(C).scrollIntoView(), CARD);
+  const [dl] = await Promise.all([page.waitForEvent("download"), page.locator(CARD).getByRole("button", { name: "Markdown をダウンロード" }).click()]);
+  const md = readFileSync(await dl.path(), "utf8").split("\n"), line = (re) => { const l = md.find((x) => re.test(x)); if (!l) throw new Error(`no ${re} in the Markdown`); return l; };
+  const esc = (x) => x.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const name = dl.suggestedFilename();
+  const fileHtml = (on) => `<div style="position:absolute;left:427px;top:0;width:853px;height:720px;box-sizing:border-box;background:#fff;color:#1b1f1d;padding:30px 34px;font-size:22px;line-height:1.6;white-space:pre-wrap;word-break:break-all">
+<div style="font:700 20px Menlo,monospace;color:#047a35;margin-bottom:14px">${esc(name)}</div>${[
+    `<b>${esc(line(/^# /))}</b>`,
+    `<span data-m="0"${on > 0 ? ` style="background:${YELLOW}"` : ""}>${esc(line(/^> ⚠ AI/))}</span>`,
+    `${esc(line(/全文を読まない/))}`,
+    esc(line(/^- 会社: .*\[s1\]/)).replace(/\(\[s1\]\((.*?)\)\)/, (_, u) => `<span data-m="1" style="display:inline-block;word-break:normal${on > 1 ? `;background:${YELLOW}` : ""}">([s1](${u}))</span>`),
+    esc(line(/［ここに直近/)).replace(/［ここに[^］]*］/, (m) => `<span data-m="2"${on > 2 ? ` style="background:${YELLOW}"` : ""}>${m}</span>`),
+  ].join("\n\n")}</div>`;
+  const frames = [];
+  for (let k = 1; k <= 3; k++) {
+    const file = await snap(fileHtml(k) + panelHtml({ title: "Markdown\nでも", note: "そのまま持ち出せる" })), r = await rectOf(`[data-m="${k - 1}"]`);
+    frames.push({ file, sec: 0.85, arrow: k === 3 ? { x: r.x + r.w / 2, y: r.y - 2, dir: "down" } : { x: Math.max(440, r.x - 6), y: r.y + 14, dir: "right" } });
+  }
+  await scene(8, frames, "マークダウンでも、持ち出せます。");
+  await ctx.close();
+  prepServer.stop();
+}
+
 // The finished tour on the full dashboard, as a visitor sees it (user 11/04): about 5 s per language, real screen frames,
 // the arrow walking down the feedback panel to the ✗ → ✓ table.
 async function finishedTour(lang, tag, say) {
   const line = NARR ? await NARR(say) : null;
-  const sec = Math.max(5, line ? line.sec + 0.3 : say.length / 7.2 + 0.3);
+  const sec = Math.max(3.2, line ? line.sec + 0.3 : say.length / 7.2 + 0.3);
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1.5, locale: lang });
   await ctx.addInitScript((l) => { try { localStorage.setItem("mensetsu-lang", l); localStorage.setItem("mensetsu-tour-end", "a"); } catch {} }, lang);
   const page = await ctx.newPage();
@@ -286,7 +388,7 @@ async function finishedTour(lang, tag, say) {
   const file = segFile();
   const audio = line ? ["-i", line.wav] : ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=mono"];
   const af = line ? "[1:a]adelay=120:all=1,apad[a]" : "[1:a]anull[a]";
-  ffmpeg("-f", "concat", "-safe", "0", "-i", list, ...audio, "-filter_complex", `[0:v]scale=1920:1080:flags=lanczos,fps=30[v];${af}`, "-map", "[v]", "-map", "[a]", "-t", sec.toFixed(3), ...enc, file);
+  ffmpeg("-f", "concat", "-safe", "0", "-i", list, ...audio, "-filter_complex", `[0:v]scale=1920:1080:flags=lanczos:out_range=tv,fps=30[v];${af}`, "-map", "[v]", "-map", "[a]", "-t", sec.toFixed(3), ...enc, file);
   return file;
 }
 const joinFiles = (a, b) => { const list = `${b}.join.txt`, file = segFile(); writeFileSync(list, `file '${a}'\nfile '${b}'\n`); ffmpeg("-f", "concat", "-safe", "0", "-i", list, "-c", "copy", file); return file; };
@@ -302,49 +404,68 @@ segs.pop();
   ffmpeg("-i", koAll, "-i", enAll, "-filter_complex", `[0:v][1:v]xfade=transition=slideleft:duration=0.35:offset=${off}[v];[0:a][1:a]acrossfade=d=0.35[a]`, "-map", "[v]", "-map", "[a]", ...enc, file);
   segs.push({ file, chapter: 4 });
 }
+{ // Phone and web, the real screens of the same review.
+  const shotAt = async (viewport) => { const { ctx, page } = await reviewed("ja", viewport), f = await appShot(page); await ctx.close(); return f; };
+  const web = await shotAt({ width: 1280, height: 800 }), phone = await shotAt({ width: 390, height: 844 });
+  const both = (showPhone) => `<div style="position:absolute;inset:0;background:${INK};color:#fff"><div style="position:absolute;left:56px;top:32px;font-size:52px;font-weight:900">スマホでも、<span style="color:${GREEN}">Web</span>でも</div>
+    <img src="${png64(web)}" style="position:absolute;left:56px;top:130px;width:840px;height:525px;border-radius:8px"><div style="position:absolute;left:56px;top:664px;font-size:26px;font-weight:800;color:${SOFT}">Web</div>
+    ${showPhone ? `<img src="${png64(phone)}" style="position:absolute;left:950px;top:130px;width:243px;height:526px;border-radius:14px"><div style="position:absolute;left:950px;top:664px;font-size:26px;font-weight:800;color:${SOFT}">スマホ</div>` : ""}</div>`;
+  await scene(4, [
+    { file: await snap(both(false)), sec: 1.2, arrow: { x: 800, y: 128, dir: "down" } },
+    { file: await snap(both(true)), sec: 1.6, arrow: { x: 1071, y: 128, dir: "down" } },
+  ], "スマホでも、ウェブでも使えます。");
+}
 
 // ⑤ How the app uses Claude (criterion: choose and combine models). Facts: lib/claude.js MODELS, lib/review.js + lib/script.js gates.
 const flow = (items) => items.map((x, i) => `<div style="padding:20px 28px;border-radius:8px;background:#16271e;color:#fff;font-size:34px;font-weight:700;line-height:1.35">${x}</div>${i < items.length - 1 ? `<div style="text-align:center;color:${GREEN};font-size:28px;line-height:1.2;margin:6px 0">↓</div>` : ""}`).join("");
 {
-  const BOX = ["調査は Haiku、比較は Sonnet", "質問・台本は Sonnet", "採点は別の呼び出しで Opus", "プログラムが検査<br>出典のない情報とルール外の添削は捨てる"];
+  const BOX = ["調査は Haiku、比較は Sonnet", "質問・台本・準備資料は Sonnet", "採点は別の呼び出しで Opus", "出典のない情報とルール外の添削は<br>プログラムが捨てる"];
   const frames = [];
   for (let k = 1; k <= BOX.length; k++) {
     const file = await snap(`<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:44px 200px;box-sizing:border-box"><div style="font-size:42px;font-weight:800;color:${GREEN};margin-bottom:28px">アプリの中の Claude</div>${flow(BOX.map((b, i) => (i < k ? `<span data-b${i}>${b}</span>` : `<span style="opacity:.12">${b}</span>`)))}</div>`);
     const r = await rectOf(`[data-b${k - 1}]`);
     frames.push({ file, sec: 1.1, arrow: { x: 190, y: r.y + r.h / 2, dir: "right" } });
   }
-  await scene(5, frames, "アプリの中では、調査はHaiku、比較と質問と台本はSonnet、採点は別の呼び出しでOpus。答えは、プログラムが検査します。");
+  await scene(5, frames, "アプリの中では、調査はHaiku、比較と質問と台本はSonnet、採点は別の呼び出しでOpus。出典のない情報とルール外の添削は、プログラムが捨てます。");
 }
 
-// ⑥ A one-second montage of the take's key moments (benchmark B2), the roadmap, then the closing line in big type.
+// How it was built (user 11/05: a few seconds of hard cuts, not a list). Facts: README 「開発の進め方」.
+{
+  const cut = (bg, fg, main, sub, size = 150) => `<div style="position:absolute;inset:0;background:${bg};color:${fg};display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;line-height:1.2"><div style="font-size:${size}px;font-weight:900">${main}</div><div style="font-size:38px;font-weight:800;margin-top:26px">${sub}</div></div>`;
+  const ascii = `<pre style="font:700 40px/1.25 Menlo,monospace;margin:0;color:${GREEN};text-align:left">+------------------+\n| mail      [paste]|\n| Q1  Q2  Q3   ... |\n| answer       [>] |\n+------------------+</pre>`;
+  const cuts = [
+    [GREEN, INK, "復唱", "何を・どこに・完了基準"],
+    [INK, "#fff", ascii, "画面は、まず記号で"],
+    ["#fff", INK, `<span style="color:#d83b3b">✗</span> → <span style="color:#059b45">✓</span>`, "失敗するテストから", 170],
+    [YELLOW, INK, "攻撃", "サブエージェントが、アプリとデモを攻撃"],
+    [INK, "#fff", "スキャン", "個人情報と秘密情報を確かめて、公開"],
+    [GREEN, INK, "Claude Code", "この動画も、これで作りました", 130],
+  ];
+  const frames = [];
+  for (const c of cuts) frames.push({ file: await snap(cut(...c)), sec: 0.75 });
+  await scene(5, frames, "復唱、記号、失敗するテスト、攻撃、スキャン。動画も、Claude Codeで。");
+}
+
+// ⑥ The roadmap, the lesson, then the next person (user 11/05: the peak is handing this on, not the tool's own score).
 const takeSeg = segs.find((s) => s.chapter === 3).file;
 const grab = (key) => { const p = panels.find((x) => x.key === key), f = join(dir, `g-${key}.png`); ffmpeg("-ss", String(p.t + 1), "-i", takeSeg, "-frames:v", "1", f); return f; };
-await scene(6, ["questions", "brief", "verdict", "compare"].map((k) => ({ file: grab(k), sec: 0.75 })), "次に日本で転職する人が、面接の前の夜に開く。そのために作りました。");
 await scene(6, await reveal("国も、言葉も、", "足していける。"), "ルールは国ごとに分かれているので、国も言葉も足していけます。");
 await scene(6, [
   { file: await snap(big("面接の壁は、", "", GREEN, INK, INK)), sec: 0.7 },
   { file: await snap(big("面接の壁は、", "答え方の壁", GREEN, INK, "#fff")), sec: 0.7 },
   { file: await snap(big("面接の壁は、", "答え方の壁だった。", GREEN, INK, "#fff")), sec: 1.2 },
 ], "面接の壁は、言葉の壁ではなく、答え方の壁でした。");
-// How it was built (user 11/04): the development loop as a snake, one box at a time. Facts: README 「開発の進め方」.
-const BUILT = [["01", "復唱", "着手前に言い直す"], ["02", "ASCII", "画面を記号で先に確認"], ["03", "PRD → TDD", "失敗するテストから"], ["04", "データ", "作業の重さに合わせて編成"], ["05", "検証", "画面と動画で確かめ<br>サブエージェントが攻撃"], ["06", "公開", "スキャンして公開リポへ"]];
-const builtBox = (i, shown) => { const [no, name, sub] = BUILT[i], on = i < shown; return `<div data-box="${i}" style="flex:1;padding:22px;border-radius:10px;background:${on ? "#16271e" : "#101915"};min-height:176px;box-sizing:border-box"><div style="font-size:20px;font-weight:800;color:${on ? GREEN : "#2c3b33"}">${no}</div><div style="font-size:36px;font-weight:800;margin:6px 0 8px;color:${on ? "#fff" : "#2c3b33"}">${name}</div><div style="font-size:23px;line-height:1.4;font-weight:600;color:${on ? SOFT : "#2c3b33"}">${sub}</div></div>`; };
-const arrow = (c, on) => `<div style="align-self:center;font-size:34px;font-weight:800;color:${on ? GREEN : "#2c3b33"}">${c}</div>`;
-const built = (shown, foot) => `<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:32px 56px;box-sizing:border-box"><div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:22px"><span style="font-size:44px;font-weight:900">こうやって作りました</span><span style="font-size:23px;font-weight:700;color:${SOFT}">コンテキストと使用量を見ながら、むだなく</span></div>
-  <div style="display:flex;gap:14px">${builtBox(0, shown)}${arrow("→", shown > 1)}${builtBox(1, shown)}${arrow("→", shown > 2)}${builtBox(2, shown)}</div>
-  <div style="text-align:right;font-size:34px;font-weight:800;line-height:1.3;padding-right:150px;color:${shown > 3 ? GREEN : "#2c3b33"}">↓</div>
-  <div style="display:flex;gap:14px">${builtBox(5, shown)}${arrow("←", shown > 5)}${builtBox(4, shown)}${arrow("←", shown > 4)}${builtBox(3, shown)}</div>
-  <div style="margin-top:24px;font-size:32px;font-weight:800;color:${foot ? YELLOW : INK}">この動画も、Claude Code で作りました</div></div>`;
-{
-  const frames = [];
-  for (let k = 1; k <= 6; k++) {
-    const file = await snap(built(k, false)), r = await rectOf(`[data-box="${k - 1}"]`);
-    frames.push({ file, sec: 1.7, arrow: { x: r.x + r.w / 2, y: r.y + r.h - 6, dir: "up" } });
-  }
-  frames.push({ file: await snap(built(6, true)), sec: 2 });
-  await scene(7, frames, "作り方です。着手前に復唱し、画面は記号で先に確認。PRDと失敗するテストから実装。データは作業の重さに合わせて編成し、画面と動画で確かめ、サブエージェントに攻撃させ、スキャンして公開。この動画も、Claude Codeで作りました。");
+await scene(6, ["verdict", "compare", "script", "questions"].map((k) => ({ file: grab(k), sec: 0.65 })), "面接の前の夜に、開いてほしい。");
+{ // The end card: the message, and the credit VOICEVOX's terms require.
+  const end = (a, b) => `<div style="position:absolute;inset:0;background:${INK};color:#fff"><div style="position:absolute;left:90px;right:60px;top:170px;font-size:78px;font-weight:900;line-height:1.3;letter-spacing:-1px">${a}<br><span style="color:${GREEN}">${b}</span></div>
+    <div style="position:absolute;left:90px;right:60px;top:480px;font-size:40px;font-weight:900">面接コーチ</div>
+    <div style="position:absolute;left:90px;right:60px;top:540px;font-size:28px;font-weight:700;color:${YELLOW}">スマホでも、Webでも · mensetsu-coach-ten.vercel.app</div>
+    <div style="position:absolute;left:90px;right:60px;top:600px;font-size:26px;font-weight:700;color:${SOFT}">ナレーション VOICEVOX:青山龍星 · Built with Claude: Japan 2026</div></div>`;
+  await scene(6, [
+    { file: await snap(end("次に日本で転職する", "")), sec: 1 },
+    { file: await snap(end("次に日本で転職する", "外国人のために")), sec: 3.2 },
+  ], "次に日本で転職する、外国人のために。");
 }
-await scene(7, [{ file: await snap(`<div style="position:absolute;inset:0;background:${INK};color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:80px;font-weight:900">面接コーチ</div><div style="font-size:30px;margin-top:14px;font-weight:700;color:${YELLOW}">スマホでも、PCでも</div><div style="font-size:26px;margin-top:14px;color:${SOFT}">mensetsu-coach-ten.vercel.app</div><div style="font-size:20px;margin-top:10px;color:#7b8e84">Built with Claude: Japan 2026</div></div>`), sec: 1.8 }]);
 await browser.close();
 server.stop();
 
@@ -362,4 +483,6 @@ ffmpeg("-i", joined, "-filter_complex", `[0:v]null[v0];${wipe}`, "-map", `[v${bo
 const sec = durationOf(final);
 copyFileSync(final, out);
 console.log(`${out}: ${sec.toFixed(1)} s, ${segs.length} segments, wipes at ${bounds.map((b) => b.toFixed(1)).join(", ")}`);
+let at = 0;
+for (const s of segs) { const d = durationOf(s.file); console.log(`ch${s.chapter} ${at.toFixed(1)}-${(at + d).toFixed(1)} (${d.toFixed(1)} s)`); at += d; }
 if (sec > MAX_SEC) throw new Error(`over the ${MAX_SEC} s limit: ${sec.toFixed(1)} s`);

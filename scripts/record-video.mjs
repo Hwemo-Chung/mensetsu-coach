@@ -5,7 +5,7 @@
 // narration is added in editing).
 // Frames come from the Chrome DevTools screencast at 1.5× device pixels (crisp 1920×1080 text) and are joined by the
 // system ffmpeg with their real timings — no Playwright ffmpeg download (the 10/21 presentation pipeline, wiki).
-// Usage: [NARRATE=1 ENV_FILE=…] node scripts/record-video.mjs [ja|ko|en] [out.mp4]   (needs system Chrome and ffmpeg)
+// Usage: [NARRATE=1] node scripts/record-video.mjs [ja|ko|en] [out.mp4]   (needs system Chrome and ffmpeg)
 import { readFileSync, writeFileSync, mkdtempSync, copyFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -27,35 +27,33 @@ const after = demo.steps[1].review, allOk = after.answers_question === "yes" && 
 // it from <out>.panels.json). Title lines split with \n; step = the 4-step usage rail; tone = panel colour.
 const n = demo.specificity.referenced;
 const CAPTIONS = {
-  paste: ["メールを\n貼るだけ", "求人やエージェントのメールを、そのまま"],
-  questions: ["この会社だけの\n質問、10問", `${n}問が、メールの言葉をそのまま使っています`],
+  paste: ["メールを\n貼るだけ", "求人やエージェントのメールを、<br>そのまま"],
+  questions: ["この会社だけの\n質問、10問", `${n}問が、メールの言葉を<br>そのまま使っています`],
   research: ["この会社を\n調べる", "検索に送るのは、企業名と職種名だけ"],
-  brief: ["メールとの\n違いが分かる", "判定はしません。実際の調査は約1分、デモは架空の会社です"],
-  checkpoint: ["面接で\n確かめる", "違いを、確認する質問にします"],
+  brief: ["違いを\n面接で確かめる", "判定はしません。<br>デモは架空の会社です"],
   pick: ["練習する質問を\n選ぶ", "ボタンを押すだけ"],
-  voice: ["声で\n答える", "話したそのままが、端末の中で文字になる"],
-  verdict: ["質問に、\n答えていない", "最初に見るのは、聞かれたことに答えたかどうか"],
+  voice: ["声で\n答える", "話したそのままが、<br>端末の中で文字になる"],
+  verdict: ["質問に、\n答えていない", "最初に見るのは、<br>聞かれたことに答えたかどうか"],
   steps: ["足りない部分が\n赤で分かる", "直し方も、すぐ下に出ます"],
   rule: ["直すのは\nルール表だけ", "どのルールかを、ルールIDで示します"],
-  habit: ["口ぐせまで\n見つける", "声で答えると「なんか」もそのまま残るから"],
+  habit: ["口ぐせまで\n見つける", "声で答えると「なんか」も<br>そのまま残るから"],
   script: ["自分の答えを\nもとにした台本", "数字は［空欄］。自分の事実で埋めます"],
   retry: ["空欄を埋めて\n答え直す", "デモでは、架空の数字を入れています"],
   compare: [allOk ? "答え直したら\nすべて ✓" : "答え直したら\n✗ が ✓ に", "最初の答えと並べて比べます"],
 };
 // What each caption walks through while it is spoken (user 11/04: arrows and interaction, not still screens). A selector
 // starting with * takes every match, otherwise the first one. Set after R/SC exist, see WALK below.
-const STEP = { paste: 1, questions: 1, research: 2, brief: 2, checkpoint: 2, pick: 3, voice: 4, verdict: 4, steps: 4, rule: 4, habit: 4, script: 4, retry: 5, compare: 5 };
+const STEP = { paste: 1, questions: 1, research: 2, brief: 2, pick: 3, voice: 4, verdict: 4, steps: 4, rule: 4, habit: 4, script: 4, retry: 5, compare: 5 };
 const TONE = { verdict: "alert", compare: "peak" };
-// NARRATE=1 (+ GEMINI_API_KEY via ENV_FILE): each caption is also spoken. Lines say it in full sentences (no ✓/［］ for
+// NARRATE=1 (+ a local VOICEVOX engine): each caption is also spoken. Lines say it in full sentences (no ✓/［］ for
 // the voice). Lines are made before recording, so each hold lasts as long as its line.
 const SAY = {
   paste: "使い方は、かんたんです。求人メールを貼るだけ。",
   questions: `その会社だけの質問を、10問作ります。${n}問が、メールの言葉をそのまま使っています。`,
-  research: "会社も調べます。検索に送るのは、企業名と職種名だけです。",
-  brief: "メールと公開情報の違いが、確認すべき点として分かります。判定はしません。",
-  checkpoint: "その違いを、面接で確かめる質問にします。",
+  research: "会社も調べます。",
+  brief: "メールとの違いを、面接で聞く質問に。デモは架空の会社です。",
   pick: "練習する質問を、ボタンで選びます。",
-  voice: "声で答えます。話したそのままが、端末の中で文字になります。",
+  voice: "話したそのままが、端末の中で文字になります。",
   verdict: "質問に、答えていません。まず見るのは、聞かれたことに答えたかどうかです。",
   steps: "足りない部分が、赤で分かります。直し方も、すぐ下に出ます。",
   rule: "直すのは、ルール表の項目だけ。ルールIDで示します。",
@@ -63,6 +61,11 @@ const SAY = {
   script: "自分の答えをもとにした台本です。数字は空欄のまま、自分の事実で埋めます。",
   retry: "空欄を埋めて答え直します。数字はデモ用の架空です。",
   compare: `${allOk ? "答え直したら、すべてにチェックがつきました。" : "答え直したら、バツがチェックに変わりました。"}最初の答えと並べて比べます。`,
+  // Bridges: spoken over a wait, so the take has no long silence (v5 measured up to 5.4 s). The wait stays over 3 s for the app's label.
+  waitQuestions: "質問を作っています。待ち時間は、短くしています。",
+  mic: "マイクを押して、話します。",
+  waitReview: "AIが、答えを確認しています。",
+  waitAgain: "同じ質問で、もう一度確認します。",
 };
 const NARRATE = process.env.NARRATE === "1";
 const lines = {};
@@ -119,8 +122,8 @@ const answers = {
 await page.route("**/api/**", async (route) => {
   const path = new URL(route.request().url()).pathname;
   if (!answers[path]) return route.continue(); // /api/tts → the MOCK stream
-  // The first research wait shows its label; the follow-up calls are shortened (the caption states the real time).
-  if (path !== "/api/access") await new Promise((r) => setTimeout(r, path === "/api/fit" || (path === "/api/questions" && questionCalls++) ? 400 : GEN_MS));
+  // One visible wait per answer; research and the calls that follow one are cut short (the research scene is a few seconds, user 11/05).
+  if (path !== "/api/access") await new Promise((r) => setTimeout(r, ["/api/fit", "/api/research", "/api/script"].includes(path) || (path === "/api/questions" && questionCalls++) ? 120 : GEN_MS));
   await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(answers[path]()) });
 });
 
@@ -199,6 +202,7 @@ async function explain(sels, caption, hold = HOLD_MS, during) {
   });
 }
 const pause = (ms) => page.waitForTimeout(ms);
+const bridge = (key) => { if (lines[key]) cues.push({ wav: lines[key].wav, t: now() + 0.1 }); };
 async function type(text, perChar) {
   await pointer("#input");
   await page.click("#input");
@@ -220,9 +224,8 @@ const start = now();
 const R = "#log .msg.review", SC = "#log .msg.script:not(.review)";
 const WALK = {
   paste: ["#input", "#send"],
-  research: [".brief-confirm input", ".brief-confirm .inline-btn"],
-  brief: ["#rec-flag-a", "#rec-flag-b", "#rec-flag-c"],
-  checkpoint: ["#rec-check"],
+  research: [".brief-confirm .inline-btn"],
+  brief: ["#rec-flag-a", "#rec-flag-b", "#rec-check"],
   questions: ["*#log .q"],
   pick: ["#rec-pick", "#rec-pick button"],
   voice: ["#mic", "#input"],
@@ -239,12 +242,13 @@ await pointer("#input");
 await page.fill("#input", demo.mail); // a paste lands at once
 await explain(["#input"], CAPTIONS.paste);
 await click("#send");
+bridge("waitQuestions");
 await page.locator("#log .q").first().waitFor({ timeout: 15000 });
 await pause(250);
 await explain(["#log .q:nth-of-type(1)", "#log .q:nth-of-type(3)"], CAPTIONS.questions);
 // Stage R with the tour's fictional sample (0 AI calls): confirm, brief, the mismatch, then the question to ask.
 await page.locator(".brief-confirm .inline-btn").waitFor({ timeout: 15000 });
-await explain([".brief-confirm"], CAPTIONS.research);
+await explain([".brief-confirm"], CAPTIONS.research, 900);
 await click(".brief-confirm .inline-btn");
 const flag = demo.brief.mismatch_flags[0], check = demo.brief.company_checkpoints[0].question;
 await page.waitForFunction((q) => document.querySelector("#log").innerText.includes(q), flag.side_b.quote, { timeout: 15000 });
@@ -254,8 +258,7 @@ await page.evaluate(({ a, b, c, q }) => {
   const find = (t, tag = "p") => [...document.querySelectorAll(`#log .brief ${tag}`)].find((e) => e.textContent.includes(t));
   find(a).id = "rec-flag-a"; find(b).id = "rec-flag-b"; find(c).id = "rec-flag-c"; find(q, "*:not(div)").id = "rec-check";
 }, { a: flag.side_a.quote, b: flag.side_b.quote, c: flag.verify_prompt, q: check });
-await explain(["#rec-flag-a", "#rec-flag-b", "#rec-flag-c"], CAPTIONS.brief);
-await explain(["#rec-check"], CAPTIONS.checkpoint);
+await explain(["#rec-flag-a", "#rec-flag-b", "#rec-check"], CAPTIONS.brief);
 const pick = `#log .q button[data-pick="${demo.pick + 1}"]:not([disabled])`;
 await page.evaluate((s) => { document.querySelector(s).closest(".q").id = "rec-pick"; }, pick); // the first match in the regenerated set
 await explain(["#rec-pick"], CAPTIONS.pick);
@@ -263,6 +266,7 @@ await click(pick);
 await pause(400);
 if (spoken) { // answer by voice; the transcript lands in the box (fillers kept), checked, then sent
   await click("#mic");
+  bridge("mic");
   await pause(1800); // the recording timer runs while the "user" speaks (shortened)
   await click("#mic");
   await page.waitForFunction(() => document.querySelector("#input").value.length > 20);
@@ -270,6 +274,7 @@ if (spoken) { // answer by voice; the transcript lands in the box (fillers kept)
   await explain(["#input", "#mic"], CAPTIONS.voice);
 } else await type(demo.steps[0].answer, 12); // the off-target answer
 await click("#send");
+bridge("waitReview");
 await page.locator(R).waitFor({ timeout: 15000 });
 await page.locator(`${SC} .listen`).waitFor({ timeout: 15000 });
 await pause(250);
@@ -292,6 +297,7 @@ await pointer("#input");
 await page.fill("#input", demo.steps[1].answer);
 await explain(["#input"], CAPTIONS.retry);
 await click("#send");
+bridge("waitAgain");
 await page.locator("#log .msg.compare").waitFor({ timeout: 15000 });
 await pause(250);
 // The peak (benchmark A3): the ✗ → ✓ table grows before it is framed, so it reads at a glance.
