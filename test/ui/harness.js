@@ -35,9 +35,10 @@ const freePort = () => new Promise((resolve, reject) => {
 
 // Fresh server per test file: the in-memory rate limit (lib/guard.js) starts empty each time.
 // STT_ENABLED=1 by default so the 🎤 tests keep running; voice-off.test.js passes { STT_ENABLED: "0" } (the shipped default).
+// MAIL_PUBLIC=1 likewise keeps the signup dialog under test; owner.test.js passes { MAIL_PUBLIC: "" } (the shipped default).
 export async function startServer(extraEnv = {}) {
   const port = await freePort();
-  const env = { ...process.env, MOCK_CLAUDE: "1", ACCESS_CODE: CODE, ANTHROPIC_API_KEY: "dummy", ANTHROPIC_BASE_URL: "http://127.0.0.1:9", PORT: String(port), ENV_FILE: "/dev/null", STT_ENABLED: "1", ...extraEnv };
+  const env = { ...process.env, MOCK_CLAUDE: "1", ACCESS_CODE: CODE, ANTHROPIC_API_KEY: "dummy", ANTHROPIC_BASE_URL: "http://127.0.0.1:9", PORT: String(port), ENV_FILE: "/dev/null", STT_ENABLED: "1", MAIL_PUBLIC: "1", ...extraEnv };
   const proc = spawn(process.execPath, ["dev.js"], { cwd: ROOT, env, stdio: ["ignore", "pipe", "pipe"] });
   let err = "";
   proc.stderr.on("data", (d) => { err += d; });

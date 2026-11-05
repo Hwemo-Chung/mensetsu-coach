@@ -1,12 +1,15 @@
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap } from "./export.js";
 import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, fitDesired, loadDebrief, saveDebrief, clearDebriefs, clearCompanyNotes, SESSION_KEY } from "./session.js";
-import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail, JP_STEPS } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
 import { renderConfirm, renderBrief, showFit, showConditions } from "./brief.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
+import { claimOwner, loadOwner, noteHabit, weakSummary } from "./owner.js";
+import { conditionProfile } from "./conditions.js";
 
+claimOwner(LS, location, history); // first thing, so the token is out of the address bar before anything else runs
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
 let attachment = null;
 // Verified access code. sessionStorage only mirrors it and can throw where site data is blocked, so memory is the source.
@@ -20,6 +23,7 @@ let lastMail = null, lastAttachment = null, lastProfile = ""; // memory only, fo
 let destPack = "jp"; // destination pack for the next question set (jp, or kr beta)
 const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
 let researchOn = false; // from /api/access; off = no card and no call
+let mailOn = false; // from /api/access; off = the signup dialog is never offered
 let researchRun = 0; // finish() does not bump state.epoch, so this drops a response meant for an earlier question set
 let regenerating = false; // Ctrl+Enter submits even with #send disabled, and a practice must not start on a set about to be replaced
 let fitRun = 0; // deleting the profile must also void an answer still on its way, which can quote it
@@ -87,6 +91,7 @@ async function onCode(text) {
     keepCode(text);
     allowRecording(data.stt);
     researchOn = data.research === true;
+    mailOn = data.mail === true;
     $("start").hidden = true; // the tour's next-step card has done its job
     // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
     if (state.demoActive) {
@@ -398,6 +403,7 @@ async function onAnswer(text) {
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);
+  if (attempt.review) syncHabits(attempt.review);
   if (attempt.review || attempt.script) {
     state.session.attempts.push(attempt);
     persist();
@@ -409,6 +415,14 @@ async function onAnswer(text) {
   if (attempt.review) showReview(attempt.review, cmp, attempt.script);
   askForPick(true);
   quickReplies();
+}
+
+// The owner's browser only. Counts, never text; a failure here must not touch the practice. The mail rules are the jp pack's.
+function syncHabits(review) {
+  const owner = loadOwner(LS);
+  if (!owner || packOf() !== "jp") return;
+  const steps = state.session.pack?.steps ?? JP_STEPS;
+  post("/api/subscribe?action=weak", weakSummary(noteHabit(LS, review, steps), state.lang, conditionProfile(loadDesired(LS)).job_tags ?? []), { "x-mail-owner": owner }).catch(() => {});
 }
 
 // LINE-style quick replies under the prompt (UIUX §11.2): up to 3 questions not practised yet, reverse questions (JP),
@@ -546,6 +560,7 @@ $("end").addEventListener("click", finish);
 const MAIL_ASKED = "mensetsu-mail-asked";
 const dialog = $("mail");
 function offerMail() {
+  if (!mailOn) return;
   try { if (localStorage.getItem(MAIL_ASKED)) return; } catch {}
   $("mailMsg").textContent = "";
   $("mailEmail").placeholder = T().mail.placeholder;

@@ -284,6 +284,7 @@ export default {
     email_invalid: () => "이메일 주소를 확인해 주세요.",
     consent_required: () => "동의에 체크해 주세요.",
     mail_unavailable: () => "메일 서비스를 준비 중이에요. 나중에 다시 시도해 주세요.",
+    mail_off: () => "메일 서비스가 꺼져 있어요.",
     profile_too_long: (d) => `경력 한 줄은 ${d.max}자 이하로 써 주세요.`,
     context_required: () => "먼저 메일을 붙여넣어 질문을 만들어 주세요.",
     tts_busy: () => "음성 서버가 혼잡해요. 잠시 뒤 다시 눌러 주세요.",

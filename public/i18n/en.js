@@ -284,6 +284,7 @@ export default {
     email_invalid: () => "Please check the email address.",
     consent_required: () => "Please tick the consent box.",
     mail_unavailable: () => "The mail service is not ready yet. Please try again later.",
+    mail_off: () => "The mail service is turned off.",
     profile_too_long: (d) => `Please keep your career line within ${d.max} characters.`,
     context_required: () => "Paste an email and create questions first.",
     tts_busy: () => "The voice server is busy. Tap again in a moment.",

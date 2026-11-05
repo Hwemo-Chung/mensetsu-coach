@@ -29,6 +29,9 @@
       "maxDuration": 60,
       "includeFiles": "packs/**"
     },
+    "api/subscribe.js": {
+      "includeFiles": "packs/**"
+    },
     "api/cron/daily.js": {
       "maxDuration": 300,
       "includeFiles": "packs/**"

@@ -284,6 +284,7 @@ export default {
     email_invalid: () => "メールアドレスを確認してください。",
     consent_required: () => "同意にチェックしてください。",
     mail_unavailable: () => "メールサービスを準備中です。あとでもう一度お試しください。",
+    mail_off: () => "メールサービスは停止しています。",
     profile_too_long: (d) => `経歴は${d.max}文字以内で入力してください。`,
     context_required: () => "先にメールを貼り付けて質問を作ってください。",
     tts_busy: () => "音声サーバーが混み合っています。少し待ってからもう一度押してください。",
