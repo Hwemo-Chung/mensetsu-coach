@@ -16,6 +16,8 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - `npm run eval` — real-API evals (F4/F3/F2/consistency, costs credits): `ENV_FILE=… node scripts/eval.mjs --only …`.
 - `npm i --no-save @huggingface/transformers@=4.3.2 && npm run vendor:stt` — re-copy the in-browser STT runtime into `public/vendor/` (`--no-save` keeps it out of the Vercel install). Then `STT_SAMPLES=<dir> node --test test/stt-local.live.test.js` runs the real Whisper model in Node (0 credits, ~260 MB download once).
 
+- Before any commit or push, follow `/publish-check`; for a production deploy, follow `/deploy-verify`, never `vercel:deploy` (it says uncommitted changes stay out, here they ship). These two skills do not load by themselves. A local `pre-push` hook runs the same scan.
+
 ## Code map (only what the code does not show)
 - All errors are `{ code }`; the UI turns codes into sentences. `dev.js` runs the same handlers with `vercel.json` headers; `MOCK_CLAUDE=1` uses per-route fixtures (0 tokens). Model ids live only in `lib/claude.js` `MODELS`.
 - `public/`: no inline script (CSP `script-src 'self' 'wasm-unsafe-eval'`, COOP/COEP for threaded WASM). Enter = newline, Ctrl/Cmd+Enter = send (keep). `test/i18n.test.js` fails on a missing key. Session JSON stays in browser localStorage.
@@ -23,7 +25,7 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - Stage R (`RESEARCH_ENABLED=1`, jp pack only; spec `01_설계문서/SUPPLEMENT-AUTO-RESEARCH.md`): Haiku needs the basic `web_search_20250305` tools (the newer ones made zero real searches). The extraction schema sits near the API's compiled-grammar limit: adding fields returns 400 for every call, and offline tests cannot see it. Review sites are never collected.
 - Vercel Hobby allows 12 functions (`api/` is at the limit, a test guards it): `/api/fit` is `lib/fit-api.js` behind a `vercel.json` rewrite to `/api/research?route=fit`.
 
-Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非公開フォルダ). DESIGN-KAKAOTALK-INTERVIEW-COACH.md still says 11/10 — that date is stale.
+Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非公開フォルダ).
 
 ## Layout
 
@@ -42,7 +44,7 @@ Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非
 
 ## Architecture rules
 - Standalone web UI, no messenger-platform integration (the contest penalizes platform tie-ins).
-- All country rules, prompts data and question categories live in `packs/`; adding a pack must not need code changes. Reverse questions are JP-only.
+- All country rules, prompts data and question categories live in `packs/`. A new pack still needs registration in code (`add-pack` skill lists every place); shrinking that list is the goal. Reverse questions are JP-only.
 - No corrections outside the rule DB; if unsure, ask a clarifying question instead of guessing.
 
 ## Acceptance checks (PRD §5)
