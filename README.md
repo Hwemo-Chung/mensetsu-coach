@@ -214,6 +214,11 @@ Claude Code を開発の中心に置きました。試行と修正の経過は�
 ## ライセンス
 MIT License（`LICENSE`）。下記の第三者の素材は、それぞれのライセンスに従います。
 
+外部から持ち込んだデータと素材:
+- デモ動画のナレーション: VOICEVOX:青山龍星（VOICEVOX Engine で生成。動画内にも表記）
+- `packs/jp.json` の添削ルールと文書の形式: 作者自身の面接の添削記録と準備ノートから、個人情報と企業名を除いて作成したデータ
+
+
 Icons: Phosphor Icons (duotone), Copyright (c) 2023 Phosphor Icons — MIT License, https://github.com/phosphor-icons/core
 The SVG paths in public/icons.svg are third-party assets (full licence text: public/icons.LICENSE.txt); only the sprite assembly was done during the contest.
 
