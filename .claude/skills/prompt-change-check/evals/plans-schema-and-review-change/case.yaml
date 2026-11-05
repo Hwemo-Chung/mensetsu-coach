@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: plans-schema-and-review-change
+expected_outcome: |
+  無料の確認から順に実行し、スキーマの 400 の危険と実呼び出しの必要性を説明し、評価を関係する範囲に絞った計画を作ります。

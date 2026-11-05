@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: plans-deploy-with-dirty-tree
+expected_outcome: |
+  未コミットの変更を本番に混ぜない方法を選び、配信内容の確認まで含む計画を作り、実際のデプロイは行いません。

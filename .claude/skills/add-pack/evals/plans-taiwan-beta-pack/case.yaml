@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: plans-taiwan-beta-pack
+expected_outcome: |
+  JSON の追加だけでは足りないことを示し、登録箇所、JP 専用機能、根拠の扱い、検証の順序を含む計画を作ります。
