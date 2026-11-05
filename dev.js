@@ -11,12 +11,13 @@ import { POST as review } from "./api/review.js";
 import { POST as reverse } from "./api/reverse.js";
 import { POST as research } from "./api/research.js";
 import { POST as fit } from "./lib/fit-api.js";
+import { POST as prep } from "./lib/prep-api.js";
 import { POST as subscribe } from "./api/subscribe.js";
 import { GET as unsubscribe } from "./api/unsubscribe.js";
 import { POST as demand } from "./api/demand.js";
 import { POST as tts } from "./api/tts.js";
 import { POST as stt } from "./api/stt.js";
-import { fakeClient, scriptFixture, reviewFixture, reverseFixture, asModelScript, researchMessage, fitFixture } from "./test/fake-claude.js";
+import { fakeClient, scriptFixture, reviewFixture, reverseFixture, asModelScript, researchMessage, fitFixture, prepFixture } from "./test/fake-claude.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
 const MOCK = !!process.env.MOCK_CLAUDE;
@@ -37,7 +38,7 @@ const mockTtsFetch = async () => new Response(new ReadableStream({
 const sttMock = (body) => ({ fetch: async () => new Response(body, { headers: { "content-type": "application/json" } }), apiKey: "mock" });
 // ?kana=1 = the read-aloud check of the MOCK model script: a reading that passes with a little recogniser noise.
 const sttReadDeps = sttMock(await readFile("test/fixtures/stt-read.json", "utf8"));
-const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: asModelScript(scriptFixture) }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) }, "/api/reverse": { client: fakeClient({ result: reverseFixture }) }, "/api/research": { client: fakeClient({ turns: [researchMessage] }) }, "/api/fit": { client: fakeClient({ result: fitFixture }) }, "/api/tts": { fetch: mockTtsFetch, apiKey: "mock" }, "/api/stt": sttMock(await readFile("test/fixtures/stt.json", "utf8")) };
+const mockDeps = { "/api/questions": { client: fakeClient() }, "/api/script": { client: fakeClient({ result: asModelScript(scriptFixture) }) }, "/api/review": { client: fakeClient({ result: reviewFixture }) }, "/api/reverse": { client: fakeClient({ result: reverseFixture }) }, "/api/research": { client: fakeClient({ turns: [researchMessage] }) }, "/api/fit": { client: fakeClient({ result: fitFixture }) }, "/api/prep": { client: fakeClient({ result: prepFixture }) }, "/api/tts": { fetch: mockTtsFetch, apiKey: "mock" }, "/api/stt": sttMock(await readFile("test/fixtures/stt.json", "utf8")) };
 const vercel = JSON.parse(await readFile("vercel.json", "utf8"));
 const securityHeaders = Object.fromEntries(vercel.headers[0].headers.map((h) => [h.key, h.value]));
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".wasm": "application/wasm", ".css": "text/css", ".txt": "text/plain; charset=utf-8", ".svg": "image/svg+xml" };
@@ -47,7 +48,7 @@ createServer(async (req, res) => {
   for (const [k, v] of Object.entries(securityHeaders)) res.setHeader(k, v);
   const url = new URL(req.url, "http://localhost");
   try {
-    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/reverse": reverse, "/api/research": research, "/api/fit": fit, "/api/subscribe": subscribe, "/api/demand": demand, "/api/tts": tts, "/api/stt": stt }[url.pathname];
+    const api = { "/api/questions": questions, "/api/access": access, "/api/script": script, "/api/review": review, "/api/reverse": reverse, "/api/research": research, "/api/fit": fit, "/api/prep": prep, "/api/subscribe": subscribe, "/api/demand": demand, "/api/tts": tts, "/api/stt": stt }[url.pathname];
     if (url.pathname === "/api/unsubscribe") {
       const r = await unsubscribe(new Request(url));
       res.writeHead(r.status, Object.fromEntries(r.headers));

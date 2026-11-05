@@ -1,13 +1,14 @@
 import { LANGS } from "./i18n/index.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap } from "./export.js";
 import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, fitDesired, loadDebrief, saveDebrief, clearDebriefs, clearCompanyNotes, SESSION_KEY } from "./session.js";
-import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail, JP_STEPS } from "./render.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail, readAttachment, JP_STEPS } from "./render.js";
 import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
 import { renderConfirm, renderBrief, showFit, showConditions } from "./brief.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
 import { claimOwner, loadOwner, noteHabit, weakSummary } from "./owner.js";
 import { conditionProfile } from "./conditions.js";
+import { initPrep, prepButton, showPrep, redrawPrep, endPrep } from "./prep.js";
 
 claimOwner(LS, location, history); // first thing, so the token is out of the address bar before anything else runs
 const log = $("log"), input = $("input"), send = $("send"), fileInput = $("file");
@@ -24,6 +25,7 @@ let destPack = "jp"; // destination pack for the next question set (jp, or kr be
 const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
 let researchOn = false; // from /api/access; off = no card and no call
 let mailOn = false; // from /api/access; off = the signup dialog is never offered
+let prepOn = false; // from /api/access; off = no button and no card
 let researchRun = 0; // finish() does not bump state.epoch, so this drops a response meant for an earlier question set
 let regenerating = false; // Ctrl+Enter submits even with #send disabled, and a practice must not start on a set about to be replaced
 let fitRun = 0; // deleting the profile must also void an answer still on its way, which can quote it
@@ -92,6 +94,7 @@ async function onCode(text) {
     allowRecording(data.stt);
     researchOn = data.research === true;
     mailOn = data.mail === true;
+    prepOn = data.prep === true;
     $("start").hidden = true; // the tour's next-step card has done its job
     // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
     if (state.demoActive) {
@@ -125,6 +128,7 @@ function offerProfile() {
   const b = bubble("coach note", T().chat.profileOffer);
   b.append(el("br"), profileButton("inline-btn", T().chat.profileButton));
   if (packOf() === "jp") b.append(" ", reverseButton()); // reverse questions are JP-only (api/reverse returns pack_unsupported)
+  if (prepOn && packOf() === "jp") b.append(" ", prepButton()); // only the jp pack has script_doc
 }
 function reverseButton(cls = "inline-btn", text = T().reverse.button) {
   const rev = el("button", cls, text);
@@ -145,6 +149,7 @@ function restore(saved) {
   again.addEventListener("click", finish); // same as 끝내기·저장: download first, never a delete-only button
   b.append(el("br"), again);
   if (packOf() === "jp") b.append(" ", reverseButton());
+  if (prepOn && packOf() === "jp") b.append(" ", prepButton());
   if (researchOn) b.append(" ", debriefButton("inline-btn"));
   renderQuestions(state.session);
   openByDefault();
@@ -156,6 +161,7 @@ function restore(saved) {
     if (brief) renderBrief(brief, researchNames(), () => offerResearch());
     else offerResearch();
   }
+  if (prepOn) showPrep();
   askForPick(true);
 }
 
@@ -182,7 +188,7 @@ async function startResearch(names, unlock) {
     const kept = data.research_status !== "ok" && c.research_brief?.research_status === "ok";
     const replaced = !kept && c.research_brief?.research_status === "ok";
     const hadReverse = replaced && forgetBrief(state.session);
-    if (replaced) retireBriefMarks();
+    if (replaced) { retireBriefMarks(); redrawPrep(); }
     if (!kept) {
       c.research_brief = data;
       state.session.research_names = names;
@@ -229,6 +235,7 @@ async function runFit(card) {
     Object.assign(brief, data); // in place: a question set being made compares this object to see whether the brief was replaced
     persist();
     showFit(card, brief);
+    redrawPrep();
     if (lastAttachment && !maskable(lastAttachment)) rest.append(el("p", "legend", r.fitNoFile));
   } catch {
     if (live() && mine === fitRun) failure(message({ code: "network" }));
@@ -337,16 +344,17 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
     // A regenerated set (career line, brief) starts fresh, notes and reverse questions included; it is the same company, so a paid brief stays.
     const prev = regen ? state.session : null, research_brief = prev?.company_context.research_brief;
-    if (!regen) endResearch();
+    if (!regen) { endResearch(); endPrep(); }
     lastProfile = profile;
     // A set made with the brief keeps the mail-only summary: these facts reach the script call, which must not receive research (L6).
     const summary = brief.length ? prev.company_context : data.company_context;
-    state.session = { pack: data.pack, company_context: research_brief ? { ...summary, research_brief } : summary, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(data.research_basis && { research_basis: data.research_basis }), ...(prev?.research_names && { research_names: prev.research_names }) };
+    state.session = { pack: data.pack, company_context: research_brief ? { ...summary, research_brief } : summary, questions: data.questions, attempts: [], specificity: data.specificity, notes: {}, ...(data.research_basis && { research_basis: data.research_basis }), ...(prev?.research_names && { research_names: prev.research_names }), ...(prev?.prep && { prep: { ...prev.prep, outdated: true }, prep_inputs: prev.prep_inputs }) }; // the paid document stays, marked: it was made from the earlier questions
     state.current = null;
     // A re-run finished while this set was being made: its ids point into the brief that was replaced.
     const outrun = brief.length > 0 && research_brief !== sentBrief;
     if (outrun) forgetBrief(state.session);
     persist();
+    redrawPrep();
     renderNotes();
     attachment = null;
     $("chip").hidden = true;
@@ -407,6 +415,7 @@ async function onAnswer(text) {
   if (attempt.review || attempt.script) {
     state.session.attempts.push(attempt);
     persist();
+    redrawPrep(); // a new habit belongs in the win section
     showHabits();
     renderRail();
   }
@@ -471,14 +480,11 @@ fileInput.addEventListener("change", () => {
   const f = fileInput.files[0];
   fileInput.value = "";
   if (!f) return;
-  if (f.size > 3 * 1024 * 1024) return bubble("err", message({ code: "attachment_too_large", max_mb: 3 }));
-  const reader = new FileReader();
-  reader.onload = () => {
-    attachment = { name: f.name, type: f.type, data: String(reader.result).split(",")[1] };
+  readAttachment(f, (a) => {
+    attachment = a;
     $("chipName").replaceChildren(icon("file"), f.name);
     $("chip").hidden = false;
-  };
-  reader.readAsDataURL(f);
+  }, (text) => bubble("err", text));
 });
 $("chipX").addEventListener("click", () => { attachment = null; $("chip").hidden = true; });
 
@@ -525,22 +531,26 @@ function applyLanguage() {
   input.placeholder = t.chat[PLACEHOLDER[stage]];
   fillDest();
 }
+function download(file, text) {
+  const url = URL.createObjectURL(new Blob([text], { type: "text/markdown;charset=utf-8" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: file });
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 // F6: the session lives only in this browser, so the document is built and downloaded here, then cleared.
 // The session is cleared only after the download was triggered; if building it fails, nothing is lost.
 function finish() {
   if (!state.session) return bubble("coach", T().export.empty);
   const file = exportFileName(new Date());
   try {
-    const url = URL.createObjectURL(new Blob([sessionToMarkdown(state.session, T(), researchOn ? loadDebrief(LS, researchNames().company) : null)], { type: "text/markdown;charset=utf-8" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: file });
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    download(file, sessionToMarkdown(state.session, T(), researchOn ? loadDebrief(LS, researchNames().company) : null));
   } catch {
     return bubble("err", message({ code: "unknown" }));
   }
   endResearch();
+  endPrep();
   state.session = null;
   lastMail = null;
   lastAttachment = null;
@@ -648,6 +658,7 @@ function resetChat() {
   endTour();
   $("start").hidden = true;
   log.replaceChildren();
+  endPrep();
   state.session = state.current = null;
   lastMail = lastAttachment = attachment = null;
   $("chip").hidden = true;
@@ -705,7 +716,7 @@ $("opts").addEventListener("click", () => {
   $("debriefStatus").textContent = "";
   $("options").showModal();
 });
-const refreshConditions = () => { const card = [...log.querySelectorAll(".msg.brief:not(.brief-confirm)")].at(-1), brief = state.session?.company_context.research_brief; if (card && brief) showConditions(card, brief, researchNames().company); };
+const refreshConditions = () => { redrawPrep(); const card = [...log.querySelectorAll(".msg.brief:not(.brief-confirm)")].at(-1), brief = state.session?.company_context.research_brief; if (card && brief) showConditions(card, brief, researchNames().company); };
 for (const e of desiredInputs) e.addEventListener("input", () => { saveDesired(LS, Object.fromEntries(desiredInputs.map((i) => [i.dataset.desired, i.value]))); refreshConditions(); });
 $("desiredDelete").addEventListener("click", () => {
   clearDesired(LS);
@@ -726,5 +737,6 @@ $("options").addEventListener("close", () => $("opts").focus());
 // Clear any unverified code left by an earlier page version; the chat always asks for the code on load.
 keepCode(null);
 initVoice({ code: () => code, pack: packOf });
+initPrep({ post, failed, download, names: researchNames, researchOn: () => researchOn, run: () => researchRun });
 applyLanguage();
 askForCode();

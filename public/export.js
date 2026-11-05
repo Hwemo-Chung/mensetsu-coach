@@ -4,10 +4,11 @@ import { selectCheckpoints } from "./conditions.js";
 // Same patterns and order as lib/privacy.js maskInput (public/ cannot import lib/; test/export.test.js keeps them equal).
 const EMAIL = /[\w.+-]+[@＠][\w-]+(\.[\w-]+)+/g;
 const PHONE = /\+?[\d０-９][\d０-９ \t.\-－‐]{8,}[\d０-９]/g;
-const DATE = /^\d{4}[.\-/－]\d{1,2}[.\-/－]\d{1,2}$/;
+const DATE = /^(?:\d{4}[.\-/－]\d{1,2}[.\-/－]\d{1,2}|(?:19|20)\d{2}[.\-－]\d{1,2}(?:[.\-－]\d{1,2})?(?:[ \t\-－‐]+(?:19|20)\d{2}[.\-－]\d{1,2}(?:[.\-－]\d{1,2})?)+)$/;
+const PHONE_PAREN = /(?:\+?[\d０-９]+[ \t.\-－‐]?)?[(（][\d０-９]{1,5}[)）](?:[ \t.\-－‐]?[\d０-９]+)+/g;
 const POSTAL = /(?:〒\s?)?[\d０-９]{3}[-－][\d０-９]{4}/g;
 const SALUTATION = /^[ \t　]*[^\s　、。,.]{1,12}?(?:[ \t　][^\s　、。,.]{1,12}?)?[ \t　]*(様|さん|殿|님)[ \t　]*$/gm;
-export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE, (m) => (DATE.test(m) ? m : "[phone]")).replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
+export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE_PAREN, (m) => (m.match(/[\d０-９]/g).length >= 9 ? "[phone]" : m)).replace(PHONE, (m) => (DATE.test(m) ? m : "[phone]")).replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
 
 // JP labels are the fallback for sessions saved before the server sent pack meta.
 const JP_STEPS = [{ key: "fukusho", label: "復唱", optional: true }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "締め" }];
@@ -61,7 +62,7 @@ export function sessionToMarkdown(session, t, debrief = null) {
   }
   const written = ["asked", "difficult", "outcome"].filter((k) => debrief?.[k]?.trim());
   if (written.length) out.push("", `## ${t.debrief.title}`, "", written.map((k) => `**${t.debrief[k]}**\n\n${debrief[k].trim()}`).join("\n\n"));
-  return mask(out.join("\n")) + researchSection(session, t) + "\n";
+  return mask(out.join("\n")) + researchSection(session, t) + (session.prep ? `\n\n${prepToMarkdown(session.prep, t, { omitBrowser: true })}` : "") + "\n";
 }
 
 // Overlap between generated questions and those really asked. Text only, no AI. The tails are what nearly every question ends with; left in, they alone would match.
@@ -106,9 +107,9 @@ export const unknownText = (c, r) => r.unknownKind[c?.unknown_kind] ?? r.notFoun
 export const claimFound = (c) => typeof c?.value === "string" && c.value !== "not_found" && c.source_count > 0;
 export const citedIds = (c) => (Array.isArray(c?.source_ids) ? c.source_ids : []);
 export const claimMeta = (c, r) => [r.confidence[c.confidence] ?? r.confidence.unknown, c.single_source ? r.singleSource : r.sources({ n: c.source_count }), ...citedIds(c)];
-const listOf = (v) => (Array.isArray(v) ? v : []);
+export const listOf = (v) => (Array.isArray(v) ? v : []);
 
-const objects = (v) => listOf(v).filter((x) => x && typeof x === "object");
+export const objects = (v) => listOf(v).filter((x) => x && typeof x === "object");
 
 // What may leave the browser for the question call: sourced facts only. Self-claims, pay and conditions stay out, and the fit
 // sections stay out because they can quote the desired profile, which only the fit call may receive.
@@ -174,6 +175,127 @@ function researchSection(session, t) {
   if (guide.length) out.push("", `### ${r.guideTitle}`, "", ...guide.map((c) => `- ${inert(r.audience[c.audience] ?? "")}: ${inert(c.text)}`));
   const lines = sources.map((s) => { const url = linkable(s.url); return `- ${mask(`${s.id}: ${inert(s.title)}`)}${url ? ` — ${url}` : ""}`; });
   return mask(out.join("\n")) + (lines.length ? `\n\n### ${r.sourceList}\n\n${lines.join("\n")}` : "");
+}
+
+// Interview prep document (PRD-SCRIPT-DOC). The two filled_by:"browser" sections come from what only this browser holds, at draw and download time, so they are never in the stored document.
+const blanksIn = (s) => (typeof s === "string" ? s.match(/［[^］]*］/g) ?? [] : []);
+const prepTexts = (s) => [...listOf(s.lines), ...objects(s.rows).map((r) => r.value), ...objects(s.items).map((x) => x.answer ?? x.question)];
+
+// The user's own wishes as written; the status rows stay out because they read as a grade (see researchSection). job_tag and role_content are no conditions.
+function conditionLines(d, t) {
+  const o = t.opts, rows = [[o.desiredSalary, d?.min_salary_man], [o.desiredTarget, d?.salary_target_man], [o.desiredOvertime, d?.max_overtime_hours], [o.desiredEmployment, o.employment[d?.employment_required] ?? d?.employment_required], [o.desiredLocations, d?.locations], [o.desiredRemote, d?.remote_min_days], [o.desiredClientSite, d?.exclude_client_site === "1" ? o.desiredClientSiteNo : null], [o.desiredExcluded, d?.excluded_roles], [o.desiredHard, d?.hard_conditions]];
+  return rows.filter(([, v]) => typeof v === "string" && v.trim()).map(([k, v]) => `${k}: ${v.trim()}`);
+}
+
+export function prepSlots(session, desired, t, brief) {
+  const fit = brief?.research_status === "ok" ? brief.fit_evaluation : null, points = (label, v) => objects(v).filter((x) => typeof x.point === "string").map((x) => `${label}: ${x.point}`);
+  return {
+    wins: [...points(t.research.matches, fit?.matches), ...points(t.research.gaps, fit?.gaps), ...habitCounts(session).filter((h) => h.habit).map((h) => `${t.habits.summary}: ${h.label}`)],
+    conditions: conditionLines(desired, t),
+  };
+}
+
+// The one reader of a stored document, so the top count, the 要本人確認 list and the text cannot disagree (C4). omitBrowser: the session file, which holds neither browser section.
+export function prepView(prep, { wins = [], conditions = [], omitBrowser = false } = {}) {
+  const all = objects(prep?.sections), added = { win_points: wins, conditions }, order = all.map((s) => s.key);
+  const slot = new Set(all.filter((s) => s.filled_by).map((s) => s.key));
+  const shown = all.filter((s) => !(omitBrowser && s.filled_by)).map((s) => (s.filled_by ? { ...s, lines: [...listOf(s.lines), ...(added[s.key] ?? [])] } : s));
+  const unresolved = [
+    ...objects(prep?.unresolved).filter((u) => !slot.has(u.section)),
+    ...shown.filter((s) => s.filled_by).flatMap((s) => s.lines.flatMap(blanksIn).map((text) => ({ kind: "blank", section: s.key, key: s.key, text }))),
+  ].sort((a, b) => order.indexOf(a.section) - order.indexOf(b.section));
+  return {
+    sections: shown.map((s) => (s.key === "unresolved" ? { ...s, items: unresolved } : s)),
+    unresolved,
+    blanks: shown.filter((s) => s.key !== "unresolved").flatMap(prepTexts).flatMap(blanksIn).length,
+    to_confirm: unresolved.filter((u) => u.kind !== "blank").length,
+  };
+}
+
+// A regenerated bundle replaces its own sections only. An item that passed before and failed this time stays: it is paid for and passed the gates, as a failed re-run keeps the brief.
+export function mergePrep(old, part) {
+  const next = new Map(objects(part.sections).map((s) => [s.key, s]));
+  const redone = (k) => listOf(part.generated).includes(next.get(k)?.bundle);
+  const held = new Set();
+  const sections = objects(old.sections).map((s) => {
+    if (!redone(s.key)) return s;
+    const fresh = objects(next.get(s.key).items), before = objects(s.items);
+    if (s.columns) { // a numbered list: mixing two runs could repeat a question
+      if (fresh.length >= before.length) return next.get(s.key);
+      before.forEach((x) => held.add(x.key));
+      if (!objects(old.failed).some((f) => f.key === s.key)) held.add(s.key);
+      return s;
+    }
+    const kept = before.filter((x) => !fresh.some((y) => y.key === x.key));
+    kept.forEach((x) => held.add(x.key));
+    return { ...next.get(s.key), items: [...fresh, ...kept] }; // shortcut: a kept item goes last in its section; only after a failed retry, and the section order is what C1 fixes
+  });
+  const merged = {
+    ...old, sections,
+    failed: [...objects(old.failed).filter((f) => !listOf(part.generated).includes(f.bundle)), ...objects(part.failed).filter((f) => !held.has(f.key))],
+    unresolved: [...objects(old.unresolved).filter((u) => !redone(u.section) || held.has(u.key)), ...objects(part.unresolved).filter((u) => redone(u.section) && !held.has(u.key))],
+  };
+  const { blanks, to_confirm } = prepView(merged);
+  return { ...merged, blanks, to_confirm };
+}
+
+export const prepFileName = (d) => exportFileName(d).replace("mensetsu-", "mensetsu-prep-");
+
+// inert keeps a string from becoming a link or HTML; at the start of a line it must not open a block either.
+const mdLine = (s) => inert(s).replace(/^([#>+*|=~-])/, "\\$1").replace(/^(\d+)([.)])/, "$1\\$2");
+// Two trailing spaces: Japanese / reading / meaning stay three lines of one set in a Markdown viewer.
+const triple = (...lines) => lines.filter((x) => typeof x === "string" && x).map(mdLine).join("  \n");
+
+function prepItemLines(x, p) {
+  const bullets = [[p.asked, x.asked], [p.neighbor, x.neighbor], [p.order, listOf(x.order).join(" → ")]].filter(([, v]) => v).map(([k, v]) => `- ${k}: ${inert(v)}`);
+  const evidence = objects(x.evidence).map((e) => `${inert(e.quote)}${e.verified ? "" : ` (${p.notInMaterial})`}`), followups = listOf(x.followups).map(inert);
+  return [
+    `### Q. ${inert(x.question)}`, "", ...(bullets.length ? [...bullets, ""] : []),
+    `**${p.example}**`, "", triple(x.answer, x.reading, x.translation), "",
+    ...(evidence.length ? [`- ${p.evidence}: ${evidence.join(", ")}`] : []),
+    ...(followups.length ? [`- ${p.followups}: ${followups.join(" / ")}`] : []),
+    ...(x.unverified === true ? [`- ⚠ ${p.unverified}`] : []),
+    ...listOf(x.warnings).map((w) => `- ⚠ ${p.warn[w] ?? inert(w)}`),
+    "",
+  ];
+}
+
+// mask() would read a long numeric page id as a phone number, so the link replaces its marker after mask().
+const SOURCE_MARK = /⟦(\d+)⟧/g;
+
+function prepRowLine(s, r, p, pages) {
+  if (s.key === "company_position") return `- ${p.kinds[r.kind] ?? inert(r.kind)}: ${inert(r.value)} (${listOf(r.source_ids).map((id) => (pages.has(id) ? `⟦${[...pages.keys()].indexOf(id)}⟧` : inert(id))).join(", ") || p.unconfirmed})`;
+  if (s.key === "sources") return `- ${p.sourceRows[r.key] ?? inert(r.key)}: ${r.key === "inputs" ? String(r.value).split(",").map((k) => p.inputKinds[k] ?? inert(k)).join(", ") : inert(r.value)}`;
+  return `- ${inert(r.label ?? r.key)}: ${inert(r.value)}`;
+}
+
+export function prepToMarkdown(prep, t, slots = {}) {
+  const p = t.prep, view = prepView(prep, slots), failed = objects(prep?.failed), omitted = listOf(prep?.omitted_questions);
+  const out = [`# ${p.title} — ${inert(prep?.company)} · ${inert(prep?.position)}`, "", `> ⚠ ${p.verifyNotice}`, "", p.counts(view), "", p.readNote, ""];
+  const cited = view.sections.filter((s) => s.key === "sources").flatMap((s) => objects(s.sources));
+  const pages = new Map(cited.flatMap((s) => { const url = linkable(s.url); return url ? [[s.id, url]] : []; }));
+  if (prep?.outdated) out.push(`> ⚠ ${p.outdated}`, "");
+  if (omitted.length) out.push(`> ⚠ ${p.omitted({ ids: omitted.map((id) => `Q${inert(String(id).slice(1))}`).join(", ") })}`, "");
+  for (const s of view.sections) {
+    const native = p.sections[s.key], label = inert(s.label ?? s.key);
+    out.push(`## ${label}${native && native !== s.label ? ` (${native})` : ""}`, "");
+    for (const l of listOf(s.lines)) out.push(`- ${mdLine(l)}`);
+    for (const r of objects(s.rows)) out.push(prepRowLine(s, r, p, pages));
+    if (listOf(s.lines).length || objects(s.rows).length) out.push("");
+    const items = objects(s.items);
+    if (s.key === "unresolved") {
+      for (const u of items) out.push(`- ${p.sections[u.section] ?? inert(u.section)} — ${p.unresolvedKinds[u.kind] ?? inert(u.kind)}: ${inert(u.text)}`);
+      out.push(...(items.length ? [] : [p.nothing]), "");
+    } else if (s.columns) items.forEach((x, i) => out.push(`**${i + 1}.** ${triple(x.question, x.reading, x.translation)}  `, `${t.reverse.intent}: ${inert(x.intent)}`, ""));
+    else for (const x of items) out.push(...prepItemLines(x, p));
+    const missed = failed.filter((f) => f.section === s.key).length;
+    if (missed) out.push(`> ⚠ ${p.failed({ n: missed })}`, "");
+  }
+  // Outside mask() and last, as in researchSection: a long numeric page id would read as a phone number.
+  const urls = cited.map((s) => { const url = linkable(s.url); return `- ${mask(`${inert(s.id)}: ${inert(s.title)}`)}${url ? ` — ${url}` : ""}`; });
+  const ids = [...pages.keys()];
+  const linked = mask(out.join("\n").trimEnd()).replace(SOURCE_MARK, (m, i) => (ids[i] === undefined ? m : `[${inert(ids[i])}](${pages.get(ids[i]).replace(/\(/g, "%28").replace(/\)/g, "%29")})`));
+  return linked + (urls.length ? `\n\n${urls.join("\n")}` : "");
 }
 
 // F9: corrections per rule across the session. A rule seen twice or more is a habit.

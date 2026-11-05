@@ -46,13 +46,13 @@ button, select, textarea, input { font: inherit; color: inherit; }
 /* Coach mark (avatar) on the first row of a coach run, LINE-style; role names stay for screen readers (::before, hidden). */
 .msg.coach { margin-top: 12px; }
 .msg.coach::after { content: "面" / ""; position: absolute; left: -40px; top: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--green-ink); color: #fff; font-size: 16px; font-weight: 700; line-height: 32px; text-align: center; white-space: normal; }
-.msg.coach:not(.qs, .script, .compare, .brief) + .msg.coach:not(.qs, .script, .compare, .brief) { margin-top: 2px; }
-.msg.coach:not(.qs, .script, .compare, .brief) + .msg.coach::after, .msg.qs::after, .msg.script::after, .msg.compare::after, .msg.brief::after { content: none; }
+.msg.coach:not(.qs, .script, .compare, .brief, .prep) + .msg.coach:not(.qs, .script, .compare, .brief, .prep) { margin-top: 2px; }
+.msg.coach:not(.qs, .script, .compare, .brief, .prep) + .msg.coach::after, .msg.qs::after, .msg.script::after, .msg.compare::after, .msg.brief::after, .msg.prep::after { content: none; }
 .msg.me { align-self: flex-end; max-width: 80%; margin: 12px 0 2px; background: var(--me); border-radius: 16px 4px 16px 16px; }
 .msg.err { color: var(--red); border: 1px solid #f0c7cd; margin-top: 8px; }
 .msg.note { color: var(--warn); }
 /* Long content = full-width white card (1px border, 12px radius). */
-.msg.script, .msg.compare, .msg.brief { width: 100%; max-width: var(--col); margin: 10px 0 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
+.msg.script, .msg.compare, .msg.brief, .msg.prep { width: 100%; max-width: var(--col); margin: 10px 0 2px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
 .log > .quick, .log > .next-btn { margin-left: 40px; }
 /* Each text block keeps its own 40em cap. */
 .log p, .log li, .pane p, .pane li { max-width: 40em; }
@@ -167,6 +167,21 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .brief .sources { margin: 0; padding: 0; list-style: none; }
 .brief .sources li { margin: 6px 0 0; }
 .brief a { color: var(--green-ink); }
+
+/* Interview prep document: the long-card look of the brief; spaceless Japanese must wrap anywhere at 390px. */
+#prepMaterial { min-height: 160px; } /* the global field-sizing ignores rows, and a resume is pasted here */
+.prep { white-space: normal; overflow-wrap: anywhere; }
+.prep .title { font-weight: 700; font-size: 17px; margin: 0 0 4px; }
+.prep .label { font-size: 14px; color: var(--green-ink); font-weight: 700; margin: 12px 0 2px; }
+.prep .claim { margin: 6px 0 0; }
+.prep .caution { margin: 2px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
+.prep .prep-q { margin-top: 16px; }
+.prep .prep-q:first-child { margin-top: 0; }
+.prep .ja { font-size: 16px; line-height: 1.8; font-weight: 400; margin: 2px 0; }
+.prep .prep-question { font-weight: 700; }
+.prep ul { margin: 2px 0 0; padding-left: 20px; }
+.prep a { color: var(--green-ink); }
+.prep .sources { padding: 0; list-style: none; }
 
 /* Tutorial coach mark (UIUX-SPEC (k)): fixed above the input, never positioned next to its target. */
 .tour { position: relative; z-index: 6; background: #fff; border: 2px solid var(--green-ink); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }

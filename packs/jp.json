@@ -256,5 +256,151 @@
     "入社後、最初の半年で何に取り組みたいですか。",
     "5年後、どのようなキャリアを描いていますか。",
     "最後に、何か質問はありますか。"
-  ]
+  ],
+  "script_doc": {
+    "version": 1,
+    "note": "面接準備ドキュメントの生成仕様。形式だけを定義する。実在の会社・経歴を入れない。question_taxonomy は変更しない（F2 のゲートが参照）。v1 が使う段階は first だけで、company_types・position_types と他の段階は未使用のデータ。",
+    "speech_rate_chars_per_sec": { "range": [3.0, 4.2], "warn_only": true, "note": "秒×この範囲を外れても警告だけ。実測は 2.4〜5.2 字/秒で幅が広い。" },
+    "answer_band": { "chars": [37, 226], "warn_only": true, "note": "以前の回答の p2〜p98。不合格の基準にしない。consistency.chars_gate は F5 の模範回答用で、この文書には使わない。" },
+    "numbers_per_answer": { "max": 3, "warn_only": true, "applies_to": ["must_ask_qa", "experience_qa", "domain_qa"], "note": "自己紹介と志望動機には適用しない。" },
+    "text_modes": {
+      "fixed": "定型句。パックの文をそのまま出す。",
+      "draft": "入力にある事実だけで全文を書く。足りない事実は空欄にする。",
+      "frame": "例文を出す。ただし入力にない事実は必ず空欄にする。深掘りは丸暗記すると追加質問で崩れるので、たたき台として示す。",
+      "input_only": "利用者の入力をそのまま出す。入力がなければ空欄を出す。モデルは値を作らない。"
+    },
+    "usage": [
+      "全文を読まない。質問ごとに「聞かれていること」と「話す順序」だけを確認する。",
+      "例文はたたき台です。空欄は自分の事実で埋め、自分の言葉に直して話す。"
+    ],
+    "first_check": [
+      "本日の面接の位置づけと、残りの選考を教えていただけますでしょうか。",
+      "本日お話しする方々の役割を教えていただけますでしょうか。",
+      "今回のポジションの正式な名称と担当範囲を確認してもよろしいでしょうか。"
+    ],
+    "cautions": [
+      "入室は開始時刻より前に済ませる。",
+      "聞かれたことに答える。準備した別の質問の答えを話さない。",
+      "現職の社内システム名・取引先・障害の詳細は話さない。聞かれたら控える。",
+      "未確認の数字や肩書きを断定しない。公開情報は「拝見した」と確認する言い方で話す。",
+      "その場で決められないことは即答せず、確認してから答える。",
+      "最後に、残りの選考と次の連絡を確認する。"
+    ],
+    "sections": [
+      { "key": "header", "label": "基本情報", "label_native": "기본 정보", "mode": "input_only", "fields": [{ "key": "company", "label": "会社" }, { "key": "position", "label": "ポジション" }, { "key": "date", "label": "日時" }, { "key": "format", "label": "形式" }, { "key": "counterpart", "label": "相手" }] },
+      { "key": "how_to_use", "label": "使い方", "label_native": "사용법", "mode": "fixed" },
+      { "key": "first_check", "label": "最初に確認", "label_native": "처음에 확인할 것", "mode": "fixed" },
+      { "key": "company_position", "label": "会社・ポジション整理", "label_native": "회사·포지션 정리", "mode": "input_only" },
+      { "key": "win_points", "label": "今日の勝ち筋", "label_native": "오늘의 승부 포인트", "mode": "input_only", "blank": "［ここにどう覚えられたいかの1文］", "filled_by": "browser" },
+      { "key": "self_intro", "label": "自己紹介（90秒）", "label_native": "자기소개 (90초)", "categories": ["self_intro"] },
+      { "key": "motivation", "label": "志望動機（60秒）", "label_native": "지원 동기 (60초)", "categories": ["motivation"] },
+      { "key": "must_ask_qa", "label": "必ず聞かれること", "label_native": "반드시 받는 질문", "categories": ["change_reason", "why_type", "why_us", "axis", "other_offers", "start_date"] },
+      { "key": "experience_qa", "label": "経験の深掘り", "label_native": "경력 심화", "categories": ["scale", "top_result", "hard_project", "stakeholder", "management", "failure", "first_90_days"] },
+      { "key": "domain_qa", "label": "職種・領域", "label_native": "직무·도메인", "categories": ["no_domain_experience", "business_understanding", "tech_depth", "ai_use", "future"], "always": ["no_domain_experience"], "session_questions": true, "questions": [4, 6] },
+      { "key": "conditions", "label": "年収・条件", "label_native": "연봉·조건", "mode": "input_only", "blank": "［ここに年収を聞かれたときの答え］", "filled_by": "browser" },
+      { "key": "reverse_questions", "label": "逆質問", "label_native": "역질문", "questions": [5, 8], "columns": ["質問", "意図"], "excludes_conditions": true },
+      { "key": "cautions", "label": "注意", "label_native": "주의", "mode": "fixed" },
+      { "key": "unresolved", "label": "要本人確認", "label_native": "본인 확인 필요", "generated_by": "code" },
+      { "key": "sources", "label": "作成の根拠", "label_native": "작성 근거", "generated_by": "code" }
+    ],
+    "bundles": [
+      { "key": "intro", "sections": ["self_intro", "motivation"], "company_facts": true },
+      { "key": "must", "sections": ["must_ask_qa"], "company_facts": true },
+      { "key": "experience", "sections": ["experience_qa"] },
+      { "key": "domain", "sections": ["domain_qa", "reverse_questions"], "company_facts": true }
+    ],
+    "qa_patterns": {
+      "fact": { "use": "成果・役割・進め方", "order": ["結論か事実を1文", "具体を1〜2文", "持論か応募先への接続を1文"] },
+      "no_experience": { "use": "業界・製品の未経験", "order": ["経験の有無を答える", "条件が同じ経験を1文", "共通点を1文", "学習の順序か最初の貢献"], "example": "［ここに未経験の領域］の実務経験はありません。一方で、［ここに同じ条件の経験］を担当しました。進め方は共通すると考えています。入社後は最優先で学びます。" },
+      "method": { "use": "どう進めますか", "order": ["定義を1文", "手順を3つまで", "経験に戻す"] },
+      "three_points": { "use": "なぜ当社か", "order": ["3点あります", "特徴と自分の接点を1組ずつ"] },
+      "pressure": { "use": "不満・短期在籍・規模の疑い", "order": ["疑いを最初の1文で切る", "事実", "役割の構造", "次に責任を持つこと"] },
+      "short_fact": { "use": "他社状況・入社時期", "order": ["事実", "相談可能かどうか"] },
+      "judgment": { "use": "判断・状況の質問", "order": ["結論", "基準を1つ", "選択肢で返す"] }
+    },
+    "question_categories": [
+      { "key": "self_intro", "label": "自己紹介", "mode": "draft", "question": "自己紹介をお願いします。", "seconds": 90, "order": ["挨拶", "経歴の総括", "現職の規模と役割", "進め方", "直近の取り組み", "締めか応募先への接続"], "titles_from_material": true },
+      { "key": "motivation", "label": "志望動機", "mode": "draft", "question": "志望動機を教えてください。", "seconds": 60, "order": ["相手の特徴を1文（公開情報）", "自分の経験を1〜2文", "重なる点を1文", "貢献の形で締める"] },
+      { "key": "change_reason", "label": "転職理由", "pattern": "pressure", "mode": "input_only", "question": "転職理由を教えてください。", "input": "change_reason", "blank": "［ここに転職理由の事実］", "no_motive_words": true },
+      { "key": "why_type", "label": "なぜこの業態か", "pattern": "fact", "mode": "draft", "question": "なぜこの業態の会社を選ぶのですか。" },
+      { "key": "why_us", "label": "なぜ当社か", "pattern": "three_points", "mode": "draft", "question": "なぜ{company}なのですか。" },
+      { "key": "axis", "label": "転職の軸", "pattern": "three_points", "mode": "input_only", "question": "転職の軸は何ですか。", "input": "axis", "blank": "［ここに転職の軸］" },
+      { "key": "other_offers", "label": "他社の選考状況", "pattern": "short_fact", "mode": "input_only", "question": "他社の選考状況を教えてください。", "input": "other_offers", "blank": "［ここに他社の選考状況］" },
+      { "key": "start_date", "label": "入社可能時期", "pattern": "short_fact", "mode": "input_only", "question": "入社可能時期を教えてください。", "input": "start_date", "blank": "［ここに入社可能時期］" },
+      { "key": "scale", "label": "役割と規模", "pattern": "fact", "mode": "frame", "question": "現職の役割と規模を教えてください。", "titles_from_material": true },
+      { "key": "top_result", "label": "最大の成果", "pattern": "fact", "mode": "frame", "question": "最も大きな成果を1つ挙げてください。" },
+      { "key": "hard_project", "label": "難しい案件の進め方", "pattern": "fact", "mode": "frame", "question": "難しいプロジェクトの進め方を聞かせてください。" },
+      { "key": "stakeholder", "label": "顧客・関係者との調整", "pattern": "fact", "mode": "frame", "question": "顧客や関係者との調整で難しかった場面を教えてください。" },
+      { "key": "management", "label": "マネジメント経験", "pattern": "fact", "mode": "frame", "question": "マネジメント経験を教えてください。" },
+      { "key": "failure", "label": "失敗", "mode": "frame", "question": "失敗した経験を教えてください。", "order": ["状況と自分の判断", "何がずれたか", "何を変えたか", "組織に残したもの"], "must_have_blank": true },
+      { "key": "first_90_days", "label": "入社後の最初の取り組み", "pattern": "method", "mode": "frame", "question": "入社後、最初に何をしますか。" },
+      { "key": "no_domain_experience", "label": "業界未経験", "pattern": "no_experience", "mode": "draft", "question": "この業界の経験はありますか。", "first_sentence": "ありません|未経験|ございません|経験がな|^はい|経験.*(?:あり|ござい)ます" },
+      { "key": "business_understanding", "label": "事業の理解", "pattern": "fact", "mode": "draft", "question": "{company}の事業をどう理解していますか。" },
+      { "key": "tech_depth", "label": "技術の深掘り", "pattern": "method", "mode": "frame", "question": "技術選定は、どう決めますか。" },
+      { "key": "ai_use", "label": "AI活用", "pattern": "fact", "mode": "frame", "question": "AIを業務でどう使っていますか。" },
+      { "key": "future", "label": "将来像", "pattern": "fact", "mode": "frame", "question": "今後、どうなっていたいですか。" }
+    ],
+    "neighbor_questions": [
+      { "keys": ["failure"], "match": "失敗|うまくいかな", "asked": "何がずれたかと、自分の判断", "neighbor": "「最大の成果」を話さない" },
+      { "keys": ["top_result"], "match": "成果|実績", "asked": "成果の中身と、自分の役割", "neighbor": "「失敗」や苦労話を話さない" },
+      { "keys": ["hard_project"], "match": "大変|困難|難し", "asked": "困難の中身と、自分の判断", "neighbor": "「最大の成果」を話さない" },
+      { "keys": [], "match": "ずれた|遅れた|起きた|どう判断|場合|としたら", "pattern": "judgment", "asked": "起きたあとの判断", "neighbor": "「起きないようにする予防」を話さない" },
+      { "keys": ["why_us"], "match": "なぜ(当社|弊社|御社)|志望", "asked": "他社ではなくこの会社を選ぶ理由", "neighbor": "「なぜこの業態か」を話さない" },
+      { "keys": ["why_type"], "asked": "この業態を選ぶ理由", "neighbor": "「なぜこの会社か」を話さない" },
+      { "keys": ["change_reason"], "match": "転職(理由|を考え)|退職", "asked": "今の役割から動く理由", "neighbor": "「志望動機」を話さない。応募先の話を混ぜない" },
+      { "keys": ["motivation"], "asked": "この会社を志望する理由", "neighbor": "「転職理由」を話さない" }
+    ],
+    "neighbor_default": { "pattern": "fact", "asked": "質問そのものへの答え", "neighbor": "準備した別の質問の答えを話さない" },
+    "structural_numbers": ["[1-5一二三四五]点", "[1-5一二三四五]つ目?", "第[1-5一二三四五]に", "最初の90日", "入社後90日"],
+    "banned_patterns": ["の形(?![態式状成])|形で|形に", "ちゃんと", "なんか", "ちょっと", "逆に", "自分的", "させて(?:いただ|頂)", "辞めたい", "上が詰まって", "評価されなく", "安定しているから", "御社しかない", "何でもできます", "全部主導", "特別にありません|特にありません"],
+    "banned_phrases": ["「形」という語（の形・形で・形に）", "ちゃんと", "なんか", "ちょっと", "逆に", "自分的", "させていただく", "辞めたい", "上が詰まって", "評価されなく", "安定しているから", "御社しかない", "何でもできます", "全部主導", "特にありません"],
+    "max_to_omou": 1,
+    "motive_words": "御社|貴社|(?<![仕同多模異客])様(?![々子式相])",
+    "title_tokens": ["部長", "課長", "係長", "室長", "主任", "社長", "取締役", "執行役員", "責任者", "CTO", "VPoE", "EM", "PM", "PdM", "PMO", "テックリード", "チームリーダー", "リーダー", "マネージャー", "マネジャー"],
+    "company_types": {
+      "client_site_risk": { "label": "SES・派遣・客先常駐の可能性", "add_categories": ["stakeholder"], "first_check_add": ["雇用する法人", "契約形態", "常駐の頻度", "日々の指示を出す方の所属"] },
+      "consulting": { "label": "コンサルティング", "add_categories": ["why_type", "first_90_days"], "extra_questions": ["初見のクライアントに入るとき、どう進めますか。", "コンサルタントの適性はありますか。", "ケース問題の順序: 結論・仮定・分解・施策"], "reverse_focus": ["アサインの決まり方", "案件の規模", "役割の範囲"] },
+      "enterprise": { "label": "事業会社（大手・金融）", "add_categories": ["no_domain_experience"], "extra_questions": ["大きな組織で働けますか。", "同業の社内情報をどこまで話せますか。"], "first_check_add": ["部署", "開発と企画・ベンダー管理の比率", "勤務地の区分"], "reverse_focus": ["等級", "ベンダーとの役割分担"] },
+      "startup": { "label": "スタートアップ", "extra_questions": ["速さについてこられますか。", "プロセスは速さを落としませんか。"], "first_check_add": ["肩書きの実体", "権限の範囲"], "reverse_focus": ["事業の見通し", "権限の範囲"] }
+    },
+    "position_types": {
+      "ic": { "first_check_add": ["実装中心か、設計判断まで含むか"], "extra_questions": ["実装を続けたいですか。"], "reverse_focus": ["リードに広がる可能性"] },
+      "em": { "categories": ["management"], "extra_questions": ["評価と1on1をどう進めますか。", "チームの規模が小さいのでは。"], "reverse_focus": ["採用・評価・予算の権限", "想定等級", "レポートライン"] },
+      "pm": { "extra_questions": ["規模から教えてください。", "上流では何をしましたか。", "マネジメントとプレイングの比率は。"], "reverse_focus": ["評価指標", "開発チームとの分担"] },
+      "pdm": { "extra_questions": ["事業側の要望と本質的な課題がずれたら。", "定量と定性をどう使いますか。"], "reverse_focus": ["責任範囲", "リリース後の指標"] },
+      "executive": { "extra_questions": ["最初の90日に何をしますか。", "どの規模まで見られますか。"], "first_check_add": ["技術方針・採用・評価・予算・組織設計のどこまでか"], "reverse_focus": ["事業責任の範囲", "最大のボトルネック"] }
+    },
+    "stages": {
+      "agent": { "required": ["header", "how_to_use", "first_check", "company_position", "self_intro", "must_ask_qa", "conditions", "unresolved", "sources"], "focus": ["転職の軸", "条件", "他社状況", "紹介先の正式名"] },
+      "casual": { "required": ["header", "how_to_use", "first_check", "company_position", "self_intro", "motivation", "reverse_questions", "unresolved", "sources"], "drop_categories": ["failure"] },
+      "first": { "required": ["header", "how_to_use", "first_check", "company_position", "win_points", "self_intro", "motivation", "must_ask_qa", "experience_qa", "domain_qa", "conditions", "reverse_questions", "cautions", "unresolved", "sources"], "focus": ["経歴の整合性", "組織との適合"] },
+      "second": { "required": ["header", "how_to_use", "first_check", "win_points", "experience_qa", "reverse_questions", "unresolved", "sources"], "rule": "前回の繰り返しをしない。" },
+      "final": { "required": ["header", "how_to_use", "first_check", "win_points", "motivation", "reverse_questions", "cautions", "unresolved", "sources"], "focus": ["入社後に何を任せられるか"] }
+    },
+    "must_not_invent": [
+      "現職の肩書き", "経験年数と在籍期間", "担当システムの規模", "チームの人数", "件数と成果の数字", "現年収・希望年収・下限", "下限を話すかどうか",
+      "他社の選考状況", "志望度の順位", "転職理由の事実", "退職・在籍が短い理由", "失敗の事実", "入社可能時期", "在留資格と期限",
+      "常駐の経験の有無", "技術の実務経験の深さ", "評価権限と1on1の実際の範囲", "家庭の事情と通勤", "話してよい社内情報の範囲", "前回の面接で話した内容", "面接官の名前と役職", "公開されていない会社の数字"
+    ],
+    "rules": [
+      { "id": "doc-answer-the-question", "check": "model", "rule": "聞かれたことに答える。予防を聞かれていないのに予防を答えない。", "example_before": "遅れないように、毎週確認します。", "example_after": "遅れたときは、残りのコストで続けるかを判断します。" },
+      { "id": "doc-no-invention", "check": "code", "rule": "空欄の外の数字と単位は、入力にあるものだけ。" },
+      { "id": "doc-frame-for-depth", "check": "model", "rule": "深掘りの例文は、入力にない事実を空欄にする。" },
+      { "id": "doc-failure-is-real", "check": "code", "rule": "失敗談は実際の事実を本人が埋める。必ず空欄を残し、順序だけを示す。空欄は3個までなので、失敗と判断は1つにまとめる。", "example_after": "［ここに実際の失敗と当時の判断］でしたが、［ここに何がずれたか］という結果になり、［ここに変えたこと］に改めました。" },
+      { "id": "doc-public-info-tone", "check": "model", "rule": "調査の内容は断定せず、確認の形で使う。会社の数字を回答に書かない。", "example_before": "御社の従業員は100名です。", "example_after": "公開情報で拝見したのですが、現在の体制を教えていただけますでしょうか。" },
+      { "id": "doc-unknown-name", "check": "model", "rule": "面接官の名前と役職を推測しない。" },
+      { "id": "doc-no-title-guess", "check": "model", "rule": "肩書きより権限を聞く。相手の業界で通じない肩書きを使わない。" },
+      { "id": "doc-no-speak-ill", "check": "model", "rule": "現職と他社を悪く言わない。役割の構造として話す。", "example_before": "上司が評価してくれませんでした。", "example_after": "今の役割には採用と評価の権限がなく、次はそこに責任を持ちたいと考えています。" },
+      { "id": "doc-numbers-warn", "check": "warn", "rule": "Q&A の1回の回答で出す数字は3つまで。" },
+      { "id": "doc-confidential", "check": "model", "rule": "現職の社内システム名・略称・取引先・障害の詳細を出さない。資料に略称があっても「業務アプリ」のように一般名で言う。", "example_after": "社内の詳細は控えますが、一般的な進め方であればお話しできます。" },
+      { "id": "doc-no-review-sites", "check": "code", "rule": "口コミサイトの数字を載せない。", "ref": "research.review_sites" }
+    ],
+    "vocabulary": [
+      { "before": "裁量がない", "after": "権限と責任の範囲が、役割として定義されている" },
+      { "before": "不満がある", "after": "次に埋めたい差がある" },
+      { "before": "評価されなかった", "after": "責任範囲を広げる時期が来た" },
+      { "before": "挑戦したい", "after": "責任を持ちたい" },
+      { "before": "学びたい", "after": "成果で貢献したい" }
+    ]
+  }
 }

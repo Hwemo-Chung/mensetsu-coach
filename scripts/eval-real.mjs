@@ -1,16 +1,22 @@
 // Real-data accuracy eval (costs credits): research facts and review judgments against private gold, DEV split only.
 // Usage: ENV_FILE=… REAL_EVAL_DIR=… node scripts/eval-real.mjs [--limit N] [--only research,review] [--self-test]
+//   --only prep --split dev|holdout [--case ALIAS]: whole documents from prep-split.json in REAL_EVAL_DIR. --freeze records the tuned state; holdout refuses any other.
 // Datasets and results stay in REAL_EVAL_DIR, outside the repo. Answers are cached in raw/; delete a file to pay for that item again.
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { MODELS, askJson } from "../lib/claude.js";
-import { generateReview, loadPack, maskInput } from "../lib/coach.js";
+import { digits, generateQuestions, generateReview, loadPack, maskInput, readBriefFacts, redact } from "../lib/coach.js";
+import { toContentBlocks } from "../lib/attachment.js";
+import { gateItem, planBundles, sectionProblems } from "../lib/prep.js";
+import { POST as prepRoute } from "../lib/prep-api.js";
+import { briefFacts, prepToMarkdown, questionOverlap } from "../public/export.js";
+import { LANGS } from "../public/i18n/index.js";
 import { PRICES } from "../lib/consistency-metrics.js";
-import { NOT_FOUND, researchEnabled, runResearch, searchQueries, today } from "../lib/research.js";
+import { NOT_FOUND, blockedDomains, researchEnabled, runResearch, searchQueries, today } from "../lib/research.js";
 
 const nf = (s) => String(s ?? "").normalize("NFKC").replace(/\s+/g, "");
 
@@ -149,6 +155,106 @@ function scoreReview(g, out, pack) {
   };
 }
 
+// Restored input (rubric §3): header fields and the company section only. Q&A, win lines, reverse questions and other companies' schedules must not reach the model.
+const QA_LINE = /^(?:#{2,4}\s*|\*\*)?Q\d*[.．:：]\s*(.+?)(?:\*\*)?$/;
+function restoreMail(md, facts = []) {
+  const lines = md.split("\n"), head = lines.findIndex((l) => l.startsWith("## "));
+  const header = lines.slice(0, head < 0 ? lines.length : head).filter((l) => /^# /.test(l) || /^-\s*(日時|形式|ポジション|会社|公開求人の例)\s*[:：]/.test(l));
+  let inCompany = false;
+  const body = lines.filter((l) => {
+    if (l.startsWith("## ")) { inCompany = /会社|企業/.test(l) && !/逆質問|想定|勝ち筋|注意/.test(l); return false; }
+    return inCompany && !QA_LINE.test(l) && !/勝負/.test(l); // a win line can sit inside the company notes
+  });
+  return [...header, ...body, ...facts].join("\n").replace(/https?:\S+/g, "").replace(/[^\s（）:：]{1,12}様/g, "担当者").trim();
+}
+// Older documents use a plain heading for a question, so a question-shaped heading counts too.
+const goldQuestions = (md) => md.split("\n").flatMap((l) => {
+  const q = l.match(QA_LINE) ?? l.match(/^###\s+(.+(?:か|は|？|\?)[。）)]?)$/);
+  return q ? [q[1].trim()] : [];
+});
+
+// The same labeler on both sides, so recall does not rest on a judgment made after seeing the output.
+const CATEGORY = [["self_intro", /自己紹介/], ["motivation", /志望動機|志望理由/], ["failure", /失敗|うまくいかな/], ["change_reason", /転職理由|転職を考え|退職/], ["axis", /軸/], ["other_offers", /他社/], ["start_date", /入社可能|入社時期|入社日/], ["no_domain_experience", /未経験|経験は(?:あり|お持ち)|経験がありません/], ["ai_use", /(?<![A-Za-z])AI|生成/], ["first_90_days", /最初に|入社後|90日/], ["top_result", /成果|実績/], ["hard_project", /難し|困難|大変/], ["stakeholder", /折衝|調整|ステークホルダー|関係者|協働/], ["management", /マネジメント|育成|1on1|評価|比率/], ["scale", /規模|役割/], ["why_type", /なぜ/], ["business_understanding", /事業|理解/], ["tech_depth", /技術|クラウド|アーキテクチャ|移行|設計|可用性|SRE/], ["future", /将来|キャリア|今後|興味/]];
+const categoryOf = (q, company = "") => {
+  const t = q.normalize("NFKC"), name = company.normalize("NFKC").replace(/株式会社|ホールディングス|\s/g, "");
+  if (/なぜ/.test(t) && (/当社|弊社|御社|貴社/.test(t) || (name && t.includes(name)))) return "why_us";
+  return CATEGORY.find(([, re]) => re.test(t))?.[0] ?? null;
+};
+
+// The gate checked its own copy of these; this is the independent list for the author, on every string the document says.
+const SPOKEN_UNITS = /(\d+(?:\.\d+)?)\s*(か月|ヶ月|カ月|月|名|人|割|年|週|日|件|社|倍|%|円|億|時間|歳|点|回)?/g;
+const VAGUE = /数(?:十|百|千|万|億)*(?:か月|ヶ月|年|名|人|件|社|回|割|倍)|半年|十数\S?/g;
+const unblanked = (t) => String(t ?? "").normalize("NFKC").replace(/[［\[][^］\]]*[］\]]/g, " ");
+const inText = (needle, hay) => hay.toLowerCase().includes(needle.toLowerCase());
+const hasToken = (token, text) => new RegExp(/^[A-Za-z]+$/.test(token) ? `(?<![A-Za-z])${token}(?![A-Za-z])` : token).test(text);
+function candidatesOf(items, material, pack, company, facts = []) {
+  const doc = pack.script_doc, structural = doc.structural_numbers.map((p) => new RegExp(p, "g"));
+  const out = { numbers: [], titles: [], proper: [] }, seen = new Set();
+  const add = (kind, key, field, value) => { const id = `${kind}${key}${field}${value}`; if (!seen.has(id)) { seen.add(id); out[kind].push({ key, field, value }); } };
+  for (const x of items) {
+    if (x.mode === "input_only") continue;
+    const source = `${material}\n${x.section === "reverse_questions" ? "" : x.question}`.normalize("NFKC"), held = [...digits(source).matchAll(SPOKEN_UNITS)].map(([, n, u]) => [n, (u ?? "").replace(/か月|ヶ月|カ月/, "月")]);
+    const pairs = new Set(held.map(([n, u]) => n + u)), values = new Set(held.map(([n]) => n));
+    const said = [["answer", x.answer], ...(x.followups ?? []).map((f) => ["followup", f]), ...(x.section === "reverse_questions" ? [["question", x.question]] : [])];
+    for (const [field, raw] of said) {
+      const whole = structural.reduce((a, re) => a.replace(re, " "), unblanked(raw));
+      for (const m of whole.matchAll(VAGUE)) add("numbers", x.key, field, m[0]);
+      const t = whole.replace(VAGUE, " "); // digits() would read 数百 as 100
+      for (const [, n, unit] of digits(t).matchAll(SPOKEN_UNITS)) {
+        const u = (unit ?? "").replace(/か月|ヶ月|カ月/, "月");
+        if (!(u ? pairs.has(n + u) || (n.length >= 5 && values.has(n)) : values.has(n))) add("numbers", x.key, field, n + u);
+      }
+      for (const token of doc.title_tokens) if (hasToken(token, t) && !inText(token, source)) add("titles", x.key, field, token);
+      const known = [source, company.normalize("NFKC"), ...facts.map((f) => f.normalize("NFKC"))].join("\n");
+      for (const m of t.matchAll(/[A-Za-z][A-Za-z0-9.+#-]+|[ァ-ヶー]{3,}/g)) if (!inText(m[0], known)) add("proper", x.key, field, m[0]);
+    }
+    for (const [field, raw] of [["translation", x.translation], ["intent", x.intent]]) {
+      const answer = digits(unblanked(x.answer)).match(/\d+(?:\.\d+)?/g) ?? [];
+      for (const n of digits(unblanked(raw).replace(/만/g, "万")).match(/\d+(?:\.\d+)?/g) ?? []) if (!values.has(n) && !answer.includes(n)) add("numbers", x.key, field, n);
+    }
+  }
+  return out;
+}
+
+// C1–C12 as read from the finished document, not from the gate's own verdict. C10 is out: PRD pass line and gate list leave it out.
+function scorePrep(out, { material, pack, planned, sources, canary, sent }) {
+  const doc = pack.script_doc, C = pack.consistency, v = Object.fromEntries(["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C11", "C12"].map((k) => [k, []]));
+  const items = out.sections.filter((s) => s.key !== "unresolved").flatMap((s) => s.items ?? []);
+  const qa = items.filter((x) => x.section !== "reverse_questions"), made = qa.filter((x) => x.mode !== "input_only");
+  const blankRe = new RegExp(C.blank), blanksOf = (t) => String(t ?? "").match(/［[^］]*］/g) ?? [];
+  const problems = sectionProblems(out, pack);
+  v.C1 = problems.filter((p) => p !== "blanks");
+  for (const x of qa) if (x.mode === "input_only" ? x.reading || x.translation || !blanksOf(x.answer).length : !["draft", "frame"].includes(x.mode)) v.C2.push(x.key);
+  v.C3 = candidatesOf(items, material, pack, "").numbers.map((n) => `${n.key}:${n.field}:${n.value}`);
+  if (problems.includes("blanks")) v.C4.push("count");
+  for (const x of qa) {
+    const b = blanksOf(x.answer);
+    if (b.length > C.max_blanks || !b.every((t) => blankRe.test(t)) || /\[[^\]]*\]/.test(String(x.answer).replace(/\[(?:email|phone|〒|氏名|url)\]/g, ""))) v.C4.push(x.key);
+  }
+  const known = new Set(sources.map((s) => s.id));
+  for (const r of out.sections.find((s) => s.key === "company_position")?.rows ?? []) {
+    if (r.status === "confirmed" ? !r.source_ids.length || !r.source_ids.every((id) => known.has(id)) : r.source_ids.length) v.C5.push(r.kind);
+  }
+  const blocked = blockedDomains(pack);
+  for (const s of out.sections.find((x) => x.key === "sources")?.sources ?? []) if (blocked.some((d) => inText(d, s.url))) v.C5.push(s.id);
+  const banned = (t) => doc.banned_patterns.some((p) => new RegExp(p).test(t)) || (t.match(/と思/g) ?? []).length > doc.max_to_omou || pack.research.banned_terms.some((b) => inText(b, t));
+  for (const x of items) if (banned(String(x.answer ?? x.question))) v.C6.push(x.key);
+  for (const x of qa) if (x.key === "change_reason" && new RegExp(doc.motive_words).test(x.answer) && !out.unresolved.some((u) => u.kind === "motive_in_reason")) v.C7.push(x.key);
+  for (const x of made) {
+    const first = x.answer.split(/(?<=[。？?])/)[0].trim(), need = doc.question_categories.find((c) => c.key === x.key)?.first_sentence;
+    if (/(?:か[。．]?|[?？])$/.test(first) || (need && !new RegExp(need).test(first))) v.C8.push(x.key);
+    if (["self_intro", "scale"].includes(x.key) && doc.title_tokens.some((t) => hasToken(t, unblanked(x.answer)) && !inText(t, material.normalize("NFKC")))) v.C9.push(x.key);
+  }
+  if (canary) v.C11.push("canary");
+  if (sent.some((t) => redact(t) !== t)) v.C11.push("sent_pii");
+  const shown = out.sections.filter((s) => s.key !== "sources" && s.key !== "unresolved").flatMap((s) => [...(s.lines ?? []), ...(s.rows ?? []).map((r) => r.value), ...(s.items ?? []).flatMap((x) => [x.answer, x.question, x.translation, x.intent, ...(x.followups ?? []), ...(x.evidence ?? []).map((e) => e.quote)])]).filter(Boolean);
+  if (shown.some((t) => redact(t) !== t)) v.C11.push("doc_pii");
+  if (shown.some((t) => /\]\(|<[a-z!/]|https?:\/\//i.test(t))) v.C11.push("link");
+  const have = new Set([...items.flatMap((x) => [x.key, x.section]), ...out.failed.map((f) => f.key)]);
+  v.C12 = planned.filter((k) => !have.has(k));
+  return v;
+}
+
 // Synthetic, runs before any spend.
 assert.deepEqual(years("2001年設立"), [2001]);
 assert.deepEqual(years("平成13年4月"), [2001]);
@@ -175,6 +281,34 @@ assert.deepEqual(differs("2024-11", [{ value: "90名", source_ids: ["s1"] }], [{
 assert.equal(differs("2024-11", [{ value: "90名", source_ids: ["s1"] }], [{ id: "s1", published_date: "", page_age: "", retrieved_at: "2026-11-04", accessed_date: "2026-11-04" }]).verdict, "wrong");
 assert.deepEqual(tally([{ verdict: "correct" }, { verdict: "wrong" }, { verdict: "not_reported" }, { verdict: "stale" }]).accuracy, 0.5);
 assert.deepEqual(scoreReview({ answered_question: "no", missing_steps: ["復唱"], expected_rule_ids: ["r1"] }, { answers_question: "no", steps: { a: { present: false }, b: { present: true } }, corrections: [{ rule_id: "r1" }, { rule_id: "r2" }] }, { answer_structure: { steps: [{ label: "復唱", key: "a" }, { label: "結論", key: "b" }] } }).rule_precision, 0.5);
+{
+  const md = "# 面接 サンプルテック\n- 日時: 1月1日\n- 相手: 山田様\n- 注意: 他社の面接が先\n- ポジション: PM\n## 1. 会社・ポジション整理\n物流向けSaaS（架空）\n実績で勝負する\n### Q. 紛れた質問ですか。\n## 2. 今日の勝ち筋\n覚えられたい1文\n## 5. 想定質問\n### Q. 転職理由は。\n## 9. 逆質問\n- 体制を教えてください\n";
+  const mail = restoreMail(md, ["本社: 架空区"]);
+  assert(mail.includes("物流向けSaaS") && mail.includes("ポジション: PM") && mail.includes("本社: 架空区"));
+  for (const leak of ["山田", "他社の面接", "紛れた", "勝負", "覚えられたい", "転職理由", "体制を"]) assert(!mail.includes(leak), leak);
+  assert.deepEqual(goldQuestions(md), ["紛れた質問ですか。", "転職理由は。"]);
+  assert.deepEqual(goldQuestions("### 3. 転職理由はなんですか\n### 会社概要\n"), ["3. 転職理由はなんですか"]);
+  assert.equal(categoryOf("なぜコンサルティングファームなのですか。"), "why_type");
+  assert.equal(categoryOf("なぜサンプルテックなのですか。", "サンプルテック"), "why_us");
+  assert.equal(categoryOf("SAPの経験はありますか。"), "no_domain_experience");
+  assert.equal(categoryOf("天気はどうですか。"), null);
+
+  const pack = loadPack("jp"), material = "在庫管理システムを担当。メンバー5名。PM。";
+  const qa = (x) => ({ key: "top_result", section: "experience_qa", mode: "frame", question: "成果は。", evidence: [], followups: [], warnings: [], translation: "", ...x });
+  const c = candidatesOf([qa({ answer: "5名のチームで3か月、12名をまとめ、部長として数百件を処理しました。ゼネラルマネージャーとしてAcmeを担当しました。" })], material, pack, "サンプルテック");
+  assert.deepEqual(c.numbers.map((x) => x.value).sort(), ["12名", "3月", "数百件"].sort());
+  assert.deepEqual(c.titles.map((x) => x.value), ["部長", "マネージャー"]);
+  assert(c.proper.some((x) => x.value === "Acme") && c.proper.some((x) => x.value === "ゼネラルマネージャー"));
+  assert.deepEqual(candidatesOf([qa({ answer: "［ここに結果］を1つ目として、5名で進めました。" })], material, pack, "サンプルテック").numbers, []);
+
+  const s = (key, more = {}) => ({ key, label: key, ...more });
+  const base = { failed: [], generated: [], unresolved: [], blanks: 0, sections: [s("self_intro", { items: [qa({ key: "self_intro", section: "self_intro", answer: "こんにちは。田中です。" })] }), s("company_position", { rows: [{ kind: "company", value: "x", status: "confirmed", source_ids: ["nope"] }] })] };
+  const v = scorePrep(base, { material, pack, planned: ["self_intro", "lost"], sources: [], canary: 2, sent: ["a@example.com"] });
+  assert(v.C5.length === 1 && v.C12.includes("lost") && v.C11.length === 2, JSON.stringify(v));
+  const w = scorePrep({ ...base, sections: [s("self_intro", { items: [qa({ key: "self_intro", section: "self_intro", answer: "部長です。ちゃんと話しますか。" })] })] }, { material, pack, planned: ["self_intro"], sources: [], canary: 0, sent: [] });
+  assert(w.C6.length === 1 && w.C9.length === 1, JSON.stringify(w));
+  assert.equal(scorePrep({ ...base, sections: [s("self_intro", { items: [qa({ key: "self_intro", section: "self_intro", answer: "どうでしょうか。" })] })] }, { material, pack, planned: ["self_intro"], sources: [], canary: 0, sent: [] }).C8.length, 1);
+}
 if (process.argv.includes("--self-test")) {
   console.log("self-test ok");
   process.exit(0);
@@ -189,17 +323,17 @@ process.env.RESEARCH_ENABLED = "1";
 assert(researchEnabled());
 
 const data = (f) => JSON.parse(readFileSync(join(DIR, f), "utf8"));
-const split = data("split.json");
+const only = (arg("--only") ?? "research,review").split(",");
+const split = only.some((o) => o !== "prep") ? data("split.json") : null; // prep has its own fixed split
 const devOf = (rows, keyOf, keys) => {
   const out = keys.map((k) => rows.find((r) => keyOf(r) === k.key)).map((r, i) => ({ id: keys[i].sha1, n: i + 1, g: r }));
   assert(out.every((x) => x.g), "a dev key has no gold row");
   return out;
 };
-const only = (arg("--only") ?? "research,review").split(",");
 const limit = Number(arg("--limit") ?? Infinity);
 const RAW = join(DIR, "raw");
 mkdirSync(RAW, { recursive: true });
-assert.equal(createHash("sha1").update(split.companies.dev[0].key).digest("hex"), split.companies.dev[0].sha1, "split.json keys and hashes disagree");
+if (split) assert.equal(createHash("sha1").update(split.companies.dev[0].key).digest("hex"), split.companies.dev[0].sha1, "split.json keys and hashes disagree");
 
 // Haiku's listed rate holds up to a 100K prompt, and a tool loop's total says nothing about each turn, so the bill is given as a range. shortcut: use usage.iterations if it must be exact.
 const rate = (c) => (c.model === MODELS.research ? (c.in > 100_000 ? [0.5, 2.5] : [0.1, 0.5]) : PRICES[c.model]);
@@ -208,10 +342,15 @@ const usd = (c) => { const p = rate(c); return (p ? (c.in * p[0] + c.out * p[1])
 
 const real = new Anthropic({ maxRetries: 1 });
 // Every call passes through here, so spend is counted from the API's own usage. Page text is not kept: third-party content has no reason to sit in results.
-const tracked = (calls) => ({ beta: { messages: { stream: (req, opt) => {
+const tracked = (calls, sent) => ({ beta: { messages: { stream: (req, opt) => {
   const s = real.beta.messages.stream(req, opt), t0 = Date.now();
+  sent?.push(JSON.stringify(req.messages));
   return { finalMessage: async () => {
-    const m = await s.finalMessage(), u = m.usage ?? {};
+    const m = await s.finalMessage().catch((e) => {
+      // A 400 from the compiled grammar has to be readable, and a call the deadline stopped still counts as a call.
+      calls.push({ model: req.model, in: 0, out: 0, searches: 0, fetches: 0, ms: Date.now() - t0, stop: "error", status: e?.status ?? null, message: String(e?.message).slice(0, 300), queries: [], text: "" });
+      throw e;
+    }), u = m.usage ?? {};
     calls.push({ model: m.model ?? req.model, in: u.input_tokens ?? 0, out: u.output_tokens ?? 0, searches: u.server_tool_use?.web_search_requests ?? 0, fetches: u.server_tool_use?.web_fetch_requests ?? 0, ms: Date.now() - t0, stop: m.stop_reason, queries: searchQueries(m.content), text: m.content.filter((b) => b.type === "text").map((b) => b.text).join("") });
     return m;
   } };
@@ -319,6 +458,89 @@ if (only.includes("review")) {
     rows.push({ n, id, ...scoreReview(g, rec.out, pack) });
   }
   report.review = { pairs: rows.length, rows };
+}
+
+if (only.includes("prep")) {
+  const SPLIT = data("prep-split.json"), name = arg("--split") ?? "dev", pack = loadPack("jp"), lang = "ko";
+  const hash = createHash("sha256").update(JSON.stringify(pack.script_doc)).update(readFileSync(new URL("../lib/prep.js", import.meta.url))).digest("hex").slice(0, 8);
+  const FROZEN = join(DIR, "freeze.json");
+  if (process.argv.includes("--freeze")) { assert(!existsSync(FROZEN), "already frozen"); writeFileSync(FROZEN, JSON.stringify({ hash, at: new Date().toISOString() })); console.log(`frozen ${hash}`); process.exit(0); }
+  if (name === "holdout") assert.equal(data("freeze.json").hash, hash, "holdout runs only on the frozen state");
+  // Every paid call on disk, earlier tuning runs included, against the task's $8 ceiling. 1.5: a document with all its retries must still fit.
+  const CEILING = 8, spent = () => readdirSync(RAW).filter((f) => f.endsWith(".json")).flatMap((f) => JSON.parse(readFileSync(join(RAW, f), "utf8")).calls ?? []).reduce((a, c) => a + usd(c), 0);
+  const stripped = (calls) => calls.map(({ text, ...rest }) => rest);
+  const docx = readFileSync(join(SPLIT.base, SPLIT.resume.path));
+  assert.equal(createHash("sha256").update(docx).digest("hex"), SPLIT.resume.sha256, "resume changed after the split was fixed");
+  const attachment = { name: "resume.docx", type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", data: docx.toString("base64") };
+  const blocks = await toContentBlocks(attachment), material = blocks.map((b) => b.text).join("\n");
+  const goldRows = existsSync(join(DIR, "..", "research-gold.json")) ? JSON.parse(readFileSync(join(DIR, "..", "research-gold.json"), "utf8")).companies : [];
+  const CANARY = "EVALCANARY-DESIRED-PROFILE", rows = [];
+  for (const k of SPLIT[name].filter((c) => !arg("--case") || c.alias === arg("--case"))) {
+    assert(spent() + 1.5 <= CEILING, `stopped before ${k.alias}: spent ${spent().toFixed(2)}`);
+    const md = readFileSync(join(SPLIT.base, k.doc), "utf8"), g = k.gold && goldRows.find((r) => r.name === k.company);
+    const goldFacts = g ? [["事業", g.summary], ["事業形態", g.business_model], ["本社", g.hq_city], ["設立", g.founded_year], ["従業員", g.employees?.count ?? g.employees?.range?.join("〜")], ["上場", g.listed]].filter(([, x]) => x != null).map(([l, x]) => `${l}: ${x}`) : [];
+    // Holdout documents file a verdict and review-site figures under their company heading, and the spec has not read them: header and gold facts only.
+    const mail = restoreMail(name === "holdout" ? md.slice(0, md.search(/^## /m) + 1 || undefined) : md, goldFacts), position = md.match(/^-\s*ポジション\s*[:：]\s*(.+)$/m)?.[1].slice(0, 100) || g?.position?.slice(0, 100) || "募集職種";
+    assert(!/^#{2,4}\s*Q|逆質問|勝ち筋|OpenWork|リーディング|판정/m.test(mail), `${k.alias}: restored mail holds Q&A, a verdict or a review site`);
+    writeFileSync(join(DIR, `restored-mail-${k.alias}.txt`), mail);
+    if (process.argv.includes("--dry")) continue; // read what would be sent, before paying
+
+    const research = await cached(`research-${k.alias}`, async () => {
+      const calls = [];
+      const brief = await runResearch(tracked(calls), k.company, position, lang, { signal: AbortSignal.timeout(105_000), pack }).catch((e) => ({ research_status: "threw", error: String(e?.message).slice(0, 200) }));
+      return { brief, calls: stripped(calls) };
+    });
+    const facts = readBriefFacts(briefFacts(research.brief)), sources = research.brief?.sources ?? [];
+    const session = await cached(`questions-${k.alias}`, async () => {
+      const calls = [];
+      const out = await generateQuestions(tracked(calls), pack, maskInput(mail), blocks, lang, facts).catch((e) => {
+        // Paid for and unexplained otherwise: the ceiling must count it, and the reply is the only evidence of why.
+        writeFileSync(join(RAW, `failed-questions-${k.alias}-${Date.now()}.json`), JSON.stringify({ error: e.message, calls }, null, 1));
+        throw e;
+      });
+      return { out, calls: stripped(calls) };
+    });
+
+    const rec = await cached(`prep-${k.alias}-${hash}`, async () => {
+      const calls = [], sent = [], t0 = Date.now();
+      const req = new Request("http://eval.local/api/prep", { method: "POST", headers: { "x-access-code": process.env.ACCESS_CODE, "x-forwarded-for": `eval-${k.alias}-${hash}` }, body: JSON.stringify({
+        attachment, lang, pack: "jp", desired_profile: CANARY,
+        questions: session.out.questions.map(({ id, question, category, basis_type }) => ({ id, question, category, basis_type })),
+        context: { company: k.company, position, facts: session.out.company_context.facts }, // the names the user confirms on the research card (public/app.js researchNames)
+        research_facts: briefFacts(research.brief), sources,
+        header: { date: md.match(/^-\s*日時\s*[:：]\s*(.+)$/m)?.[1].slice(0, 100) ?? "", format: md.match(/^-\s*形式\s*[:：]\s*(.+)$/m)?.[1].replace(/https?:\S+/g, "").slice(0, 100) ?? "", counterpart: "" },
+        inputs: {},
+      }) });
+      const res = await prepRoute(req, { client: tracked(calls, sent), enabled: true });
+      return { status: res.status, out: await res.json(), ms: Date.now() - t0, canary: sent.filter((t) => t.includes(CANARY)).length, sent_flagged: sent.filter((t) => redact(t) !== t), calls }; // text kept here: private dir, and a gate miss cannot be read without it
+    });
+    assert.equal(rec.status, 200, `${k.alias}: ${JSON.stringify(rec.out)} ${JSON.stringify(rec.calls.filter((x) => x.status))}`);
+    const out = rec.out, items = out.sections.filter((s) => s.key !== "unresolved").flatMap((s) => s.items ?? []);
+    const { bundles } = planBundles(pack, { questions: session.out.questions, company: out.company });
+    const plans = bundles.flatMap((b) => b.items);
+    // Each call's verdict per item: the failed list keeps only the last try, and a truncated retry hides why the first one missed.
+    const gate_trace = rec.calls.filter((c) => c.text).map((c) => { let r = {}; try { r = JSON.parse(c.text); } catch { /* truncated reply */ } return (r.items ?? []).flatMap((x) => { const p = plans.find((q) => q.key === x?.key), g = p && gateItem(pack, p, x, { material, facts, lang }); return g?.problems?.length ? [[x.key, ...g.problems]] : []; }); });
+    const planned = [...bundles.flatMap((b) => [...b.items, ...b.filled].map((p) => p.key)), "reverse_questions"];
+    const violations = scorePrep(out, { material, pack, planned, sources: out.sections.find((s) => s.key === "sources").sources, canary: rec.canary, sent: rec.sent_flagged });
+    const candidates = candidatesOf(items, material, pack, out.company, facts.map((f) => f.text));
+    const gold = goldQuestions(md), labels = (qs) => new Set(qs.map((q) => categoryOf(q, k.company)).filter(Boolean)), want = labels(gold);
+    const recall = (qs) => { const got = labels(qs); return want.size ? +([...want].filter((x) => got.has(x)).length / want.size).toFixed(2) : null; };
+    const row = {
+      alias: k.alias, split: name, hash, gate_trace, restored_mail: true, seconds: Math.round(rec.ms / 1000), calls: rec.calls.length, errors: rec.calls.filter((x) => x.status !== undefined).map((x) => ({ status: x.status, message: x.message })),
+      prep_usd: +rec.calls.reduce((a, c) => a + usd(c), 0).toFixed(3), upstream_usd: +[...research.calls, ...session.calls].reduce((a, c) => a + usd(c), 0).toFixed(3), blanks: out.blanks, to_confirm: out.to_confirm, failed: out.failed.map(({ key, reason }) => ({ key, reason })), omitted: out.omitted_questions.length,
+      unresolved: Object.fromEntries(["blank", "no_evidence", "evidence_mismatch", "motive_in_reason", "input_language"].map((n) => [n, out.unresolved.filter((u) => u.kind === n).length])),
+      gate_violations: Object.fromEntries(Object.entries(violations).map(([c, l]) => [c, l.length])), violations, candidates,
+      research_status: research.brief?.research_status, facts: facts.length, sources: sources.length,
+      gold_questions: gold.length, gold_categories: want.size, recall_session: recall(session.out.questions.map((q) => q.question)), recall_doc: recall(items.filter((x) => x.section !== "reverse_questions").map((x) => x.question)), overlap: questionOverlap(session.out.questions, gold.join("\n")),
+    };
+    rows.push(row);
+    allCalls.push(...research.calls, ...session.calls, ...rec.calls);
+    writeFileSync(join(DIR, `doc-${k.alias}-${hash}.md`), prepToMarkdown(out, LANGS.ko));
+    console.error(`${k.alias} ${hash} ${row.seconds}s $${row.prep_usd} failed=${row.failed.length} blanks=${row.blanks} total_spent=$${spent().toFixed(2)}`);
+  }
+  writeFileSync(join(DIR, `results-prep-${name}-${hash}.json`), JSON.stringify(rows, null, 1));
+  report.split = name;
+  report.prep = rows;
 }
 
 report.cost = { usd_high: +allCalls.reduce((a, c) => a + usd(c), 0).toFixed(4), usd_low: +allCalls.reduce((a, c) => a + usd({ ...c, in: Math.min(c.in, 100_000) }) + (c.model === MODELS.research ? Math.max(0, c.in - 100_000) * 0.1 / 1e6 : 0), 0).toFixed(4), calls: allCalls.length, in: allCalls.reduce((a, c) => a + c.in, 0), out: allCalls.reduce((a, c) => a + c.out, 0), searches: allCalls.reduce((a, c) => a + c.searches, 0), fetches: allCalls.reduce((a, c) => a + c.fetches, 0), api_seconds: Math.round(allCalls.reduce((a, c) => a + c.ms, 0) / 1000), note: "all finished calls behind these results, cached ones included; a call stopped at the deadline reports no usage, so it is not in here. usd_low bills Haiku at the base rate, usd_high at the over-100K rate" };

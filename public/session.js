@@ -54,6 +54,8 @@ export function migrateSession(s) {
   const { research_names, ...rest } = s;
   const out = { ...rest, version: SESSION_VERSION, company_context: { ...context, facts: Array.isArray(c.facts) ? c.facts : [] }, questions, attempts, notes: isObj(s.notes) ? s.notes : {} };
   if (isObj(research_names) && str(research_names.company) && str(research_names.position)) out.research_names = research_names;
+  // A bad document loses only the document, like a bad brief.
+  if (!isObj(s.prep) || !Array.isArray(s.prep.sections)) { delete out.prep; delete out.prep_inputs; }
   if (Array.isArray(s.reverse)) out.reverse = s.reverse.filter(isObj).map(({ question_ja, ...r }) => ({ ...r, question: r.question ?? question_ja }));
   return out;
 }
@@ -68,7 +70,24 @@ export function forgetBrief(session) {
   const hadReverse = !!session.reverse?.length;
   delete session.research_basis;
   delete session.reverse;
+  if (session.prep) forgetPrepBrief(session.prep);
   return hadReverse;
+}
+
+// Same reason for the prep document: its company rows and source list cite the replaced brief. The wording stays, as unconfirmed.
+export function forgetPrepBrief(prep) {
+  for (const s of prep.sections) {
+    if (s?.key === "sources") s.sources = [];
+    if (s?.key === "company_position" && Array.isArray(s.rows)) for (const r of s.rows) if (r?.source_ids?.length) Object.assign(r, { source_ids: [], status: "unconfirmed" });
+  }
+  prep.outdated = true;
+}
+
+// A hidden claim leaves every later request and file. shortcut: exact text, so a claim the server rewrote (a link, a tag) stays in the row; `outdated` still says the document predates the hide.
+export function forgetPrepClaim(session, value) {
+  if (!session?.prep) return;
+  for (const s of session.prep.sections) if (s?.key === "company_position" && Array.isArray(s.rows)) s.rows = s.rows.filter((r) => r?.value !== value);
+  session.prep.outdated = true;
 }
 
 // Desired position profile: reused across companies, so it has its own key and outlives the session. Sent only to the fit call.

@@ -148,6 +148,28 @@
       <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
     </form>
   </dialog>
+  <dialog id="prep" class="mail desired" aria-labelledby="prepTitle">
+    <form id="prepForm" method="dialog" novalidate>
+      <h2 id="prepTitle" data-i18n="prep.title"></h2>
+      <p class="legend" data-i18n="prep.hint"></p>
+      <label><span data-i18n="prep.material"></span><textarea id="prepMaterial" rows="6" maxlength="20000"></textarea></label>
+      <label><span data-i18n="prep.file"></span><input id="prepFile" type="file" accept=".docx,.txt,.md"></label>
+      <p class="legend" data-i18n="prep.fileNote"></p>
+      <p class="legend" data-i18n="prep.optional"></p>
+      <label><span data-i18n="prep.date"></span><input data-prep-header="date" type="text" maxlength="500" autocomplete="off"></label>
+      <label><span data-i18n="prep.format"></span><input data-prep-header="format" type="text" maxlength="500" autocomplete="off"></label>
+      <label><span data-i18n="prep.counterpart"></span><input data-prep-header="counterpart" type="text" maxlength="500" autocomplete="off"></label>
+      <label><span data-i18n="prep.change_reason"></span><textarea data-prep-input="change_reason" rows="2" maxlength="500"></textarea></label>
+      <label><span data-i18n="prep.axis"></span><textarea data-prep-input="axis" rows="2" maxlength="500"></textarea></label>
+      <label><span data-i18n="prep.other_offers"></span><textarea data-prep-input="other_offers" rows="2" maxlength="500"></textarea></label>
+      <label><span data-i18n="prep.start_date"></span><input data-prep-input="start_date" type="text" maxlength="500" autocomplete="off"></label>
+      <p id="prepMsg" class="mail-msg" role="status"></p>
+      <div class="mail-actions">
+        <button type="button" id="prepCancel" data-i18n="prep.cancel"></button>
+        <button type="submit" id="prepSubmit" class="primary" data-i18n="prep.submit"></button>
+      </div>
+    </form>
+  </dialog>
   <dialog id="mail" class="mail">
     <form id="mailForm" method="dialog">
       <h2 data-i18n-mail="title"></h2>

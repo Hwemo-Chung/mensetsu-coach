@@ -161,6 +161,11 @@ test("maskInput: a Korean salutation line (…님) is masked like 様", () => {
 });
 
 // Review 11/03: POSTAL ran before PHONE, so 090-1234-5678 became "[〒]-5678" and the tail digits leaked.
+test("maskInput: an employment period is a date, not a phone; the same digits as one number still are", () => {
+  for (const p of ["2019.04 - 2023.03", "2019.04-2023.03", "2019-04 - 2023-03", "2019.04.01 - 2023.03.31", "2019.04 - 2023.03 2023.04 - 2025.03"]) assert.equal(maskInput(`在籍 ${p} 担当`), `在籍 ${p} 担当`, p);
+  for (const p of ["2019-0420-2303", "0120-04-2023-03"]) assert.equal(maskInput(`連絡先 ${p}`), "連絡先 [phone]", p);
+});
+
 test("maskInput: every JP/KR phone format becomes [phone]; postal codes stay [〒]", () => {
   for (const p of ["090-1234-5678", "080-9999-0000", "03-1234-5678", "010-1234-5678", "02-123-4567", "01012345678", "09012345678", "+81-90-1234-5678", "+81 3 1234 5678", "+82-10-1234-5678", "+82 10 1234 5678", "0120-123-456"]) {
     assert.equal(maskInput(`連絡先: ${p} まで`), "連絡先: [phone] まで", p);

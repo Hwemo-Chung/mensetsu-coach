@@ -1,8 +1,9 @@
 // Stage R cards: the name confirmation and the brief. Everything from the model or the web goes through textContent.
-import { $, el, T, bubble, fold, LS, persist } from "./render.js";
+import { $, el, T, bubble, fold, LS, persist, state } from "./render.js";
 import { SNAPSHOT_FIELDS, citedIds, claimFound, claimMeta, linkable, unknownText } from "./export.js";
 import { checkConditions, conditionProfile, selectCheckpoints } from "./conditions.js";
-import { loadCompanyNotes, loadDesired, saveCompanyNotes } from "./session.js";
+import { forgetPrepClaim, loadCompanyNotes, loadDesired, saveCompanyNotes } from "./session.js";
+import { redrawPrep } from "./prep.js";
 
 const NAME_MAX = 100, URL_MAX = 250; // api/research.js refuses longer ones
 const MEMO_MAX = 300; // a summary in the user's own words; pasted review text is a copyright problem and is warned against
@@ -46,9 +47,11 @@ function hideButton(c, r, nodes) {
   const b = el("button", "link-btn research-ctl", r.hide);
   b.type = "button";
   b.addEventListener("click", () => {
+    forgetPrepClaim(state.session, c.value);
     Object.assign(c, { value: "not_found", source_ids: [], source_count: 0, single_source: false, unknown_kind: "hidden" });
     persist();
     for (const n of nodes) n.remove();
+    redrawPrep();
   });
   return b;
 }

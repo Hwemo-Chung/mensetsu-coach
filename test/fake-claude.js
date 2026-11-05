@@ -7,6 +7,7 @@ export const scriptFixture = load("script.json");
 export const reviewFixture = load("review.json");
 export const reverseFixture = load("reverse.json");
 export const fitFixture = load("fit.json");
+export const prepFixture = load("prep.json");
 const research = load("research.json");
 // One raw response in the shape the search call gets: server tool blocks, then the JSON text (MOCK_CLAUDE=1 and tests).
 export const researchMessage = { stop_reason: "end_turn", usage: research.usage, content: [...research.blocks, { type: "text", text: JSON.stringify(research.model) }] };

@@ -150,6 +150,14 @@ export function renderRail(src = state.session) {
   }));
 }
 
+// The same 3 MB limit and shape for the composer's file and the prep dialog's.
+export function readAttachment(f, done, tooLarge) {
+  if (f.size > 3 * 1024 * 1024) return tooLarge(message({ code: "attachment_too_large", max_mb: 3 }));
+  const reader = new FileReader();
+  reader.onload = () => done({ name: f.name, type: f.type, data: String(reader.result).split(",")[1] });
+  reader.readAsDataURL(f);
+}
+
 // <details> fold appended to a card; returns its body (class cls) for the folded content.
 export function fold(card, label, cls) {
   const d = el("details", "fold"), body = el("div", cls);

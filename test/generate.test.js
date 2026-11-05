@@ -724,6 +724,18 @@ test("Japanese explanations are plain 日本語 for every pack (no やさしい�
 
 // Product review 11/03: the gate compared substrings — 「3,000万円」 in the answer vs 「3000万円」 in the script failed (a
 // correct answer ended in 502), and 「15%」 passed because the source had 「2015年」. Numbers are now whole tokens.
+// rubric §1: a lone 万 counted as a kanji numeral, so 800万円 read as 80010000 while 800万 read as 800 and 8,000,000円 as 8000000.
+test("万: every spelling of one amount compares equal, and a different amount does not", async () => {
+  const { groundedNumbers, numbers } = await import("../lib/script.js");
+  for (const [a, b] of [["800万円", "800万"], ["800万円", "8,000,000円"], ["3万円", "三万円"], ["3万5000円", "35,000円"], ["10万人", "100000人"], ["3千万円", "30,000,000円"], ["1.5万人", "15000人"]]) {
+    assert.deepEqual([...numbers(a)], [...numbers(b)], `${a} / ${b}`);
+    assert.equal(groundedNumbers(`${a}です。`, b), true, `${a} / ${b}`);
+  }
+  assert.equal(groundedNumbers("800万円です。", "900万円"), false);
+  assert.equal(groundedNumbers("8万円です。", "800万円"), false);
+  assert.equal(groundedNumbers("万人に伝わる説明です。", "説明"), true, "万人 alone is an idiom, not a figure");
+});
+
 test("number gate compares whole numbers: thousands commas match, digits inside another number do not", async () => {
   const { groundedNumbers } = await import("../lib/script.js");
   assert.equal(groundedNumbers("3000万円の予算を管理しました。", "前職で3,000万円の予算を管理しました。"), true);

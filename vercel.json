@@ -78,6 +78,10 @@
     {
       "source": "/api/fit",
       "destination": "/api/research?route=fit"
+    },
+    {
+      "source": "/api/prep",
+      "destination": "/api/research?route=prep"
     }
   ]
 }

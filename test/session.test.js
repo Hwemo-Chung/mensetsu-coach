@@ -1,7 +1,7 @@
 // REL-4 session helpers: save never throws, load validates and migrates the pre-rename shape.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { saveSession, loadSession, clearSession, migrateSession, SESSION_KEY, SESSION_VERSION } from "../public/session.js";
+import { saveSession, loadSession, clearSession, migrateSession, forgetBrief, forgetPrepClaim, SESSION_KEY, SESSION_VERSION } from "../public/session.js";
 import { fixture, scriptFixture, reviewFixture } from "./fake-claude.js";
 
 const memory = (init = {}) => {
@@ -100,4 +100,45 @@ test("version-1 sessions (question_ja, script.ja, reverse question_ja) migrate t
   assert.equal(s.reverse[0].question, "逆質問？");
   assert.deepEqual(s.company_context.facts, []);
   assert.deepEqual(s.notes, {});
+});
+
+// Interview prep document: kept with the session, but a broken one must not cost the questions.
+const prepDoc = { company: "サンプルテック", position: "PM", blanks: 0, to_confirm: 0, failed: [], unresolved: [], sections: [
+  { key: "company_position", label: "会社・ポジション整理", rows: [{ kind: "company", value: "物流向けSaaS（架空）", status: "confirmed", source_ids: ["s1"] }, { kind: "mail", value: "メールの事実（架空）", status: "unconfirmed", source_ids: [] }] },
+  { key: "sources", label: "作成の根拠", rows: [], sources: [{ id: "s1", title: "会社概要（架空）", url: "https://example.com/" }] },
+] };
+const clone = (o) => JSON.parse(JSON.stringify(o));
+
+test("prep: survives save and load; a broken one is dropped and the questions come back", () => {
+  const s = memory();
+  saveSession(s, { ...session, prep: prepDoc, prep_inputs: { header: { date: "11/10" }, inputs: {} } });
+  const back = loadSession(s);
+  assert.deepEqual(back.prep, prepDoc);
+  assert.deepEqual(back.prep_inputs.header, { date: "11/10" });
+  for (const bad of ["x", 1, [], { sections: "y" }, null]) {
+    const out = migrateSession(clone({ ...session, prep: bad, prep_inputs: "z" }));
+    assert.ok(!("prep" in out), JSON.stringify(bad));
+    assert.ok(!("prep_inputs" in out));
+    assert.equal(out.questions.length, session.questions.length);
+  }
+});
+
+test("forgetBrief: the document stops citing the replaced brief and says it is out of date", () => {
+  const s = clone({ ...session, prep: prepDoc });
+  forgetBrief(s);
+  const rows = s.prep.sections[0].rows;
+  assert.deepEqual(rows[0], { kind: "company", value: "物流向けSaaS（架空）", status: "unconfirmed", source_ids: [] });
+  assert.equal(rows[1].value, "メールの事実（架空）");
+  assert.deepEqual(s.prep.sections[1].sources, []);
+  assert.equal(s.prep.outdated, true);
+  const none = clone(session);
+  forgetBrief(none);
+  assert.ok(!("prep" in none));
+});
+
+test("forgetPrepClaim: a hidden claim leaves the document as well", () => {
+  const s = clone({ ...session, prep: prepDoc });
+  forgetPrepClaim(s, "物流向けSaaS（架空）");
+  assert.deepEqual(s.prep.sections[0].rows.map((r) => r.value), ["メールの事実（架空）"]);
+  forgetPrepClaim(clone(session), "x"); // no document: nothing to do, nothing thrown
 });
