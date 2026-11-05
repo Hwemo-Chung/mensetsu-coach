@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadPack, buildSystemPrompt, buildQuestionRequest, redact } from "../lib/coach.js";
+import { randomBytes } from "node:crypto";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 import { POST } from "../api/questions.js";
@@ -181,6 +182,63 @@ test("SEC-5b: a zip whose end record LIES about the entry count (0) is still cau
   bomb.writeUInt16LE(0, eocd + 8);
   bomb.writeUInt16LE(0, eocd + 10);
   await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
+});
+
+// Audit 11/05: the check walked the directory the end record points at, while jszip rebases by extraBytes or follows the
+// zip64 record to another one. Both layouts hide a real entry behind a decoy (local repro: RSS 64MB → 3GB).
+function zipWithDecoyDir({ zip64 }) {
+  const pieces = (z) => { const end = z.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06])), cd = z.readUInt32LE(end + 16); return [z.subarray(0, cd), Buffer.from(z.subarray(cd, end))]; };
+  const [decoyLocal, decoyCd] = pieces(zipOne("a", "x")), [realLocal, realCd] = pieces(zipOne("word/document.xml", "A".repeat(1024 * 1024)));
+  const pad = Buffer.alloc(200, 0x20), gap = Buffer.alloc(4);
+  const r = decoyLocal.length + pad.length, f = r + realLocal.length, c = f + decoyCd.length + gap.length;
+  realCd.writeUInt32LE(zip64 ? r : r - (c - f), 42);
+  const z64 = Buffer.alloc(zip64 ? 76 : 0);
+  if (zip64) {
+    z64.writeUInt32LE(0x06064b50, 0); z64.writeBigUInt64LE(44n, 4); z64.writeBigUInt64LE(1n, 24); z64.writeBigUInt64LE(1n, 32);
+    z64.writeBigUInt64LE(BigInt(realCd.length), 40); z64.writeBigUInt64LE(BigInt(c), 48);
+    z64.writeUInt32LE(0x07064b50, 56); z64.writeBigUInt64LE(BigInt(c + realCd.length), 64); z64.writeUInt32LE(1, 72);
+  }
+  const end = Buffer.alloc(22); end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(zip64 ? 0xffff : 1, 8); end.writeUInt16LE(zip64 ? 0xffff : 1, 10);
+  end.writeUInt32LE(realCd.length, 12); end.writeUInt32LE(f, 16);
+  return Buffer.concat([decoyLocal, pad, realLocal, decoyCd, gap, realCd, z64, end]);
+}
+
+for (const [label, zip64] of [["a decoy central directory", false], ["a zip64 end record", true]]) {
+  test(`SEC-5c: ${label} that sends the parser elsewhere is refused before walking`, async () => {
+    const { unzippedSize } = await import("../lib/attachment.js");
+    const { default: JSZip } = await import("jszip");
+    const buf = zipWithDecoyDir({ zip64 });
+    // The fixture is only worth testing while jszip really takes the other path and finds the hidden entry.
+    assert.ok((await JSZip.loadAsync(buf)).files["word/document.xml"]);
+    assert.equal(unzippedSize(buf), Infinity);
+    await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: buf.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_unsupported");
+  });
+}
+
+test("attachments: a DOCX that stays under the old 20MB cap but would exhaust the XML parser is rejected before parsing", async () => {
+  const { unzippedSize } = await import("../lib/attachment.js");
+  const bomb = zipOne("word/document.xml", "<a/>".repeat(5 * 1024 * 1024 / 4));
+  // This goes first: without the cap, toContentBlocks would feed the bomb to mammoth (measured: 1.9GB RSS).
+  assert.equal(unzippedSize(bomb), Infinity);
+  await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: bomb.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
+});
+
+test("attachments: an upload at the size limit made of incompressible images is still under the unzipped cap", async () => {
+  const { unzippedSize, MAX_BYTES, MAX_UNZIPPED } = await import("../lib/attachment.js");
+  assert.ok(unzippedSize(zipOne("word/media/photo.jpg", randomBytes(MAX_BYTES - 1024))) <= MAX_UNZIPPED);
+});
+
+test("attachments: a zip mammoth cannot read is the user's file problem (400 code), not a server error", async () => {
+  await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: zipOne("a.txt", "x").toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_unsupported");
+});
+
+test("SEC-5c: a zip comment still passes; an end record cut short is refused without a crash", async () => {
+  const { unzippedSize } = await import("../lib/attachment.js");
+  const zip = zipOne("word/document.xml", "<x/>");
+  zip.writeUInt16LE(2, zip.length - 2);
+  assert.equal(unzippedSize(Buffer.concat([zip, Buffer.from("ok")])), 4);
+  const cut = Buffer.concat([zip, Buffer.from([0x50, 0x4b, 0x05, 0x06])]);
+  await assert.rejects(toContentBlocks({ name: "cv.docx", type: "", data: cut.toString("base64") }), (e) => e instanceof AttachmentError && e.code === "attachment_unsupported");
 });
 
 test("SEC-5b: a normal zip still gets its real inflated size (no false rejection)", async () => {
