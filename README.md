@@ -247,7 +247,7 @@ chmod +x .git/hooks/pre-push
 - `test/`: 単体テスト、個人情報パターンの検査、実呼び出しテスト
 - `public/icons.svg`: UI アイコンのスプライト（第三者の素材、下記に表記）
 - `01_설계문서/`: PRD、設計書、開発記録（DEVLOG）、公的資料のリサーチ（`research/`）
-- `01_설계문서/dev-notes/`: 開発ノウハウの公開版 — 設計の脆弱性と防御（`HARDENING-REVIEW.md`）、Claude 資料のチェックリスト（`CLAUDE-RESOURCES-CHECKLIST.md`）、開発に使った Claude Code マルチエージェントのワークフロースクリプト（`agent-workflows/`）。実際の面接企業名・アカウント情報は削除しました。
+- `01_설계문서/dev-notes/`: 開発ノウハウの公開版 — 設計の脆弱性と防御（`HARDENING-REVIEW.md`）、Claude 資料のチェックリスト（`CLAUDE-RESOURCES-CHECKLIST.md`）、開発に使った Claude Code マルチエージェントのワークフロースクリプト（`agent-workflows/`）。企業名・アカウント情報は削除しました。
 
 日本の面接・書類の規範は公的資料を確認し、`01_설계문서/research/README.md` に信頼度タグとともにまとめました。出身国別の面接行動ルールは、根拠が見つからなかったため作っていません。
 
