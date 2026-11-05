@@ -4,3 +4,10 @@ test/
 .env
 .pii-denylist.txt
 .env.local
+01_*/
+02_*/
+.claude/
+.env*
+sessions/
+*.raw.json
+.playwright-mcp/
