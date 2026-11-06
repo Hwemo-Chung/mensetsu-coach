@@ -158,8 +158,12 @@ test("explain languages: ko, en, ja are registered; prompts name the language an
 test("generateScript gate follows the language: en needs romaji/English, ja needs kana/Japanese", async () => {
   assert.deepEqual(core(await generateScript(fakeClient({ result: enModel }), pack, { question: "Q", answer: "A", lang: "en" })), { ...enScript, kana: enKana });
   assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(jaScript) }), pack, { question: "Q", answer: "A", lang: "ja" })), jaScript);
-  // Korean output when English was asked → retried, then rejected
-  await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(scriptFixture), asModelScript(scriptFixture)] }), pack, { question: "Q", answer: "A", lang: "en" }), /language check/);
+  // Korean tips and translation when English was asked → retried; intent changed 11/07 (prod 502): the second call keeps the
+  // Japanese script and its romaji reading and drops what is in the wrong language, so nothing Korean reaches an English screen.
+  const enBad = await generateScript(fakeClient({ responses: [asModelScript(scriptFixture), asModelScript(scriptFixture)] }), pack, { question: "Q", answer: "A", lang: "en" });
+  assert.deepEqual(enBad.points, []);
+  assert.ok(!("translation" in enBad));
+  assert.ok(!/[\uac00-\ud7af]/.test(JSON.stringify(enBad)), "no Hangul left");
   // kanji left in a kana reading → rejected (kana reading = Korean script for a Japanese speaker, see jaScript note)
   assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(krJaScript, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" })), krJaScript);
   const kanji = { ...krJaScript, reading: "日程が 《ミルリョッスル》" };
@@ -495,6 +499,18 @@ test("hiragana gate: kanji, 々, Hangul, Latin or digits in the model's reading 
       assert.equal(client.calls(), 2);
     }
   }
+});
+
+// Production 11/07: tips written in Japanese on both calls failed the whole script with 502. They are a study aid, so the
+// last call drops them instead; the script, reading and translation still come back.
+test("points in the wrong language on both calls: the script returns without points, not 502", async () => {
+  const jaPoints = asModelScript({ ...scriptFixture, points: ["「ですね」で軽く下げて、質問を受け止めたことを示します。"] });
+  const c = fakeClient({ responses: [jaPoints, jaPoints] });
+  const out = await generateScript(c, pack, { question: "Q", answer: "A", lang: "ko" });
+  assert.deepEqual(out.points, []);
+  assert.equal(out.text, scriptFixture.text);
+  assert.equal(c.calls(), 2);
+  assert.match(c.requests[0].messages[0].content, /points と translation は韓国語で書いてください。/);
 });
 
 test("translation-only retry: one small call for the translation, never more than 2 calls in total", async () => {

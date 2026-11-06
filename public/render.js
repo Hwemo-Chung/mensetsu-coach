@@ -312,9 +312,11 @@ export function renderScript(s, slot) {
   // Same language as the screen (e.g. Japan + Japanese): the server sends no reading or translation.
   if (s.reading != null) into.append(el("p", "label", t.reading[targetOf()]), el("p", "reading", s.reading), el("p", "legend", t.legend));
   if (s.translation != null) into.append(el("p", "label", t.translation), el("p", "tr", s.translation));
-  const ul = el("ul", "points");
-  for (const p of s.points) ul.append(el("li", null, p));
-  into.append(el("p", "label pts", t.points), ul); // .pts + .points: margin note in the panel
+  if (s.points?.length) {
+    const ul = el("ul", "points");
+    for (const p of s.points) ul.append(el("li", null, p));
+    into.append(el("p", "label pts", t.points), ul); // .pts + .points: margin note in the panel
+  }
   log.scrollTop = log.scrollHeight;
 }
 

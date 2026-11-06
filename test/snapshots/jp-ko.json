@@ -307,7 +307,7 @@
     "messages": [
       {
         "role": "user",
-        "content": "<question>\nこれまでの経験で、最も成果を出したプロジェクトを教えてください。\n</question>\n\n<answer>\nえーと、在庫システムの刷新で、ちゃんと処理時間を半分にしました。連絡先 [email]\n</answer>\n\n<company_material>\n物流向け在庫管理SaaS。バックエンドエンジニア（Go / AWS）\n</company_material>\n\n上の質問に対する利用者の回答を、模範回答の4項目で返してください。"
+        "content": "<question>\nこれまでの経験で、最も成果を出したプロジェクトを教えてください。\n</question>\n\n<answer>\nえーと、在庫システムの刷新で、ちゃんと処理時間を半分にしました。連絡先 [email]\n</answer>\n\n<company_material>\n物流向け在庫管理SaaS。バックエンドエンジニア（Go / AWS）\n</company_material>\n\n上の質問に対する利用者の回答を、模範回答の4項目で返してください。points と translation は韓国語で書いてください。"
       }
     ]
   },

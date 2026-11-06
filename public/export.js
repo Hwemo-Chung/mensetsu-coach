@@ -56,7 +56,7 @@ export function sessionToMarkdown(session, t, debrief = null) {
       // No reading/translation when the interview language is the screen language.
       if (s.reading != null) out.push(`**${t.script.reading[target]}**`, "", s.reading, "", `_${t.script.legend}_`, "");
       if (s.translation != null) out.push(`**${t.script.translation}**`, "", s.translation, "");
-      out.push(`**${t.script.points}**`, "", ...s.points.map((p) => `- ${p}`));
+      if (s.points?.length) out.push(`**${t.script.points}**`, "", ...s.points.map((p) => `- ${p}`));
     }
   });
   if (session.reverse?.length) {
