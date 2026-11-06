@@ -339,7 +339,10 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
     const brief = regen && researchOn ? briefFacts(sentBrief) : [];
     const { res, data } = await post("/api/questions", { mail, attachment: file, lang: state.lang, pack: destPack, ...(profile ? { profile } : {}), ...(brief.length ? { brief } : {}) });
     if (my !== state.epoch || (fromBrief && run !== researchRun)) return;
-    if (!res.ok) return failed(res, data);
+    if (!res.ok) {
+      if (!fromBrief && res.status !== 401) input.value = profile || mail; // a brief-led run was not typed here, and a 401 turns the composer into the code field
+      return failed(res, data);
+    }
     const top = log.scrollTop;
     // Session keeps only the model's company summary + questions, never the raw mail or attachment.
     // A regenerated set (career line, brief) starts fresh, notes and reverse questions included; it is the same company, so a paid brief stays.
@@ -358,7 +361,7 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
     renderNotes();
     attachment = null;
     $("chip").hidden = true;
-    renderQuestions(state.session);
+    const list = renderQuestions(state.session);
     openByDefault();
     if (data.specificity && !data.specificity.passed) bubble("coach note", T().chat.lowSpecificity(data.specificity));
     if (data.research_basis && !data.research_basis.passed) bubble("coach note", T().chat.lowResearch(data.research_basis));
@@ -368,6 +371,7 @@ async function requestQuestions(mail, file, profile, waitText, { fromBrief = fal
     // A 401 elsewhere or a career line being typed keeps its stage: the new set must not take over the composer.
     if (!(fromBrief && ["profile", "code"].includes(stage))) askForPick(false);
     if (card) log.scrollTop = top;
+    if (!regen) log.scrollTop = list.offsetTop - log.offsetTop; // the list is the first result; the cards after it pushed it off screen
   } finally {
     wait.remove();
   }
@@ -411,6 +415,7 @@ async function onAnswer(text) {
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);
+  if (!attempt.review && !attempt.script) return void (input.value = text); // nothing to show: same question, answer back in the box
   if (attempt.review) syncHabits(attempt.review);
   if (attempt.review || attempt.script) {
     state.session.attempts.push(attempt);
@@ -424,6 +429,7 @@ async function onAnswer(text) {
   if (attempt.review) showReview(attempt.review, cmp, attempt.script);
   askForPick(true);
   quickReplies();
+  if (attempt.review && !wide.matches) log.scrollTop = reviewSlot.offsetTop - log.offsetTop; // no side panel here: the verdict sits above the long script
 }
 
 // The owner's browser only. Counts, never text; a failure here must not touch the practice. The mail rules are the jp pack's.
@@ -493,6 +499,7 @@ $("composer").addEventListener("submit", async (ev) => {
   if (state.tour || regenerating) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled)
   const text = input.value.trim();
   if (!text) return;
+  const my = state.epoch;
   voiceSent();
   input.value = "";
   send.disabled = true;
@@ -503,8 +510,10 @@ $("composer").addEventListener("submit", async (ev) => {
     else if (stage === "profile") await onProfile(text);
     else await onAnswer(text);
   } catch {
+    if (my !== state.epoch) return; // the chat was reset while waiting: this text and error belong to the erased session
     bubble("err", message({ code: "network" }));
     if (stage === "code") askForCode();
+    else input.value = text;
   } finally {
     send.disabled = false;
   }

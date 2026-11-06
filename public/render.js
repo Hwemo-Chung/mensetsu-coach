@@ -69,7 +69,7 @@ export function waiting(label) {
   text.hidden = true;
   b.append(dots, text);
   setTimeout(() => {
-    if (!b.classList.contains("typing")) return;
+    if (!b.isConnected || !b.classList.contains("typing")) return; // a removed bubble keeps its class, and this scroll would undo a card's scroll to its top
     text.hidden = false;
     log.scrollTop = log.scrollHeight; // the label can wrap the bubble onto a second line
   }, 3000);
