@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Status
 
 Hackathon workspace for **Built with Claude: Japan 2026** (solo). Product: 日本転職面接スクリプトコーチ (仮称 メンセツ・コーチ).
-**Premise for every judgment: this is an MVP for testing, and feature implementation comes first.** Security hardening is a release task, not a blocker: list weaknesses in the README section `実運用前に修正が必要な点` instead of fixing them now. Never invent career facts, and keep real names and the current job search out of public files.
+**Premise for every judgment: this is an MVP for testing, and feature implementation comes first.** Security hardening is a release task, not a blocker: list weaknesses in the README section `実運用前に修正が必要な点` instead of fixing them now. Never invent career facts, and keep real names and personal circumstances out of public files.
 Public GitHub repo. Only publicly shareable data is committed; secrets and personal data live outside the repo (see Layout).
 
 ## Commands
@@ -30,11 +30,9 @@ Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非
 ## Layout
 
 - `01_설계문서/` — public specs and research. **`PRD-INTERVIEW-COACH.md` is the source of truth** (scope, F1–F10, data model, daily milestones). DESIGN-KAKAOTALK (original design), DESIGN-COMPARISON / DESIGN-INTL-MAIL-AGENT (rejected backup idea — ignore), DEVLOG, `research/`. Internal ops docs (schedule, submission drafts, competitor scans, market analysis) live in `../BuiltWithClaude-2026-private/internal-docs/`, not in the repo.
-- Private folder `../BuiltWithClaude-2026-private/` (outside the repo): `02_로컬원본/`, `internal-docs/`, `secrets/` (`.env`, `.env.local`, `.pii-denylist.txt`), `samples/` (the real agent mail).
-  - `02_로컬원본/` — reference material from the user's Mac. **Read-only input, not code to reuse.** Never copy its contents into the repo.
-  - `02_로컬원본/business_japanese_corrections_1022.md` — origin of the correction rules → becomes `packs/jp.json` data.
-  - `02_로컬원본/interview_scripts_1022_final.md`, `면접일정_INDEX.md`, `scout-mail-reply-runbook.md` — real personal/company data. Reference only; tests and demo use `TEST-CASES.md` and `samples/` (synthetic).
-  - `02_로컬원본/im-not-ai/` — separate third-party git repo (own CLAUDE.md), style-correction reference only.
+- Private folder `../BuiltWithClaude-2026-private/` (outside the repo): `02_로컬원본/`, `samples/`, `internal-docs/`, `secrets/` (`.env`, `.env.local`, `.pii-denylist.txt`).
+  - `02_로컬원본/` and the private `samples/` are reference material. **Read-only input, not code to reuse.** Never copy their contents into the repo. Tests and demo use `TEST-CASES.md` and the repo's `samples/` (synthetic).
+  - The correction rules behind `packs/jp.json` come from there, as rule data only. `02_로컬원본/im-not-ai/` is a separate third-party git repo (own CLAUDE.md), style-correction reference only.
 
 ## Contest rules that constrain code
 
