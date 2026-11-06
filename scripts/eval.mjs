@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
-import { loadPack, generateReview, generateQuestions, generateScript, maskInput } from "../lib/coach.js";
+import { loadPack, generateReview, generateQuestions, generateScript, maskInput, closingOf, unneededSteps } from "../lib/coach.js";
 import { summarizeScripts, summarizeReviews, scriptGates, costOf } from "../lib/consistency-metrics.js";
 
 try { process.loadEnvFile(process.env.ENV_FILE ?? ".env"); } catch {}
@@ -35,8 +35,14 @@ const QUESTION_FOR = {
   "str-answer-first": "AIの活用について、どうお考えですか。",
   "str-visa-facts": "在留資格について教えてください。",
   "rep-uchi-keishou": "今の職場での報告の進め方を教えてください。",
+  "str-number": "見積もりがずれたとき、どのように判断しますか。", // the rule is limited to judgment questions (11/06)
+  "rep-genshoku": "今の職場での報告の進め方を教えてください。",
+  "rep-onsha": "当社を志望した理由を教えてください。",
+  "rep-daijoubu": "出社は問題ありませんか。",
 };
 const report = {};
+// A step the item's closing does not need is graded present by code (lib/review.js), so it is no model agreement to count.
+const graded = (g) => Object.entries(g.steps ?? {}).filter(([k]) => !unneededSteps(pack, closingOf(pack, g)).includes(k));
 
 if (only.includes("f4")) {
   const rows = await pool(pack.correction_rules, 5, async (r) => {
@@ -60,7 +66,7 @@ if (only.includes("f3adv")) {
   for (const { g, out } of rows.filter((x) => x && x.out)) {
     if ((out.answers_question === "yes") === (g.answers_question === "yes")) aq++;
     const rg = regexGrade(g.answer);
-    for (const [k, want] of Object.entries(g.steps ?? {})) { n++; if (out.steps[k].present === want) m++; if (rg[k] === want) r++; }
+    for (const [k, want] of graded(g)) { n++; if (out.steps[k].present === want) m++; if (rg[k] === want) r++; }
   }
   report.f3adv = { items: gold.length, model_steps: `${m}/${n}`, regex_steps: `${r}/${n}`, model_answers_question: `${aq}/${gold.length}`, always_yes: `${gold.filter((g) => g.answers_question === "yes").length}/${gold.length}` };
 }
@@ -76,7 +82,7 @@ if (only.includes("f3")) {
     aqN++;
     const yes = out.answers_question === "yes";
     if (yes === (g.answers_question === "yes")) aq++; else misses.push({ id: g.id, answers_question: out.answers_question });
-    for (const [k, want] of Object.entries(g.steps ?? {})) {
+    for (const [k, want] of graded(g)) {
       stN++;
       perStep[k] ??= [0, 0];
       perStep[k][1]++;
@@ -187,7 +193,7 @@ if (only.includes("consistency")) {
     return {
       id: it.id, category: it.category,
       script: {
-        ...summarizeScripts(usable(sr).map((r) => r.output.text), source, N),
+        ...summarizeScripts(usable(sr).map((r) => r.output.text), source, N, { fukusho: !(pack.answer_structure.closings?.[closingOf(pack, it)]?.skip ?? []).includes("fukusho") }),
         first_call_pass: `${firsts.filter((x) => x.all).length}/${firsts.length}`,
         first_call_gate_fails: gateFails,
         calls_per_run: sr.map((r) => r.calls.map((c) => c.kind[0]).join("")), // s=script, t=translation-only

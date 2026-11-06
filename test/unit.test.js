@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import { loadPack, buildSystemPrompt, buildQuestionRequest, redact } from "../lib/coach.js";
 import { randomBytes } from "node:crypto";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
+import { ask } from "../lib/claude.js";
+import { fakeClient } from "./fake-claude.js";
 import { checkAccess, rateLimit } from "../lib/guard.js";
 import { POST } from "../api/questions.js";
 import { POST as checkCode } from "../api/access.js";
@@ -281,4 +283,83 @@ test("attachments: a PDF over 10 pages is refused; a short one passes", async ()
   await assert.rejects(toContentBlocks({ name: "cv.pdf", type: "application/pdf", data: pdf(11) }), (e) => e instanceof AttachmentError && e.code === "attachment_too_large");
   const ok = await toContentBlocks({ name: "cv.pdf", type: "application/pdf", data: pdf(3) });
   assert.equal(ok[0].type, "document");
+});
+
+// Real run 11/06: 「2026-11-05 11:00」 reached the model as 「[phone]:00」, so the interview time was lost.
+test("masking keeps a date followed by a time, and still masks phones", async () => {
+  const { maskInput } = await import("../lib/privacy.js");
+  const { mask } = await import("../public/export.js");
+  for (const f of [maskInput, mask]) {
+    for (const s of ["面接 2099-01-02 11:00", "面接 2099.01.02 9:30〜10:30", "日時: 2099-01-02 11：00", "2099-01-02 11時に伺います"]) assert.equal(f(s), s);
+    for (const phone of ["090-0000-0000", "03-0000-0000", "0120-12-34 56"]) {
+      assert.equal(f(`電話 ${phone}`), "電話 [phone]");
+      assert.equal(f(`電話 ${phone} 11:00`).includes("0000"), false, "a phone before a time");
+    }
+    assert.equal(f("2099-01-02 090-0000-0000"), "[phone]", "a date and a phone on one line");
+    assert.equal(f("2099-01-02 11"), "[phone]", "no time follows, so this stays the old guess");
+  }
+});
+
+// Real run 11/06: the second half of a time range and a full-width date lost the time; an impossible date passed as a date.
+test("masking: a time range and a full-width date keep the time; an impossible date is a phone again", async () => {
+  const { maskInput } = await import("../lib/privacy.js");
+  const { mask } = await import("../public/export.js");
+  for (const f of [maskInput, mask]) {
+    for (const s of ["2099-01-02 11:00 - 2099-01-02 12:00", "2099-01-02 11:00-2099-01-02 12:00", "２０９９－０１－０２ １１：００", "2099-12-31 23:59"]) assert.equal(f(s), s, s);
+    for (const phone of ["2012-34-56 78:", "2090-12-34 56:", "2000-11-22 33時"]) assert.equal(f(phone).includes("[phone]"), true, phone);
+    assert.equal(f("2012-13-02 11:00").includes("[phone]"), true, "month 13");
+    assert.equal(f("090-0000-0000: 内線 00 - 2099-01-02 12:00").includes("090"), false);
+    assert.equal(f("03 - 2099-01-02 12:").includes("[phone]"), true, "the leading minutes need the colon before them");
+  }
+});
+
+test("pack: wording fixes from the cross-check", () => {
+  assert.doesNotMatch(pack.correction_rules.find((r) => r.id === "del-chotto").pattern, /形容詞/);
+  // Intent changed by the user on 11/06 18:05: the rule names the part of speech, the adverb ちょっと (少し・やや).
+  assert.match(pack.correction_rules.find((r) => r.id === "del-chotto").pattern, /^副詞の『ちょっと』（少し・やや）$/);
+  assert.ok(pack.culture_notes.some((n) => n.includes("まず質問に答える構造を優先する（作者の経験）")));
+  assert.ok(!pack.culture_notes.some((n) => n.includes("評価に効く")));
+  assert.match(pack.culture_notes.find((n) => n.includes("本籍")), /国籍/);
+  assert.match(pack.culture_notes.find((n) => n.includes("本籍")), /健康/);
+  const asked = (q) => pack.research.fair_hiring_patterns.some((p) => new RegExp(p).test(q));
+  for (const q of ["ご国籍はどちらですか。", "持病はありますか。", "既往歴を教えてください。"]) assert.ok(asked(q), q);
+  assert.ok(!asked("多国籍のチームでの経験はありますか。"), "多国籍 is about the team");
+  assert.equal(pack.research.checkpoint_templates.filter((t) => /賞与がどのような前提|裁量労働制|最初の1か月|最初の1年/.test(t.text)).length, 4);
+  for (const id of ["rep-genshoku", "rep-onsha", "rep-daijoubu"]) assert.ok(pack.correction_rules.some((r) => r.id === id), id);
+  const sasete = pack.correction_rules.find((r) => r.id === "rep-sasete-itadaku").pattern;
+  assert.match(sasete, /させていただけますか/);
+  assert.match(sasete, /控えさせていただきます/);
+  assert.ok(pack.culture_notes.some((n) => n.includes("一次面接の質問は")) && pack.culture_notes.some((n) => n.includes("入社後の立ち上がり")));
+});
+
+// Prompt caching: every route's string system prompt leaves ask() as one text block with a 5-minute breakpoint;
+// an already-blocked system prompt is sent as is. The builders' snapshots never see the wrapper.
+test("ask() sends the system prompt as a cached text block", async () => {
+  const c = fakeClient({ result: {} });
+  await ask(c, { model: "m", system: "ルール本文", messages: [{ role: "user", content: "q" }] });
+  assert.deepEqual(c.raw[0].system, [{ type: "text", text: "ルール本文", cache_control: { type: "ephemeral" } }]);
+  assert.equal(c.requests[0].system, "ルール本文");
+  const blocks = [{ type: "text", text: "a" }];
+  await ask(c, { model: "m", system: blocks, messages: [{ role: "user", content: "q" }] });
+  assert.equal(c.raw[1].system, blocks);
+});
+
+// Refutation 18 (11/06): 復唱 is written only for judgment questions (user decision), so the consistency eval's frame check must not
+// require it elsewhere; a self-introduction closes with a greeting or a link to the company.
+test("consistency metric: the frame needs 復唱 only where the closing keeps it, and a greeting closes a self-introduction", async () => {
+  const { frameOk, summarizeScripts } = await import("../lib/consistency-metrics.js");
+  const judge = "見積もりがずれたときの判断、ですね。範囲を縮小すると判断しました。基準は、［ここに基準］です。判断の基準と伝え方のどちらから、お話ししましょうか。";
+  const intro = "前職では物流の開発を担当しました。担当は在庫管理です。本日はどうぞよろしくお願いいたします。";
+  assert.ok(frameOk(judge) && !frameOk(intro), "by default 復唱 is required, as before");
+  assert.ok(frameOk(intro, false), "no 復唱 expected: the greeting closes it");
+  assert.ok(!frameOk(judge, false), "a 復唱 where none is expected breaks the frame");
+  assert.equal(summarizeScripts([intro, intro], "", 2, { fukusho: false }).frame_ok, 2);
+});
+
+test("review: the steps a closing does not need are named for the evals too", async () => {
+  const { unneededSteps } = await import("../lib/review.js");
+  assert.deepEqual(unneededSteps(pack, "self_intro"), ["fukusho"]);
+  assert.deepEqual(unneededSteps(pack, "short_fact"), ["fukusho", "kijun"]);
+  assert.deepEqual(unneededSteps(pack, "options"), []);
+  assert.deepEqual(unneededSteps(pack, "contribution"), [], "復唱 stays a tip there (user decision 11/06 20:45)");
 });

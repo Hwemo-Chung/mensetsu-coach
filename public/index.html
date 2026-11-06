@@ -44,6 +44,7 @@
       </div>
       <div id="chip" class="chip" hidden><span id="chipName"></span><button type="button" id="chipX" data-i18n-label="removeFile"><svg class="icon" aria-hidden="true"><use href="/icons.svg#x"></use></svg></button></div>
       <div class="notices"><p id="micStatus" class="mic-status" aria-live="polite" hidden></p><p id="micNote" class="mic-status" hidden></p></div>
+      <label class="verify-material"><span data-i18n="verify.material"></span><textarea id="verifyMaterial" rows="2" maxlength="20000" autocomplete="off"></textarea><span id="materialCut" class="legend" data-i18n="verify.materialCut" hidden></span></label>
       <div class="row">
         <label class="attach" tabindex="0" role="button" data-i18n-label="attach"><svg class="icon" aria-hidden="true"><use href="/icons.svg#attach"></use></svg><input id="file" type="file" accept=".pdf,.docx,.txt,.md,image/png,image/jpeg,image/webp,image/gif" hidden></label>
         <textarea id="input" rows="1" required></textarea>
@@ -133,7 +134,23 @@
         <p id="debriefStatus" class="legend" role="status"></p>
         <div class="mail-actions"><button type="button" id="debriefDelete" data-i18n="debrief.deleteAll"></button></div>
       </div>
+      <fieldset id="accessOpts" class="opt-group" hidden>
+        <legend data-i18n="opts.code"></legend>
+        <p class="legend" data-i18n="opts.codeHint"></p>
+        <div id="accessField"></div>
+      </fieldset>
       <div class="mail-actions"><button value="close" data-i18n="opts.close"></button></div>
+    </form>
+  </dialog>
+  <dialog id="calendar" class="mail desired" aria-labelledby="calendarTitle">
+    <form method="dialog" novalidate>
+      <h2 id="calendarTitle" data-i18n="calendar.title"></h2>
+      <label><span data-i18n="calendar.kind"></span><select id="calendarKind"><option value="interview" data-i18n="calendar.interview"></option><option value="practice" data-i18n="calendar.practice"></option></select></label>
+      <label><span data-i18n="calendar.at"></span><input id="calendarAt" type="datetime-local"></label>
+      <label><span data-i18n="calendar.minutes"></span><input id="calendarMinutes" type="number" min="1" max="1440" value="60" inputmode="numeric"></label>
+      <p id="calendarText" class="legend"></p>
+      <p class="legend" data-i18n="calendar.note"></p>
+      <div class="mail-actions"><button value="close" data-i18n="opts.close"></button><a id="calendarLink" class="primary" target="_blank" rel="noopener noreferrer" data-i18n="calendar.add" hidden></a></div>
     </form>
   </dialog>
   <dialog id="debrief" class="mail desired" aria-labelledby="debriefTitle">
@@ -152,6 +169,7 @@
     <form id="prepForm" method="dialog" novalidate>
       <h2 id="prepTitle" data-i18n="prep.title"></h2>
       <p class="legend" data-i18n="prep.hint"></p>
+      <label><span data-i18n="prep.stage"></span><select id="prepStage"><option value="casual" data-i18n="prep.stageNames.casual"></option><option value="first" data-i18n="prep.stageNames.first" selected></option><option value="second" data-i18n="prep.stageNames.second"></option><option value="executive" data-i18n="prep.stageNames.executive"></option><option value="final" data-i18n="prep.stageNames.final"></option><option value="offer" data-i18n="prep.stageNames.offer"></option></select></label>
       <label><span data-i18n="prep.material"></span><textarea id="prepMaterial" rows="6" maxlength="20000"></textarea></label>
       <label><span data-i18n="prep.file"></span><input id="prepFile" type="file" accept=".docx,.txt,.md"></label>
       <p class="legend" data-i18n="prep.fileNote"></p>

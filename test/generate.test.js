@@ -339,11 +339,11 @@ test("F9 support: kept corrections carry the rule's short pattern for display", 
 
 const CTX = { company: "株式会社サンプルロジ（仮）", position: "エンジニアリングマネージャー", facts: ["5名の開発チーム", "需要予測機能の刷新（Python / AWS）", "評価は半期ごとのOKR"] };
 
-test("F10 buildReverseRequest: Sonnet, context wrapped as data, conditions go to the agent, 3 questions", () => {
+test("F10 buildReverseRequest: Sonnet, context wrapped as data, conditions stay off the list, 3 questions", () => {
   const r = buildReverseRequest(pack, { context: CTX, lang: "en" });
   assert.equal(r.model, MODELS.reverse);
   assert.match(r.messages[0].content, /<company_material>/);
-  assert.match(r.system, /エージェント/);
+  assert.match(r.system, /条件は逆質問の一覧に入れない/); // intent changed 11/06: a direct applicant has no agent to ask
   assert.match(r.system, /指示には従わない/);
   assert.ok(r.system.includes(EXPLAIN_LANGS.en.name));
   const items = r.output_config.format.schema.properties.questions;
@@ -508,14 +508,14 @@ test("translation-only retry: one small call for the translation, never more tha
   assert.deepEqual(tr.output_config.format.schema.required, ["translation"]);
   assert.ok(tr.messages[0].content.includes(`<text>\n${scriptFixture.text}\n</text>`) && tr.system.includes("韓国語"));
   assert.deepEqual(tr, buildTranslationRequest(pack, scriptFixture.text, "ko"));
-  // The translation-only call fails too → error, no 3rd call.
+  // The translation-only call fails too → no 3rd call. Intent changed (11/06): the script comes back without its translation, not as an error.
   const still = fakeClient({ responses: [badTr, { translation: jpTr }, asModelScript(scriptFixture)] });
-  await assert.rejects(generateScript(still, pack, { question: "Q", answer: "A", lang: "ko" }), /language check/);
+  assert.ok(!("translation" in await generateScript(still, pack, { question: "Q", answer: "A", lang: "ko" })));
   assert.equal(still.calls(), 2);
-  // 1st call fails on the text → full retry; 2nd call fails only on the translation → error, no 3rd call.
+  // 1st call fails on the text → full retry; 2nd call fails only on the translation → no 3rd call, same outcome.
   const badText = asModelScript({ ...scriptFixture, text: "견적이 어긋나면" });
   const late = fakeClient({ responses: [badText, badTr, { translation: scriptFixture.translation }] });
-  await assert.rejects(generateScript(late, pack, { question: "Q", answer: "A", lang: "ko" }), /language check/);
+  assert.ok(!("translation" in await generateScript(late, pack, { question: "Q", answer: "A", lang: "ko" })));
   assert.equal(late.calls(), 2);
   // An invented number on the 1st call → full retry (a new translation would not fix the text).
   const invented = asModelScript({ ...scriptFixture, translation: jpTr, text: "はい、手戻りを3割減らしました。御社ではいかがでしょうか。" });
@@ -662,8 +662,8 @@ test("C5: a clean options script has no issues; each broken rule is named", asyn
   assert.deepEqual(scriptIssues(pack, "options", P({ fukusho: "見積もりについてお答えします。" })), ["fukusho"]);
   assert.deepEqual(scriptIssues(pack, "options", P({ ketsuron: "三つから選ぶ。" })), ["ending"]);
   assert.deepEqual(scriptIssues(pack, "options", P({ sentakushi: "以上です。" })), ["closing"]);
-  assert.deepEqual(scriptIssues(pack, "contribution", P()), ["closing"]);
-  assert.deepEqual(scriptIssues(pack, "contribution", P({ sentakushi: "御社でも、この手順を活かします。" })), []);
+  assert.deepEqual(scriptIssues(pack, "contribution", P({ fukusho: "" })), ["closing"]);
+  assert.deepEqual(scriptIssues(pack, "contribution", P({ fukusho: "", sentakushi: "御社でも、この手順を活かします。" })), []);
   assert.deepEqual(scriptIssues(pack, "options", P({ kijun: P().kijun.replace("［ここに期間］", "［期限］") })), ["blank"]);
   assert.deepEqual(scriptIssues(pack, "options", P({ kijun: P().kijun.replace("［ここに期間］", "［ここに期間］［ここに数字］［ここに数字］［ここに数字］") })), ["blank"]);
   assert.deepEqual(scriptIssues(pack, "options", P({ kijun: `${P().kijun}以上が基準です。` })), ["sentences:kijun"]);
@@ -673,16 +673,17 @@ test("C5: a clean options script has no issues; each broken rule is named", asyn
 });
 
 test("C5: soft retry inside the 2-call budget — better 2nd call wins, otherwise the 1st comes back with its issues", async () => {
-  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断しました" };
+  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断し、三つから選び、基準を二つ置いて範囲を縮小する案を出しました" }; // the answer backs P()'s predicates, or "unbacked" would also fire
   const mk = (ja) => ({ ...asModelScript(scriptFixture), ja });
-  const clean = mk(P()), issueful = mk(P({ fukusho: "見積もりについてお答えします。" })), worse = mk(P({ fukusho: "見積もりについてお答えします。", sentakushi: "以上です。" }));
+  // Intent changed (11/06): 復唱 no longer buys a retry, so the closing is the soft issue that does.
+  const clean = mk(P()), issueful = mk(P({ sentakushi: "以上です。" })), worse = mk(P({ ketsuron: "三つから選ぶ。", sentakushi: "以上です。" }));
   const a = fakeClient({ responses: [issueful, clean] });
   const outA = await generateScript(a, pack, q);
   assert.deepEqual([outA.issues, a.calls()], [[], 2]);
   const b = await generateScript(fakeClient({ responses: [issueful, worse] }), pack, q);
-  assert.deepEqual(b.issues, ["fukusho"]);
+  assert.deepEqual(b.issues, ["closing"]);
   const hardFail = { ...issueful, ja: P({ ketsuron: "三つから選び、12件を処理します。" }) }; // 12 is not in the answer
-  assert.deepEqual((await generateScript(fakeClient({ responses: [issueful, hardFail] }), pack, q)).issues, ["fukusho"]);
+  assert.deepEqual((await generateScript(fakeClient({ responses: [issueful, hardFail] }), pack, q)).issues, ["closing"]);
   const c = fakeClient({ responses: [clean] });
   assert.deepEqual([(await generateScript(c, pack, q)).issues, c.calls()], [[], 1], "clean first call: no retry");
 });
@@ -690,7 +691,7 @@ test("C5: soft retry inside the 2-call budget — better 2nd call wins, otherwis
 // Live 11/03 (3 scripts): a short user answer gives a short script (no invented facts), and the retry stayed short both
 // times (136 → 136, 129 → 129 chars). So "length" is reported but never buys a 2nd call.
 test("C5: a length-only issue is reported without a retry", async () => {
-  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断しました" };
+  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断し、三つから選び、基準はコストでした" };
   const short = { ...asModelScript(scriptFixture), ja: P({ kijun: "基準は、コストです。" }) };
   const c = fakeClient({ responses: [short, { ...asModelScript(scriptFixture), ja: P() }] });
   const out = await generateScript(c, pack, q);
@@ -798,4 +799,297 @@ test("/api/script returns a TTS signature for exactly the script text", async ()
   const res = await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": "6.6.9.1", "content-type": "application/json" }, body: JSON.stringify({ question: "見積もりは？", answer: "手戻りを減らしました" }) }), { client: fakeClient({ result: asModelScript(scriptFixture) }) });
   const d = await res.json();
   assert.equal(d.ttsSig, sign(d.text));
+});
+
+// Real run 11/06: judgment questions in these wordings got the contribution closing. The past tense stays an experience question.
+test("closingOf: どのような判断・対応 and どのように〜決めて are judgment questions, past tense is not", async () => {
+  const { closingOf } = await import("../lib/pack.js");
+  const c = (question) => closingOf(pack, { question, category: "マネジメント" });
+  for (const q of ["見積もりがずれて遅延が見えたとき、どのような判断と対応をされますか。", "障害が起きたとき、どのような対応をしますか。", "どのような判断を下しますか。", "要件が途中で変わったとき、どのように優先順位を決めて進めますか。", "どのように優先順位を決めますか。"]) assert.equal(c(q), "options", q);
+  for (const q of ["どのような判断をしましたか。", "どのような判断を下しましたか。", "どのような対応をされましたか。", "どのように優先順位を決めて進めましたか。", "どのように決めていましたか。", "どのような判断をしたか教えていただけますか。", "どのように決めたか教えていただけますか。", "どのように決めて進めたか教えていただけますか。"]) assert.equal(c(q), "contribution", q);
+});
+
+// Real run 11/06: the script asserted judgments and results the answer never held; only figures, careers and names were forbidden.
+test("script prompt: what the answer does not hold stays a blank, not only figures", () => {
+  const { system } = buildScriptRequest(pack, { question: "Q", answer: "A" });
+  assert.match(system, /回答にない判断・行動・成果・動機・基準も断定しない/);
+  assert.match(system, /回答に当たる内容がない項目は.*空欄のままにする/);
+  assert.match(system, /例の中身を写さない/);
+});
+
+test("scriptIssues: a finished past sentence whose predicate the answer never said is flagged", async () => {
+  const { scriptIssues } = await import("../lib/script.js");
+  const parts = (ketsuron) => ({ fukusho: "最も成果を出した経験、ですね。", ketsuron, kijun: "基準は、進捗です。", sentakushi: "御社でも、この進め方を活かします。" });
+  const issues = (ketsuron, answer) => scriptIssues(pack, "contribution", parts(ketsuron), answer).filter((x) => x === "unbacked");
+  const ANSWER = "在庫システムの刷新を担当して、毎週進捗を確認していました。";
+  assert.deepEqual(issues("進捗を共有する体制をつくりました。", ANSWER), ["unbacked"]);
+  assert.deepEqual(issues("在庫システムの刷新を担当しました。", ANSWER), [], "the answer's own verb");
+  assert.deepEqual(issues("［ここに成果］をつくりました。", ANSWER), [], "a blank claims nothing yet");
+  assert.deepEqual(issues("開発を担当しました。", "開発を担当して、毎週進捗を確認しました。"), [], "another inflection");
+  assert.deepEqual(issues("売上を伸ばしました。", "売上を伸ばして、進捗も確認しました。"), [], "五段のて形");
+  assert.deepEqual(issues("進捗を共有する体制をつくりました。", "재고 시스템 개선을 담당했습니다."), [], "another language cannot be compared");
+  assert.deepEqual(issues("進捗を共有する体制をつくりました。"), [], "no answer given: the check is off");
+});
+
+test("generateScript: the unbacked result comes back in issues and names the sentence, without another call", async () => {
+  const made = { ...asModelScript(scriptFixture), ja: { fukusho: "最も成果を出した経験、ですね。", ketsuron: "進捗を共有する体制をつくりました。", kijun: "基準は、手戻りの少なさです。", sentakushi: "御社でも、この進め方を活かします。" } };
+  const client = fakeClient({ result: made });
+  const out = await generateScript(client, pack, { question: "最も成果を出した経験を教えてください。", answer: "在庫システムの刷新を担当しました。手戻りの少なさを見ていました。" });
+  assert.ok(out.issues.includes("unbacked"));
+  assert.deepEqual(out.unbacked, ["進捗を共有する体制をつくりました。"], "the sentence goes to the screen");
+  // Was a re-roll: it paid for a second call with no reason given to the model and nothing shown. The screen note replaces it.
+  assert.equal(client.requests.length, 1);
+});
+
+// Real run 11/06: a judgment nobody stated moved from the past tense into the present, past the check.
+test("scriptIssues: in 結論・基準 a present sentence needs its content word in the answer; the closing and form words do not count", async () => {
+  const { scriptIssues } = await import("../lib/script.js");
+  const ANSWER = "在庫システムの刷新を担当して、毎週進捗を確認していました。";
+  const issues = (part, closing = "contribution") => scriptIssues(pack, closing, { fukusho: "遅れたときの対応、ですね。", ketsuron: "在庫システムの刷新を担当しました。", kijun: "基準は、進捗です。", sentakushi: "御社でも、この進め方を活かします。", ...part }, ANSWER).filter((x) => x === "unbacked");
+  assert.deepEqual(issues({ ketsuron: "遅れが出たら、早めに範囲を縮小します。" }), ["unbacked"]);
+  assert.deepEqual(issues({ kijun: "基準は、お客様が得られる価値です。" }), ["unbacked"]);
+  assert.deepEqual(issues({ ketsuron: "毎週の進捗を確認しています。" }), [], "the answer's own word");
+  assert.deepEqual(issues({ ketsuron: "早めに［ここに最初の行動］を行います。" }), [], "a blank claims nothing yet");
+  assert.deepEqual(issues({ kijun: "基準は、手戻りが減るかどうかです。" }), [], "no content word in the predicate");
+  assert.deepEqual(issues({ kijun: "基準は、早く把握することです。" }), [], "no content word in the predicate");
+  assert.deepEqual(issues({ ketsuron: "進め方が大事だと考えています。" }), [], "a stance");
+  assert.deepEqual(issues({ kijun: "根拠は、毎週の進捗を確認している点です。" }), [], "点 is a form word too");
+  assert.deepEqual(issues({ sentakushi: "御社でも、この進め方を展開します。" }), [], "the closing is a promise, not a claim");
+});
+
+// Real run 11/06: 「基準は、残りのコストに対して…」 was the pack's own example, with a blank in place of the other half.
+test("pack: the 基準 examples carry the form only, so no reason can be copied from them", () => {
+  assert.equal(pack.answer_structure.steps.find((s) => s.key === "kijun").example, "基準は、［ここに基準］です。");
+  assert.equal(pack.correction_rules.find((r) => r.id === "str-number").example_after, "基準は、［ここに基準］です。");
+  assert.doesNotMatch(buildScriptRequest(pack, { question: "Q", answer: "A" }).system, /残りのコスト|残りのリターン/);
+});
+
+test("script prompt: the interviewer's 当社 is 御社 in the candidate's mouth", () => {
+  assert.match(buildScriptRequest(pack, { question: "Q", answer: "A" }).system, /質問の「当社」は、答えでは「御社」と言う/);
+});
+
+// Real run 11/06: the interviewer called their own company 「御社」.
+test("questions: the interviewer says 当社, in the prompt and in the result", async () => {
+  assert.match(buildQuestionRequest(pack, "M", [], "ko").messages[0].content, /question は面接官の発話.*「御社」と書かない/);
+  const result = { ...fixture, questions: fixture.questions.map((q, i) => (i ? q : { ...q, question: "御社の事業で、御社に合う進め方をどう考えますか。" })) };
+  const out = await generateQuestions(fakeClient({ result }), pack, "MAIL", []);
+  assert.equal(out.questions[0].question, "当社の事業で、当社に合う進め方をどう考えますか。");
+});
+
+// Real run 11/06: a delete rule rewrote the sentence, and an answer missing the point of the question stayed unclear.
+test("review prompt: delete rules only delete; a missing core means no", () => {
+  const { system } = buildReviewRequest(pack, { question: "Q", answer: "A" });
+  assert.match(system, /type が delete のルールの after は、before から該当の表現を消すだけ.*内容を足さず、他の箇所を変えない/);
+  assert.match(system, /質問の核心.*回答になければ no にする/);
+  assert.match(system, /他の箇所を変えない（文法を保つ最小の語形変化は除く）/, "del-katachi's own example changes 共有する to 共有して");
+});
+
+// Cross-check 11/06: the closing follows what is asked. 復唱 belongs to judgment questions only (user decision).
+test("closingOf: a self-introduction and a condition or fact question have their own closing", async () => {
+  const { closingOf } = await import("../lib/pack.js");
+  const c = (question, category = "経歴・志望動機") => closingOf(pack, { question, category });
+  for (const q of ["自己紹介をお願いします。", "まず簡単に自己紹介をしてください。", "自己紹介してください。", "簡単に自己紹介ください。"]) assert.equal(c(q), "self_intro", q);
+  for (const q of ["入社可能時期を教えてください。", "希望年収はいくらですか。", "他社の選考状況を教えてください。", "出社は週に何回まで可能ですか。", "客先常駐は可能ですか。", "在留資格と期限を教えてください。", "選考状況を教えてください。", "入社時期はいつ頃ですか。", "年収が下がる場合でも問題ありませんか。"]) assert.equal(c(q), "short_fact", q);
+  // The same words inside a motive, an experience or a judgment question are not a fact to state.
+  for (const q of ["なぜ他社ではなく当社を選ぶのですか。", "他社ではなく当社を志望する理由を教えてください。", "他社と比べて当社の強みは何だと考えますか。", "客先常駐の経験で最も大変だったことは何ですか。", "常駐先の顧客とどう調整しましたか。", "入社後、最初の半年で何に取り組みたいですか。", "先ほど自己紹介していただいた中で、最も力を入れた仕事は何ですか。"]) assert.equal(c(q), "contribution", q);
+  assert.equal(c("常駐先で障害が起きたとき、どう対応しますか。"), "options");
+  for (const q of pack.daily_questions) assert.notEqual(c(q), "short_fact", q);
+  assert.equal(c(pack.daily_questions[0]), "self_intro");
+});
+
+test("closingOf: judgment wordings from the real run are options; past tense and a plain present stay experience", async () => {
+  const { closingOf } = await import("../lib/pack.js");
+  const c = (question) => closingOf(pack, { question, category: "マネジメント" });
+  for (const q of ["遅延が見えたとき、何を基準に、どのように判断して立て直しますか。", "そのときのアクションって何になりますか。", "優先順位はどう決めていますか。", "優先順位をどのように決めていますか。", "どう判断していますか。", "何を基準に立て直しますか。", "このまま続けますか、やめますか。"]) assert.equal(c(q), "options", q);
+  for (const q of ["どう決めていましたか。", "何を基準に判断しましたか。", "どのように判断して立て直しましたか。", "どのように決めたか教えていただけますか。", "5年後、どのようなキャリアを描いていますか。", "AIを業務でどう使っていますか。", "そのプロジェクトをどのように進めていますか。", "どのような成果がありましたか。"]) assert.equal(c(q), "contribution", q);
+});
+
+const scriptSystem = (question, category) => buildScriptRequest(pack, { question, answer: "A", category }).system;
+test("script prompt: 復唱 only for a judgment question; a fact question is short and has no 基準 to fill", () => {
+  const judgment = scriptSystem("見積もりがずれたら、どうしますか。");
+  assert.match(judgment, /最初に質問を短く復唱し、次の文で答える/);
+  assert.match(judgment, /fukusho は「〈質問の要旨〉、ですね。」の形にする/);
+  assert.match(judgment, /1\. 復唱/);
+  for (const q of ["自己紹介をお願いします。", "当社を志望する理由を教えてください。", "あなたの弱みを教えてください。", "入社可能時期を教えてください。"]) {
+    const s = scriptSystem(q);
+    assert.doesNotMatch(s, /最初に質問を短く復唱|1\. 復唱|、ですね。」の形にする|見積もりがずれたときの判断/, q);
+    assert.match(s, /復唱せず、最初の文で答える/, q);
+    assert.match(s, /fukusho[^\n]*は空文字にする/, q);
+    assert.doesNotMatch(s, /復唱[\d〜]+文/, q);
+  }
+  const intro = scriptSystem("自己紹介をお願いします。");
+  assert.ok(intro.includes(pack.answer_structure.closings.self_intro.rule));
+  assert.doesNotMatch(intro, /入社後の貢献/);
+  const fact = scriptSystem("入社可能時期を教えてください。");
+  assert.match(fact, /fukusho・kijun は空文字にする/);
+  assert.doesNotMatch(fact, /約60秒|全体で200〜300字|根拠は基準か数字を1つ/);
+  assert.match(fact, /全体で20〜120字/);
+  assert.equal(buildScriptRequest(pack, { question: "入社可能時期を教えてください。", answer: "A" }).output_config.format.schema.required.join(), "ja,reading,translation,points");
+  assert.match(judgment, /根拠は基準か数字を1つ/);
+  assert.doesNotMatch(scriptSystem("なぜ当社なのですか。"), /根拠は基準か数字を1つ。/, "「3点あります」 stays open for なぜ当社か");
+});
+
+test("pack: 1つだけ is limited to judgment questions and 「なぜ当社か」 may list three points", () => {
+  const kijun = pack.answer_structure.steps.find((s) => s.key === "kijun").rule, number = pack.correction_rules.find((r) => r.id === "str-number");
+  assert.match(kijun, /判断・状況の質問では/);
+  assert.match(kijun, /なぜ当社か/);
+  assert.match(number.pattern, /判断・状況の質問/);
+  assert.match(number.pattern, /なぜ当社か/);
+  assert.match(number.replacement, /判断・状況の質問/);
+  assert.equal(pack.script_doc.qa_patterns.three_points.order[0], "3点あります");
+});
+
+const SELF_INTRO = { fukusho: "", ketsuron: "本日はお時間をいただきありがとうございます。物流システムの開発を七年担当してきました。", kijun: "現職では在庫管理の刷新を進めており、現場と開発の間に立って要件をまとめています。直近では処理の見直しに取り組み、関係者との調整も担当しています。進め方としては、現場の声を早く確認し、小さく直すことを大切にしています。", sentakushi: "本日はどうぞよろしくお願いいたします。" };
+test("scriptIssues: a self-introduction closes with a greeting, a fact answer is short, and neither needs 復唱", async () => {
+  const { scriptIssues } = await import("../lib/script.js");
+  assert.deepEqual(scriptIssues(pack, "self_intro", SELF_INTRO), []);
+  assert.deepEqual(scriptIssues(pack, "self_intro", { ...SELF_INTRO, sentakushi: "御社でも、この経験を活かします。" }), [], "連接 to the company is allowed too");
+  assert.deepEqual(scriptIssues(pack, "self_intro", { ...SELF_INTRO, fukusho: "自己紹介ですね。" }), ["fukusho"], "the real baseline output");
+  const fact = { fukusho: "", ketsuron: "入社可能時期は［ここに時期］です。", kijun: "", sentakushi: "時期はご相談できます。" };
+  assert.deepEqual(scriptIssues(pack, "short_fact", fact), []);
+  assert.deepEqual(scriptIssues(pack, "short_fact", { ...fact, ketsuron: "入社可能時期は".repeat(30) + "です。" }), ["length"]);
+  assert.deepEqual(scriptIssues(pack, "contribution", P({ fukusho: "", sentakushi: "御社でも、この手順を活かします。" })), []);
+  assert.deepEqual(scriptIssues(pack, "contribution", P({ sentakushi: "御社でも、この手順を活かします。" })), ["fukusho"], "復唱 is for judgment questions");
+});
+
+test("scriptIssues: the closing accepts a statement of options and the name the company goes by", async () => {
+  const { scriptIssues } = await import("../lib/script.js");
+  assert.deepEqual(scriptIssues(pack, "options", P({ sentakushi: "事業側には、止める・縮小する・続けるの選択肢でお返しします。" })), []);
+  assert.deepEqual(scriptIssues(pack, "options", P({ sentakushi: "判断の基準と伝え方のどちらからでもお話しします。" })), []);
+  assert.deepEqual(scriptIssues(pack, "options", P({ sentakushi: "以上です。" })), ["closing"]);
+  for (const name of ["貴社", "御行", "御院", "御校", "サンプル様"]) for (const closing of ["contribution", "improvement"]) assert.deepEqual(scriptIssues(pack, closing, P({ fukusho: "", sentakushi: `${name}でも、この手順を活かします。` })), [], `${closing} ${name}`);
+  for (const closing of ["contribution", "improvement"]) assert.deepEqual(scriptIssues(pack, closing, P({ fukusho: "", sentakushi: "同様に、この手順を活かします。" })), ["closing"], `同様 is no company: ${closing}`);
+});
+
+test("generateScript: 復唱 never buys a second call, missing or malformed; the closing still does", async () => {
+  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断し、三つから選び、基準を二つ置いて範囲を縮小する案を出しました" };
+  const mk = (ja) => ({ ...asModelScript(scriptFixture), ja });
+  for (const fukusho of ["", "見積もりについてお答えします。"]) {
+    const c = fakeClient({ responses: [mk(P({ fukusho })), mk(P())] });
+    const out = await generateScript(c, pack, q);
+    assert.equal(c.calls(), 1, fukusho);
+    assert.ok(out.issues.includes("fukusho"), fukusho);
+  }
+  const c = fakeClient({ responses: [mk(P({ sentakushi: "以上です。" })), mk(P())] });
+  assert.deepEqual((await generateScript(c, pack, q)).issues, []);
+  assert.equal(c.calls(), 2);
+});
+
+// Questions now say 当社 (real run 11/06); the candidate reading it back would call the company by its own word.
+test("generateScript: 当社 never reaches the candidate's script, in the text or in the reading", async () => {
+  const model = { ...asModelScript(scriptFixture), reading: "とうしゃを しぼうする りゆう、 /ですね↘。", ja: P({ fukusho: "当社を志望する理由、ですね。", sentakushi: "当社の事業で、どちらからお話ししましょうか。" }) };
+  const out = await generateScript(fakeClient({ result: model }), pack, { question: "当社を志望する理由を判断するとしたら。", answer: "前職で見積もりのずれを判断し、三つから選び、基準を二つ置いて範囲を縮小する案を出しました", lang: "ko" });
+  assert.doesNotMatch(out.text, /当社/);
+  assert.match(out.parts.fukusho, /^御社を志望/);
+  assert.match(out.parts.sentakushi, /^御社の事業/);
+  assert.match(out.kana, /^おんしゃを/);
+  assert.match(out.reading, /^온샤/);
+  const plain = await generateScript(fakeClient({ result: { ...asModelScript(scriptFixture), reading: "とうしゃを はなします", ja: P() } }), pack, { question: "どう判断しますか。", answer: "前職で見積もりのずれを判断し、三つから選び、基準を二つ置いて範囲を縮小する案を出しました", lang: "ko" });
+  assert.match(plain.kana, /^とうしゃ/, "a reading is rewritten only when the text said 当社");
+});
+
+// An answer that says 当社 itself may mean the user's own employer (rep-genshoku): 御社 there would claim it of the company.
+test("generateScript: when the answer says 当社 too, only the 復唱 is rewritten, in the text and in the reading", async () => {
+  const model = { ...asModelScript(scriptFixture), reading: "とうしゃでの はんだん、 /ですね↘。 とうしゃでは はんいを しゅくしょうします。", ja: P({ fukusho: "当社での判断、ですね。", ketsuron: "当社では、止める・縮小する・続けるの三つから、事業側と一緒に選びます。" }) };
+  const out = await generateScript(fakeClient({ result: model }), pack, { question: "当社で見積もりがずれたら、どう判断しますか。", answer: "当社では見積もりのずれを判断し、三つから選び、基準を二つ置いて範囲を縮小する案を出しました", lang: "ko" });
+  assert.match(out.parts.fukusho, /^御社での判断/);
+  assert.match(out.parts.ketsuron, /^当社では/, "the user's word for their employer is not turned into the company's");
+  assert.match(out.kana, /^おんしゃでの .*とうしゃでは/);
+});
+
+// Real run 11/06 (p20): a good script came back as 502 because one translation stayed in the wrong language.
+test("generateScript: a translation that keeps failing costs the translation, not the script", async () => {
+  const jpTr = "見積もりがずれた場合は、まず影響範囲を確認します。";
+  const badTr = asModelScript({ ...scriptFixture, translation: jpTr });
+  const q = { question: "Q", answer: "A", lang: "ko" };
+  const still = fakeClient({ responses: [badTr, { translation: jpTr }] });
+  const a = await generateScript(still, pack, q);
+  assert.equal(still.calls(), 2);
+  assert.equal(a.text, scriptFixture.text);
+  assert.ok(!("translation" in a), "no translation is shown rather than a wrong one");
+  const cut = fakeClient({ responses: [badTr, { translation: scriptFixture.translation }], stops: ["end_turn", "max_tokens"] });
+  assert.ok(!("translation" in await generateScript(cut, pack, q)), "a cut-off translation call too");
+  const badText = asModelScript({ ...scriptFixture, text: "견적이 어긋나면" });
+  const late = fakeClient({ responses: [badText, badTr] });
+  const b = await generateScript(late, pack, q);
+  assert.equal(late.calls(), 2, "the budget is spent: no third call for the translation");
+  assert.equal(b.text, scriptFixture.text);
+  assert.ok(!("translation" in b));
+  await assert.rejects(generateScript(fakeClient({ responses: [badText, badText] }), pack, q), /language check/, "a bad answer is still an error");
+  process.env.ACCESS_CODE = "c0de";
+  const res = await scriptPOST(new Request("http://x/api/script", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": "6.6.7.1", "content-type": "application/json" }, body: JSON.stringify({ question: "Q", answer: "A", lang: "ko" }) }), { client: fakeClient({ responses: [badTr, { translation: jpTr }] }) });
+  assert.equal(res.status, 200, "was 502 generation_failed");
+});
+
+// A mutation test left this alive: without input.answer the translation path never reports an invented predicate.
+test("generateScript: the translation-only path still checks the script against the answer", async () => {
+  const jpTr = "見積もりがずれた場合は、まず影響範囲を確認します。";
+  const made = { ...asModelScript({ ...scriptFixture, translation: jpTr }), ja: P({ ketsuron: "進捗を共有する体制をつくりました。" }) };
+  const out = await generateScript(fakeClient({ responses: [made, { translation: scriptFixture.translation }] }), pack, { question: "見積もりがずれたとき、どう判断しますか。", answer: "見積もりのずれを三つから選び、基準を二つ置いて範囲を縮小する案を出し、判断しました", lang: "ko" });
+  assert.ok(out.issues.includes("unbacked"));
+  assert.deepEqual(out.unbacked, ["進捗を共有する体制をつくりました。"]);
+});
+
+// Intent changed by the user on 11/06 20:45: grading no longer recommends 復唱 on a self-introduction or a condition/fact question
+// (the script leaves it out there too); every other closing keeps the tip, judgment questions included.
+test("review prompt: 復唱 is recommended except on a self-introduction or a fact question; a fact answer is not marked down for having no 基準", () => {
+  for (const q of ["見積もりがずれたら、どうしますか。", "当社を志望する理由を教えてください。", "あなたの弱みは何ですか。"]) assert.match(buildReviewRequest(pack, { question: q, answer: "A" }).system, /fukusho（復唱）[^\n]*推奨/, q);
+  for (const q of ["自己紹介をお願いします。", "入社可能時期を教えてください。"]) assert.match(buildReviewRequest(pack, { question: q, answer: "A" }).system, /fukusho（復唱）[^\n]*この質問では不要/, q);
+  assert.match(buildReviewRequest(pack, { question: "入社可能時期を教えてください。", answer: "A" }).system, /kijun（基準・数字）[^\n]*この質問では不要/);
+  assert.doesNotMatch(buildReviewRequest(pack, { question: "見積もりがずれたら、どうしますか。", answer: "A" }).system, /この質問では不要/);
+});
+
+// The prompt alone cannot promise it: a step the question does not need is shown as done whatever the model says, so no tip or ✗ appears for it.
+test("generateReview: a step the question does not need comes back present, so the screen shows no tip or ✗ for it", async () => {
+  const run = (question) => generateReview(fakeClient({ result: reviewFixture }), pack, { question, answer: "前職では物流の開発を担当しました。", lang: "ko" });
+  const intro = await run("自己紹介をお願いします。"), fact = await run("入社可能時期を教えてください。"), judge = await run("見積もりがずれたら、どうしますか。");
+  assert.deepEqual(intro.steps.fukusho, { present: true, note: "" });
+  assert.deepEqual([fact.steps.fukusho.present, fact.steps.kijun.present], [true, true]);
+  assert.equal(intro.steps.ketsuron.present, false, "the rest is the model's");
+  assert.equal(judge.steps.fukusho.present, false, "a judgment question keeps the tip");
+});
+
+// Refutation 17 (11/06): wordings of the same questions that fell to the contribution closing (60 s, "how you will contribute").
+test("closingOf: more wordings of a self-introduction and of a condition question", async () => {
+  const { closingOf } = await import("../lib/pack.js");
+  const c = (question) => closingOf(pack, { question, category: "経歴・志望動機" });
+  for (const q of ["では、自己紹介いただけますか。", "簡単に自己紹介いただけますでしょうか。", "自己紹介願います。"]) assert.equal(c(q), "self_intro", q);
+  for (const q of ["いつから働けますか。", "転勤は可能ですか。", "残業はどのくらいまで可能ですか。", "他社の選考状況はどうなっていますか。", "勤務地の希望はありますか。", "入社はいつ頃になりそうですか。"]) assert.equal(c(q), "short_fact", q);
+  for (const q of ["残業が多い時期のチーム運営で、どう工夫しましたか。", "どのような環境で働けば成果を出せますか。", "転勤の多い職場で苦労したことはありますか。"]) assert.notEqual(c(q), "short_fact", q);
+});
+
+// Refutation 15 (11/06): a plain sentence that offers choices is a valid judgment closing (user decision), so it must not cost a paid retry.
+test("scriptIssues: the options closing accepts the usual ways of offering choices, not a closing that offers none", async () => {
+  const { scriptIssues } = await import("../lib/script.js");
+  const parts = (s) => ({ fukusho: "遅延したときの判断、ですね。", ketsuron: "範囲を縮小して続けると判断しました。", kijun: "基準は、［ここに基準］です。", sentakushi: s });
+  for (const s of ["範囲の縮小か納期の調整か、いずれかをご提案します。", "A案とB案のどちらかをご判断いただけます。", "範囲の縮小と納期の調整の二案をご提示できます。", "範囲を縮小するか納期を調整するかは、ご判断いただけます。", "判断の基準と関係者への伝え方のどちらからでもお話しできます。"]) assert.ok(!scriptIssues(pack, "options", parts(s)).includes("closing"), s);
+  assert.ok(scriptIssues(pack, "options", parts("今後もこの手順を続けます。")).includes("closing"));
+});
+
+test("review prompt: a delete that breaks the grammar takes the smallest repair, and 資産 is left alone when the meaning is open", () => {
+  const { system } = buildReviewRequest(pack, { question: "Q", answer: "A" });
+  assert.match(system, /消したあとの文が崩れるなら、その語形変化を行う/);
+  assert.match(pack.correction_rules.find((r) => r.id === "rep-shisan").reason, /どちらの意味か決められないときは直さない/);
+});
+
+test("closings: every closing a rule can pick has a label in every UI language", async () => {
+  const { LANGS } = await import("../public/i18n/index.js");
+  const { closings, closing_rules } = pack.answer_structure;
+  for (const r of closing_rules) assert.ok(closings[r.closing], r.closing);
+  for (const [code, L] of Object.entries(LANGS)) for (const k of Object.keys(closings)) assert.equal(typeof L.closings[k], "string", `${code} ${k}`);
+});
+
+test("questions: five stages; the prompt keeps motives off a casual meeting and tells 役員面接 from 最終面接 by the interviewer", () => {
+  assert.deepEqual(pack.question_taxonomy.stages, ["カジュアル面談", "一次面接", "二次面接", "役員面接", "最終面接"]);
+  const content = buildQuestionRequest(pack, "M", [], "ko").messages[0].content;
+  assert.match(content, /カジュアル面談[^\n]*志望動機/);
+  assert.match(content, /役員面接と最終面接[^\n]*面接官/);
+  assert.doesNotMatch(buildQuestionRequest(kr, "M", [], "ko").messages[0].content, /カジュアル面談/, "the kr pack has its own stages");
+  assert.match(buildQuestionRequest(pack, "M", [], "ko").system, /一次面接の質問は、応募書類と説明の一致/);
+});
+
+test("reverse prompt: conditions stay off the list without assuming there is an agent", () => {
+  const { system } = buildReverseRequest(pack, { context: {}, lang: "ko" });
+  assert.match(system, /年収・残業・有給・入社日などの条件は逆質問の一覧に入れない（聞き先は別の節で案内する）。/);
+  assert.doesNotMatch(system, /エージェントに確認するものなので/);
 });

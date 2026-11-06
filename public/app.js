@@ -1,8 +1,9 @@
 import { LANGS } from "./i18n/index.js";
+import { calendarLink } from "./calendar.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap } from "./export.js";
 import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, fitDesired, loadDebrief, saveDebrief, clearDebriefs, clearCompanyNotes, SESSION_KEY } from "./session.js";
-import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, retireBriefMarks, renderReview, renderCompare, renderScript, renderRail, readAttachment, JP_STEPS } from "./render.js";
-import { panel, wide, closePanel, showReview, renderNotes, resetPanel, openByDefault } from "./panel.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, practiceLog, retireBriefMarks, renderReview, renderVerify, renderCompare, renderScript, scriptCheck, renderRail, readAttachment, JP_STEPS } from "./render.js";
+import { panel, wide, closePanel, showReview, showVerify, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
 import { renderConfirm, renderBrief, showFit, showConditions } from "./brief.js";
 import { initVoice, addListen, addReadAloud, showMic, voiceSent, stopVoice, stopTts, allowRecording } from "./voice.js";
@@ -20,6 +21,7 @@ function keepCode(v) {
   try { v ? sessionStorage.setItem("code", v) : sessionStorage.removeItem("code"); } catch {}
 }
 let stage = "code"; // code → mail → pick ⇄ answer
+let openMode = false; // OPEN_ACCESS (from /api/access): no code step, the daily limit applies until a code lifts it
 let lastMail = null, lastAttachment = null, lastProfile = ""; // memory only, for the career-line and brief regenerations
 let destPack = "jp"; // destination pack for the next question set (jp, or kr beta)
 const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
@@ -35,27 +37,29 @@ const stored = (() => { try { return localStorage.getItem(LANG_KEY); } catch { r
 const browser = (navigator.language || "ko").slice(0, 2);
 state.lang = LANGS[stored] ? stored : LANGS[browser] ? browser : "ko";
 
-const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder", profile: "profilePlaceholder" };
+const PLACEHOLDER = { code: "codePlaceholder", mail: "mailPlaceholder", pick: "pickPlaceholder", answer: "answerPlaceholder", verify: "verifyPlaceholder", profile: "profilePlaceholder" };
 function setStage(next) {
   stage = next;
   document.body.dataset.stage = next; // CSS: the privacy line shows only while the code and the mail are entered
   showMic(next === "answer");
   input.placeholder = T().chat[PLACEHOLDER[stage]];
+  send.querySelector(".lbl").textContent = next === "verify" ? T().verify.send : T().ui.send;
 }
-function askForCode() {
-  setStage("code");
-  const b = bubble("coach", T().chat.askCode);
+// First step, with the no-code tour: the code, or the mail when the server is open (OPEN_ACCESS, DECISIONS 11/06).
+function askForStart() {
+  const b = openMode ? askForMail() : (setStage("code"), bubble("coach", T().chat.askCode));
   const demoBtn = iel("button", "inline-btn", "play", T().demo.button);
   demoBtn.type = "button";
-  demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(askForCode); });
+  demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(askForStart); });
   b.append(el("br"), demoBtn);
 }
 
 function askForMail() {
   setStage("mail");
-  bubble("coach", T().chat.askMail);
+  return bubble("coach", T().chat.askMail);
 }
 function askForPick(again) {
+  retireModes();
   setStage("pick");
   return bubble("coach", again ? T().chat.askPickAgain : T().chat.askPick({ count: state.session.questions.length }));
 }
@@ -70,13 +74,48 @@ async function post(path, body, extraHeaders = {}) {
   return { res, data };
 }
 
-// A 401 mid-session means the code changed or expired: start over from the code step.
+// A 401 mid-session means the code changed or expired: start over from the code step (open: go on under the limit).
 function failed(res, data) {
-  bubble("err", message(data));
+  const b = bubble("err", message(data));
+  if (data.code === "quota") b.append(el("br"), codeField());
   if (res.status === 401) {
     keepCode(null);
-    askForCode();
+    if (!openMode) askForStart();
   }
+}
+
+// The reviewer's code (DECISIONS 11/06), in the limit notice and in the options: checked by /api/access, then sent with every call.
+function codeField() {
+  const box = el("span", "code-field"), field = el("input"), go = el("button", "inline-btn", T().opts.codeSend), status = el("span", "legend", code ? T().opts.unlimited : "");
+  Object.assign(field, { type: "password", autocomplete: "off", placeholder: T().opts.code });
+  field.setAttribute("aria-label", T().opts.code);
+  go.type = "button";
+  status.setAttribute("role", "status");
+  go.addEventListener("click", async () => {
+    const value = field.value.trim();
+    if (!value) return;
+    // A header value must be Latin-1 or fetch throws; such a code can never match (as in onCode).
+    const { res, data } = /[^\u0000-\u00ff]/.test(value) ? { data: { code: "access_denied" } } : await post("/api/access", null, { "x-access-code": value }).catch(() => ({ data: { code: "network" } }));
+    if (res?.ok) keepCode(value);
+    status.textContent = res?.ok ? T().opts.unlimited : message(data);
+  });
+  field.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); go.click(); } }); // in the options, Enter would submit the dialog and close it
+  box.append(field, " ", go, " ", status);
+  return box;
+}
+
+// The access check passed (the code, or the open mode on load): the feature flags, then the saved session if any.
+// REL-4: restore after the access check only. A 401 re-ask keeps the session in memory and must not draw it twice.
+function opened(data) {
+  allowRecording(data.stt);
+  researchOn = data.research === true;
+  mailOn = data.mail === true;
+  prepOn = data.prep === true;
+  if (state.session) return false;
+  const saved = loadSession(LS);
+  if (saved) return restore(saved), true;
+  clearSession(LS); // broken or unreadable leftovers would keep triggering the reset dialog
+  return false;
 }
 
 async function onCode(text) {
@@ -84,33 +123,23 @@ async function onCode(text) {
   // A header value must be Latin-1 or fetch throws; such a code can never match, so refuse it here.
   if (/[^\u0000-\u00ff]/.test(text)) {
     bubble("err", message({ code: "access_denied" }));
-    return askForCode();
+    return askForStart();
   }
   const my = state.epoch;
   const { res, data } = await post("/api/access", null, { "x-access-code": text });
   if (my !== state.epoch) return;
   if (res.ok) {
     keepCode(text);
-    allowRecording(data.stt);
-    researchOn = data.research === true;
-    mailOn = data.mail === true;
-    prepOn = data.prep === true;
     $("start").hidden = true; // the tour's next-step card has done its job
     // Entering the code ends a plain demo replay: it no longer counts as history, and its review leaves the panel.
     if (state.demoActive) {
       state.demoActive = false;
       resetPanel();
     }
-    // REL-4: restore after the code check only. A 401 re-ask keeps the session in memory and must not draw it twice.
-    if (!state.session) {
-      const saved = loadSession(LS);
-      if (saved) return restore(saved);
-      clearSession(LS); // broken or unreadable leftovers would keep triggering the reset dialog
-    }
-    return askForMail();
+    return opened(data) || askForMail();
   }
   bubble("err", message(data));
-  askForCode();
+  askForStart();
 }
 
 // Optional career line (offered once per question set): same mail + one line as candidate material.
@@ -321,6 +350,9 @@ async function onProfile(text) {
 }
 
 async function onMail(text) {
+  // As onCode: in the open mode the mail is the first real step, so a closed or skipped tour ends here (refutation 11/06).
+  $("start").hidden = true;
+  if (state.demoActive) { state.demoActive = false; resetPanel(); }
   bubble("me", text.length > 300 ? `${text.slice(0, 300)}…` : text);
   if (attachment) bubble("me", null).append(icon("file"), attachment.name);
   lastMail = text;
@@ -382,11 +414,74 @@ function onPick(text) {
   const n = Number(text.normalize("NFKC"));
   const q = Number.isInteger(n) ? state.session.questions[n - 1] : undefined;
   if (!q) return bubble("err", T().chat.badPick({ count: state.session.questions.length }));
+  retireModes();
   state.current = q;
   renderNotes();
   renderRail();
   setStage("answer");
-  bubble("coach", `Q${n}. ${withTr(q)}\n\n${T().chat.askAnswer[targetOf()]}`);
+  const b = bubble("coach", `Q${n}. ${withTr(q)}\n\n${T().chat.askAnswer[targetOf()]}`);
+  const [answer, check] = modeButtons();
+  b.append(el("br"), answer, " ", check);
+}
+
+// F15: answering stays the default, so typing right after the pick works as it always did.
+const retireModes = () => { for (const b of log.querySelectorAll(".pick-mode")) b.disabled = true; };
+function modeButtons() {
+  const t = T().chat;
+  const buttons = [["answer", t.modeAnswer], ["verify", t.modeVerify]].map(([mode, text]) => {
+    const b = el("button", "inline-btn pick-mode", text);
+    b.type = "button";
+    b.setAttribute("aria-pressed", String(mode === "answer"));
+    b.addEventListener("click", () => {
+      if (send.disabled || !["answer", "verify"].includes(stage)) return;
+      setStage(mode);
+      for (const x of buttons) x.setAttribute("aria-pressed", String(x === b));
+      input.focus();
+    });
+    return b;
+  });
+  return buttons;
+}
+
+// F15: ①②③ are the existing review of the script as an answer; ④⑤ come from /api/verify. A pasted script is not a practice answer, so nothing joins the session.
+async function onVerify(text) {
+  stopTts();
+  bubble("me", text);
+  const q = state.current, my = state.epoch;
+  const reviewSlot = waiting(T().chat.waitReview[targetOf()]);
+  const verifySlot = waiting(T().verify.wait);
+  let denied = null;
+  const deny = (d) => { denied = d; };
+  const [review, verify] = await Promise.all([
+    runCard("/api/review", { question: q.question, category: q.category, answer: text, lang: state.lang, pack: packOf() }, (d, slot) => renderReview(d, slot, true), reviewSlot, deny),
+    runCard("/api/verify", { script: text, question: q.question, category: q.category, facts: state.session.company_context.facts, material: material.value.trim(), pack: packOf() }, renderVerify, verifySlot, deny),
+  ]);
+  if (my !== state.epoch || !state.session) return;
+  if (denied) return failed(denied.res, denied.data);
+  if (!review && !verify && verifySlot.textContent === reviewSlot.textContent) verifySlot.remove(); // the same text went to both APIs: one input error, shown once
+  if (review || verify) showVerify(review, verify);
+  if (review && verify && !verify.failed) {
+    askForPick(true);
+    quickReplies();
+  } else input.value = text; // a failed ⑤ keeps ④ on screen (200 + failed) and, like a failed review, gives the script back for another try
+  if ((review || verify) && !wide.matches) log.scrollTop = reviewSlot.offsetTop - log.offsetTop; // no side panel here: the result opens at its top
+}
+
+// One card's call: its slot shows the result or the error. Null after a failure; a 401 also goes to onDenied.
+async function runCard(path, body, render, slot, onDenied) {
+  try {
+    const { res, data } = await post(path, body);
+    if (res.ok) {
+      render(data, slot);
+      return data;
+    }
+    if (res.status === 401) onDenied({ res, data });
+    fill(slot, "err").textContent = message(data);
+    if (data.code === "quota") slot.append(el("br"), codeField());
+  } catch {
+    fill(slot, "err").textContent = message({ code: "network" });
+  }
+  return null;
 }
 
 // Review (①②) and script (③) run at the same time; a failed review does not block the script.
@@ -396,33 +491,37 @@ async function onAnswer(text) {
   const q = state.current;
   const reviewSlot = waiting(T().chat.waitReview[targetOf()]);
   const scriptSlot = waiting(T().chat.waitScript);
-  const attempt = { question_id: q.id, answer: text, review: null, script: null };
+  const attempt = { question_id: q.id, answer: text, review: null, script: null, at: new Date().toISOString() };
   const my = state.epoch;
   let denied = null;
-  const run = async (path, body, render, key, slot) => {
-    try {
-      const { res, data } = await post(path, body);
-      if (res.ok) return render(data, slot), (attempt[key] = data);
-      if (res.status === 401) denied = { res, data };
-      fill(slot, "err").textContent = message(data);
-    } catch {
-      fill(slot, "err").textContent = message({ code: "network" });
-    }
-  };
+  const run = async (path, body, render, key, slot) => { attempt[key] = await runCard(path, body, render, slot, (d) => { denied = d; }); };
+  let checking = null; // the script's check starts as soon as the script is on screen, and may outlast the review
   await Promise.all([
     run("/api/review", { question: q.question, category: q.category, answer: text, lang: state.lang, pack: packOf() }, renderReview, "review", reviewSlot),
-    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf(), ...(q.basis_type === "research" && { basis_type: "research" }) }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text, d.ttsSig); addReadAloud(slot, d); }, "script", scriptSlot),
+    run("/api/script", { question: q.question, category: q.category, answer: text, context: state.session.company_context.facts.join("\n"), lang: state.lang, pack: packOf(), ...(q.basis_type === "research" && { basis_type: "research" }) }, (d, slot) => { renderScript(d, slot); addListen(slot, d.text, d.ttsSig); addReadAloud(slot, d); }, "script", scriptSlot)
+      .then(() => { if (attempt.script && my === state.epoch) checking = checkScript(attempt.script, scriptSlot, q, text); }),
   ]);
   if (my !== state.epoch) return;
   if (denied) return failed(denied.res, denied.data);
-  if (!attempt.review && !attempt.script) return void (input.value = text); // nothing to show: same question, answer back in the box
+  if (!attempt.review && !attempt.script) {
+    if (scriptSlot.textContent === reviewSlot.textContent) scriptSlot.remove(); // one refusal (the limit, a bad answer) for both calls: shown once, as in onVerify
+    return void (input.value = text); // nothing to show: same question, answer back in the box
+  }
   if (attempt.review) syncHabits(attempt.review);
   if (attempt.review || attempt.script) {
     state.session.attempts.push(attempt);
     persist();
+    const qCard = [...log.querySelectorAll(`.q[data-q="${q.id}"]`)].at(-1); // the latest set's card
+    if (qCard) practiceLog(qCard, q.id, state.session.attempts);
     redrawPrep(); // a new habit belongs in the win section
     showHabits();
     renderRail();
+  }
+  // The check can take up to ~100 s; the answer is saved above, so [Save & finish] or a reload meanwhile keeps it (refutation 11/06).
+  if (checking) {
+    await checking;
+    if (my !== state.epoch || !state.session?.attempts.includes(attempt)) return; // finish() clears the session without a new epoch
+    persist();
   }
   const cmp = attempt.review ? compareAttempts(state.session, q.id) : null;
   if (cmp) renderCompare(cmp, bubble("coach", ""));
@@ -430,6 +529,24 @@ async function onAnswer(text) {
   askForPick(true);
   quickReplies();
   if (attempt.review && !wide.matches) log.scrollTop = reviewSlot.offsetTop - log.offsetTop; // no side panel here: the verdict sits above the long script
+}
+
+// Defect 1 (real run 11/06): the model can state an action or a judgment the answer never had, past the code's word check (lib/script.js).
+// The F15 ⑤ call with the answer as the material, once per script, after the card is on screen; nothing is stored on the server.
+// A failure leaves the script and the card says it was not checked (check: null); the result lives on the attempt, so the panel copy and a restore show it.
+// s.check stays absent while the call runs, so an attempt saved meanwhile (or the panel copy) claims no result.
+async function checkScript(s, card, q, answer) {
+  const line = card.querySelector(".script-check"), my = state.epoch;
+  line.hidden = false;
+  line.textContent = T().script.checking;
+  let check = null;
+  try {
+    const { res, data } = await post("/api/verify", { script: s.text, question: q.question, category: q.category, facts: state.session.company_context.facts, material: answer, pack: packOf() });
+    if (res.ok && data.checked) check = { unsupported: data.unsupported, ...(data.dropped > 0 && { dropped: data.dropped }) }; // a 200 that ran no check (no material, or failed) is not a clean result; dropped flags went unchecked
+    if (data.code === "quota" && my === state.epoch) failed(res, data); // the script came through but this check hit the limit: say why, with the code field
+  } catch {}
+  s.check = check;
+  line.replaceWith(scriptCheck(s));
 }
 
 // The owner's browser only. Counts, never text; a failure here must not touch the practice. The mail rules are the jp pack's.
@@ -471,7 +588,7 @@ function quickReplies() {
 // Not during the tour or a pending request, and never for cards of an earlier set (renderQuestions disables those).
 document.querySelector(".app").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-pick]");
-  if (!b || !state.session || state.tour || send.disabled || !["pick", "answer", "profile"].includes(stage)) return;
+  if (!b || !state.session || state.tour || send.disabled || !["pick", "answer", "verify", "profile"].includes(stage)) return;
   onPick(b.dataset.pick);
   if (wide.matches) input.focus();
 });
@@ -496,7 +613,7 @@ $("chipX").addEventListener("click", () => { attachment = null; $("chip").hidden
 
 $("composer").addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  if (state.tour || regenerating) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled)
+  if (state.tour || regenerating || send.disabled) return; // the tour types demo text into the composer; never send it (Ctrl+Enter submits even with #send disabled, so a pending request would be sent twice)
   const text = input.value.trim();
   if (!text) return;
   const my = state.epoch;
@@ -508,20 +625,24 @@ $("composer").addEventListener("submit", async (ev) => {
     else if (stage === "mail") await onMail(text);
     else if (stage === "pick") onPick(text);
     else if (stage === "profile") await onProfile(text);
+    else if (stage === "verify") await onVerify(text);
     else await onAnswer(text);
   } catch {
     if (my !== state.epoch) return; // the chat was reset while waiting: this text and error belong to the erased session
     bubble("err", message({ code: "network" }));
-    if (stage === "code") askForCode();
+    if (stage === "code") askForStart();
     else input.value = text;
   } finally {
     send.disabled = false;
   }
 });
 
-input.addEventListener("keydown", (e) => {
+const material = $("verifyMaterial");
+for (const box of [input, material]) box.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) $("composer").requestSubmit();
 });
+material.addEventListener("input", () => { $("materialCut").hidden = material.value.length < material.maxLength; }); // maxlength cuts a longer paste without a word
+const clearMaterial = () => { material.value = ""; $("materialCut").hidden = true; };
 
 // Static labels follow the language; bubbles already shown stay as they were.
 // Plain keys live in `ui`; dotted keys ("panel.review") are paths from the language root.
@@ -563,6 +684,7 @@ function finish() {
   state.session = null;
   lastMail = null;
   lastAttachment = null;
+  clearMaterial();
   state.current = null;
   clearSession(LS);
   resetPanel();
@@ -570,7 +692,7 @@ function finish() {
   // The file name sits on its own line of the sentence; the file icon goes in front of it.
   const [pre, post] = T().export.saved({ file }).split(file);
   bubble("coach", null).append(pre, icon("file"), file, post);
-  if (code) setStage("mail");
+  if (code || openMode) setStage("mail"); // the saved message asks for a mail; without a code in the open mode that is the step too
   offerMail();
 }
 $("end").addEventListener("click", finish);
@@ -656,9 +778,9 @@ async function switchTo(kind, select, revert, apply) {
   if (had) resetChat();
   apply();
   if (!had) return;
-  if (demo && kind === "lang") startDemo(askForCode); // recordings exist per language, not per destination
+  if (demo && kind === "lang") startDemo(askForStart); // recordings exist per language, not per destination
   else if (code) askForMail();
-  else askForCode();
+  else askForStart();
 }
 function resetChat() {
   state.epoch++;
@@ -670,6 +792,7 @@ function resetChat() {
   endPrep();
   state.session = state.current = null;
   lastMail = lastAttachment = attachment = null;
+  clearMaterial();
   $("chip").hidden = true;
   clearSession(LS);
   resetPanel();
@@ -705,6 +828,20 @@ $("debriefDelete").addEventListener("click", () => {
   $("debriefStatus").textContent = T().debrief.deleted;
 });
 
+// Calendar (DECISIONS 11/06): Google's prefilled link is built here from the time and a title made from the coaching state,
+// never the company, the questions or the answers. No server call, so the demo (no session) has it too.
+const calKind = $("calendarKind"), calAt = $("calendarAt"), calMinutes = $("calendarMinutes"), calLink = $("calendarLink");
+function drawCalendar() {
+  const s = state.session, n = s ? s.questions.filter((q) => statusOf(s, q.id) === "todo").length : 0;
+  const title = T().calendar.titles[calKind.value]({ n }), href = calendarLink(calAt.value, Number(calMinutes.value), title);
+  $("calendarText").textContent = T().calendar.text({ title });
+  calLink.hidden = !href;
+  if (href) calLink.href = href;
+}
+calKind.addEventListener("change", () => { calMinutes.value = calKind.value === "interview" ? 60 : 30; drawCalendar(); });
+for (const e of [calAt, calMinutes]) e.addEventListener("input", drawCalendar);
+log.addEventListener("click", (e) => { if (e.target.closest(".calendar-open")) { drawCalendar(); $("calendar").showModal(); } });
+
 // Esc: a mobile panel closes first, else the tour is skipped. Open dialogs handle their own Esc.
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape" || document.querySelector("dialog[open]")) return;
@@ -723,6 +860,8 @@ $("opts").addEventListener("click", () => {
   $("desiredStatus").textContent = "";
   $("debriefOpts").hidden = !researchOn;
   $("debriefStatus").textContent = "";
+  $("accessOpts").hidden = !openMode;
+  $("accessField").replaceChildren(codeField());
   $("options").showModal();
 });
 const refreshConditions = () => { redrawPrep(); const card = [...log.querySelectorAll(".msg.brief:not(.brief-confirm)")].at(-1), brief = state.session?.company_context.research_brief; if (card && brief) showConditions(card, brief, researchNames().company); };
@@ -743,9 +882,19 @@ for (const r of tourEndRadios) r.addEventListener("change", () => { try { localS
 $("tourTips").addEventListener("change", (e) => { try { localStorage.setItem(TOUR_TIPS, e.target.checked ? "1" : "0"); } catch {} });
 $("options").addEventListener("close", () => $("opts").focus());
 
-// Clear any unverified code left by an earlier page version; the chat always asks for the code on load.
+// Clear any unverified code left by an earlier page version; a code is always entered again after a load.
 keepCode(null);
 initVoice({ code: () => code, pack: packOf });
 initPrep({ post, failed, download, names: researchNames, researchOn: () => researchOn, run: () => researchRun });
 applyLanguage();
-askForCode();
+// The server decides the mode: open (OPEN_ACCESS) starts at the mail under the daily limit, otherwise the code comes first.
+// Until it answers (a cold start can take seconds) a waiting row shows and nothing can be typed into a step not known yet.
+const boot = waiting("");
+boot.classList.remove("coach"); // not a coach message: the first one is the start step
+input.readOnly = true;
+input.placeholder = "";
+const { res: first, data: mode } = await post("/api/access").catch(() => ({}));
+boot.remove();
+input.readOnly = false;
+openMode = first?.ok === true && mode.open === true;
+if (!(openMode && opened(mode))) askForStart();

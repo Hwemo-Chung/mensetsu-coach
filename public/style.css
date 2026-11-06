@@ -174,7 +174,7 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .prep .title { font-weight: 700; font-size: 17px; margin: 0 0 4px; }
 .prep .label { font-size: 14px; color: var(--green-ink); font-weight: 700; margin: 12px 0 2px; }
 .prep .claim { margin: 6px 0 0; }
-.prep .caution { margin: 2px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
+.prep .caution, .script .caution { margin: 2px 0 0; font-size: 14px; font-weight: 700; color: var(--warn); }
 .prep .prep-q { margin-top: 16px; }
 .prep .prep-q:first-child { margin-top: 0; }
 .prep .ja { font-size: 16px; line-height: 1.8; font-weight: 400; margin: 2px 0; }
@@ -226,6 +226,21 @@ textarea { flex: 1 1 0; min-width: 0; /* basis 0: field-sizing would make a long
 .composer .note { margin: 6px 8px 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
 .composer .note a { color: var(--green-ink); }
 body:not([data-stage="code"]):not([data-stage="mail"]) .composer .note { display: none; } /* shown where mail and files are entered */
+.verify .step { margin: 6px 0 0; }
+.verify .step.tip { color: var(--warn); }
+.verify .step.ok .icon { color: var(--green-ink); }
+.verify .step .icon { margin-right: 4px; }
+.verify .title:not(:first-child) { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.verify-material { display: none; margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+body[data-stage="verify"] .verify-material { display: block; }
+body[data-stage="verify"] .attach, body[data-stage="verify"] .chip { display: none; } /* this stage reads the pasted text box only; a file here would go unused */
+.verify-material textarea { display: block; width: 100%; margin-top: 2px; padding: 8px 12px; font-size: 16px; color: var(--ink); border: 1px solid var(--field); border-radius: 12px; resize: vertical; max-height: 30vh; }
+#materialCut { display: block; margin-top: 2px; }
+@media (max-width: 1023px) { body[data-stage="verify"] .composer textarea { max-height: 22vh; } } /* a pasted resume and a script together must leave the chat on a phone screen */
+.script .script-check { margin: 2px 0 0; font-size: 14px; }
+.script .script-check.warn { font-weight: 700; color: var(--warn); }
+.inline-btn[aria-pressed="true"] { color: #fff; background: var(--green-ink); border-color: var(--green-ink); }
+.inline-btn[aria-pressed="true"]:disabled { color: var(--muted); border-color: var(--line); background: var(--page); }
 
 /* Question rail (≥1280px only): guide before questions, then progress and one row per question. */
 .rail { display: none; }
@@ -363,7 +378,8 @@ dialog::backdrop { background: rgba(0,0,0,.4); }
 .speed { min-height: 44px; border: 1px solid var(--field); border-radius: 8px; padding: 4px 8px; background: #fff; }
 .mail-msg { min-height: 1.2em; font-size: 14px; color: var(--red); margin: 6px 0 0; }
 .mail-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
-.mail-actions button { min-height: 44px; border-radius: 999px; padding: 0 18px; border: 1px solid var(--field); background: #fff; cursor: pointer; }
+.mail-actions button, .mail-actions a { min-height: 44px; border-radius: 999px; padding: 0 18px; border: 1px solid var(--field); background: #fff; cursor: pointer; }
+.mail-actions a { display: inline-flex; align-items: center; text-decoration: none; } /* the calendar link sits with the buttons */
 .mail-actions .primary { background: var(--green-ink); color: #fff; border-color: var(--green-ink); }
 
 @media (prefers-reduced-motion: reduce) {
@@ -381,6 +397,7 @@ body.doc { background: #fff; }
 @media (min-width: 1024px) {
   .app:has(> #panel:not([hidden])) .log > .msg.review { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 16px; }
   .app:has(> #panel:not([hidden])) .log > .msg.review > :not(.title:first-child, .readiness, .verdict, .step) { display: none; }
+  .app:has(> #panel:not([hidden])) .log > .msg.verify > .ja, .app:has(> #panel:not([hidden])) .log > .msg.verify > .why, .app:has(> #panel:not([hidden])) .log > .msg.verify > .legend, .app:has(> #panel:not([hidden])) .log > .msg.verify > .title:has(+ .legend) { display: none; }
   .app:has(> #panel:not([hidden])) .log > .msg.review > .title:first-child,
   .app:has(> #panel:not([hidden])) .log > .msg.review > .readiness,
   .app:has(> #panel:not([hidden])) .log > .msg.review > .verdict { flex-basis: 100%; }

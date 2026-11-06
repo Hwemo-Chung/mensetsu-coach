@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { fakeClient } from "./fake-claude.js";
 import { loadPack, MODELS } from "../lib/coach.js";
 import { kanaToHangul } from "../lib/kana.js";
-import { generatePrep, buildPrepRequest, planBundles, prepEnabled, sectionProblems } from "../lib/prep.js";
+import { generatePrep, buildPrepRequest, gateItem, planBundles, prepEnabled, sectionProblems } from "../lib/prep.js";
 import { POST as prep } from "../lib/prep-api.js";
 import { POST as research } from "../api/research.js";
 import { POST as access } from "../api/access.js";
@@ -92,7 +92,8 @@ test("generate: the calls really overlap", async () => {
 test("response shape: locked for the screen", async () => {
   const out = await run(fakeClient({ result: fixture }));
   assert.deepEqual(out.sections.filter((x) => x.bundle).map((x) => [x.key, x.bundle]), doc.bundles.flatMap((b) => b.sections.map((k) => [k, b.key])).sort((x, y) => doc.sections.findIndex((c) => c.key === x[0]) - doc.sections.findIndex((c) => c.key === y[0])), "the browser replaces a regenerated bundle by this");
-  assert.deepEqual(Object.keys(out).sort(), ["blanks", "company", "created", "failed", "generated", "omitted_questions", "position", "sections", "to_confirm", "unresolved"]);
+  assert.deepEqual(Object.keys(out).sort(), ["blanks", "company", "created", "failed", "generated", "omitted_questions", "position", "sections", "stage", "to_confirm", "unresolved"]);
+  assert.equal(out.stage, "first", "the card shows it and a retry keeps it");
   assert.equal(out.company, "サンプルテック");
   assert.match(out.created, /^\d{4}-\d{2}-\d{2}$/);
   const q = find(out, "top_result");
@@ -365,8 +366,13 @@ test("reading: hiragana from the model, converted by the existing kana code; a k
   const en = await run(fakeClient({ result: { ...fixture, items: fixture.items.map((x) => ({ ...x, translation: "An invented English sentence about the work." })), reverse: fixture.reverse.map((x) => ({ ...x, translation: "An invented question.", intent: "Checks the role." })) } }), { lang: "en" });
   assert.deepEqual(en.failed, []);
   assert.match(find(en, "self_intro").reading, /^honjitsu/);
-  const bad = await run(fakeClient({ result: withItem("top_result", { reading: "在庫管理です。" }) }));
-  assert.deepEqual(bad.failed[0].reason, ["reading"]);
+  // Intent changed 11/06 (real run: one item dropped for its reading alone): a reading that stays wrong after the retry
+  // drops only the reading, so the item still shows with its answer and translation.
+  const badClient = fakeClient({ result: withItem("top_result", { reading: "在庫管理です。" }) });
+  const bad = await run(badClient);
+  assert.ok(!bad.failed.some((f) => f.key === "top_result"));
+  assert.equal(find(bad, "top_result").reading, null);
+  assert.ok(badClient.calls() >= 2, "the reading is still asked again once");
   const wrong = await run(fakeClient({ result: withItem("top_result", { translation: "在庫管理システムの刷新です。" }) }));
   assert.deepEqual(wrong.failed[0].reason, ["translation"]);
   const kr = await run(fakeClient({ result: withItem("top_result", { answer: "한국어 답변입니다." }) }));
@@ -653,4 +659,180 @@ test("ja error sentences use the screen's words for the document and the resume"
   const { default: ja } = await import("../public/i18n/ja.js");
   for (const k of ["prep_unavailable", "prep_unsupported"]) assert.ok(ja.errors[k]().includes(ja.prep.title), k);
   for (const k of ["material_required", "material_too_long"]) assert.ok(ja.errors[k]({ max: 1 }).includes(ja.prep.inputKinds.material), k);
+});
+
+// Real run 11/06: a resume's silence became 「〜の経験はありません」, and present-tense careers and motives slipped past the check.
+test("evidence: a named lack of experience, a present career and a stated motive go to unresolved", async () => {
+  const flagged = (key, answer) => run(fakeClient({ result: withItem(key, { answer, evidence: ["在庫管理システム"] }) }));
+  const one = async (key, answer) => find(await flagged(key, answer), key).unverified;
+  const lack = await flagged("no_domain_experience", "金融業界の経験はありません。［ここに同じ条件の経験］を担当しました。");
+  assert.equal(find(lack, "no_domain_experience").unverified, true);
+  assert.ok(lack.unresolved.some((u) => u.kind === "evidence_mismatch" && u.key === "no_domain_experience"));
+  // Was false ("the area is the author's to fill"): real run 11/06 showed the blank still asserts there is no experience, which the material never said.
+  assert.equal(await one("no_domain_experience", "［ここに未経験の領域］の実務経験はありません。"), true, "a negative after a blank is still said");
+  assert.equal(await one("top_result", "［ここに担当範囲］の経験があります。"), true, "so is a positive");
+  assert.equal(await one("top_result", "［ここに担当範囲と課題］が、私の経験です。"), true);
+  assert.equal(await one("no_domain_experience", "［ここにこの領域の経験の有無と範囲］です。"), false, "the blank holds the yes or no");
+  assert.equal(await one("top_result", "新人の研修を今も続けており、御社では［ここに担当したい領域］を担当したいです。"), true, "the clause before the blank claims");
+  assert.equal(await one("top_result", "新人の研修を今も担当しています。"), true);
+  assert.equal(await one("top_result", "在庫管理システムの開発を担当しています。"), false, "in the resume's words");
+  assert.equal(await one("top_result", "進め方は共通すると考えています。"), false, "a stance, not a career");
+  assert.equal(await one("top_result", "責任の大きい役割で働きたいためです。"), true, "a motive nobody gave");
+  assert.equal(await one("top_result", "在庫管理システムの開発で成果を出したいためです。"), true, "resume words around it do not make it a motive the author gave");
+  assert.equal(await one("top_result", "［ここに動機］で働きたいためです。"), false);
+});
+
+// Real run 11/06: 「…判断してきた経験に沿っています。」 passed on nothing but the shared ending 「っています。」.
+test("evidence: a shared ending is not a shared word", () => {
+  const item = (answer, material) => gateItem(pack, { key: "x", section: "experience_qa", mode: "draft", question: "Q" }, { answer, evidence: ["在庫の管理方針"], followups: [] }, { material, facts: [], lang: "ja" }).item.unverified;
+  const material = "在庫の管理方針に沿っています。";
+  assert.equal(item("これは新人研修の設計を指導してきた経験に沿っています。", material), true);
+  assert.equal(item("在庫の管理方針に沿っています。", material), false, "the material's own words still ground it");
+});
+
+// Review 11/06: these were flagged although nothing was wrong with them.
+test("evidence: company facts count as a basis; a stance, a learner and a plain 'not only' are not claims", async () => {
+  const item = (answer, facts = []) => gateItem(pack, { key: "x", section: "experience_qa", mode: "draft", question: "Q" }, { answer, evidence: ["在庫管理システム"], followups: [] }, { material: `在庫管理システムの開発を担当しました。\n${RESUME}\n未経験者の育成を担当しました。経験を積むだけでなく運用も担当しました。`, facts, lang: "ja" }).item.unverified;
+  assert.equal(item("御社が物流向けの基盤を提供しています。", [{ text: "御社が物流向けの基盤を提供しています" }]), false);
+  assert.equal(item("御社が物流向けの基盤を提供しています。"), true, "no fact, no basis");
+  for (const s of ["手戻りを減らすことを大事にしています。", "確認を心がけています。", "共有に努めています。"]) assert.equal(item(s), false, s);
+  assert.equal(item("未経験者の育成を担当しました。"), false, "未経験者 is not 未経験");
+  assert.equal(item("経験を積むだけでなく運用も担当しました。"), false, "だけでなく is no negative");
+  for (const s of ["金融の未経験です。", "金融の経験はありません。", "金融の経験がなく、学びます。"]) assert.equal(item(s), true, s);
+});
+
+test("the prompt: the no-experience answer leaves the yes or no in the blank", () => {
+  const { system } = buildPrepRequest(pack, planBundles(pack, { questions: QUESTIONS, company: "サンプルテック" }).bundles[0], { material: RESUME });
+  assert.match(system, /有無ごと空欄にする/);
+  assert.doesNotMatch(system, /経験はありません」と認める|［ここに未経験の領域］/);
+  const cat = pack.script_doc.question_categories.find((c) => c.key === "no_domain_experience");
+  assert.match("［ここにこの業界の経験の有無と範囲］です。", new RegExp(cat.first_sentence), "the first-sentence gate has to accept that form");
+  assert.match("金融の実務経験はありません。", new RegExp(cat.first_sentence));
+});
+
+// Real run 11/06: 「生成AIを使うとしたら」 got the incident frame, and the frame invited a judgment nobody made.
+test("planBundles: としたら and 場合 are the incident frame only with an incident in the question", () => {
+  const plan = (question) => planBundles(pack, { questions: [{ id: "q1", question, category: "技術" }], company: "サンプルテック" }).bundles.flatMap((b) => b.items).find((p) => p.key === "q1");
+  assert.notEqual(plan("生成AIを現場で使うとしたら、どの場面で活用しますか。").asked, "起きたあとの判断");
+  assert.notEqual(plan("新しい領域を担当する場合、何から学びますか。").asked, "起きたあとの判断");
+  for (const q of ["リリース直前に障害が見つかったとしたら、どうしますか。", "納期に遅れが出そうな場合、何を確認しますか。"]) assert.equal(plan(q).asked, "起きたあとの判断", q);
+});
+
+test("the prompt: silence is not a lack of experience, and motives and present careers need the material", () => {
+  const { system } = buildPrepRequest(pack, planBundles(pack, { questions: QUESTIONS, company: "サンプルテック" }).bundles[0], { material: RESUME });
+  assert.match(system, /資料に書かれていないことは「経験がない」の根拠にならない/);
+  assert.match(system, /動機・共感・やりたいことは、資料になければ断定せず空欄にする/);
+  assert.match(system, /〜ており、〜ています.*資料に現在のこととして書かれているときだけ/);
+});
+
+// Real run 11/06: 「［…］が、ミッションに共感した一番の理由です」 passed, because only the words before the blank were read.
+test("C10: a motive stated after a blank is flagged; a blank that holds the word is not", () => {
+  const item = (answer) => gateItem(pack, { key: "x", section: "must_ask_qa", mode: "draft", question: "Q" }, { answer, evidence: [], followups: [] }, { material: RESUME, facts: [], lang: "ja" }).item.unverified;
+  assert.equal(item("［ここに魅力に感じた点］が、ミッションに共感した一番の理由です。"), true);
+  assert.equal(item("［ここに共感した点］を担当したいです。"), false);
+  assert.equal(item("［ここに範囲］を担当したいです。"), false);
+});
+
+// A mutation test left this alive: the earlier sentence hit UNGROUNDABLE first, so CLAIM's reason endings were never exercised.
+test("C10: a stated reason needs words of its own in the material", () => {
+  const item = (answer) => gateItem(pack, { key: "x", section: "must_ask_qa", mode: "draft", question: "Q" }, { answer, evidence: ["在庫管理システム"], followups: [] }, { material: RESUME, facts: [], lang: "ja" }).item.unverified;
+  assert.equal(item("顧客の声を早く反映できるからです。"), true);
+  assert.equal(item("顧客の声を早く反映するためです。"), true);
+  assert.equal(item("在庫管理システムの開発を担当したからです。"), false);
+});
+
+// D02 lost `management`: 「1on1」 reads as the figure 1 with the unit o, so the number gate failed it twice.
+test("C3: 1on1 is a word, not a figure, in the answer and in the follow-ups; real figures still fail", () => {
+  const problems = (answer, followups = []) => gateItem(pack, { key: "management", section: "experience_qa", mode: "frame", question: "マネジメント経験を教えてください。" }, { answer, evidence: [], followups }, { material: RESUME, facts: [], lang: "ja" }).problems;
+  assert.deepEqual(problems("週次の1on1で確認します。"), []);
+  assert.deepEqual(problems("週次の１ｏｎ１で確認します。"), []);
+  assert.deepEqual(problems("確認します。", ["1on1はどなたと行いますか。"]), []);
+  assert.deepEqual(problems("週次の1on1で12名を確認します。"), ["number"]);
+});
+
+test("C6: a request for permission passes the banned list; a plain させていただきました does not", () => {
+  const problems = (answer) => gateItem(pack, { key: "x", section: "must_ask_qa", mode: "draft", question: "Q" }, { answer, evidence: [], followups: [] }, { material: RESUME, facts: [], lang: "ja" }).problems;
+  assert.deepEqual(problems("確認させていただけますか、と伺います。"), []);
+  assert.deepEqual(problems("確認させていただけますでしょうか、と伺います。"), []);
+  assert.deepEqual(problems("開発を担当させていただきました。"), ["banned"]);
+  assert.deepEqual(problems("詳細は控えさせていただきます。"), ["banned"]);
+});
+
+test("script_doc: failure gives no all-blank template; reverse tells how many to prepare and to pick; the note names what F2 reads", () => {
+  const failure = doc.rules.find((r) => r.id === "doc-failure-is-real");
+  assert.match(failure.rule, /資料にある失敗の事実はそのまま書き/);
+  assert.equal(failure.example_after, undefined, "the three-blank example was copied whole in both real runs");
+  assert.match(doc.sections.find((s) => s.key === "reverse_questions").label, /準備は4〜8問、時間に合わせて2〜3問を選ぶ/);
+  assert.doesNotMatch(doc.note, /question_taxonomy は変更しない/);
+  assert.match(doc.note, /generic_terms/);
+  assert.doesNotMatch(doc.speech_rate_chars_per_sec.note, /実測/);
+  assert.match(doc.speech_rate_chars_per_sec.note, /以前の台本の字数と秒数の目安/);
+});
+
+test("script_doc: stage data for the later stages, cautions on what is said in a mid-career interview", () => {
+  assert.deepEqual(Object.keys(doc.stages), ["agent", "casual", "first", "second", "executive", "final", "offer"]);
+  assert.deepEqual(doc.stages.casual.drop_categories, ["failure"]);
+  assert.match(doc.stages.casual.rule, /発言は共有され得る/);
+  assert.match(doc.stages.second.rule, /同じ質問には同じ結論/);
+  assert.ok(doc.stages.executive.focus.includes("同業他社ではなくこの会社を選ぶ理由"));
+  assert.ok(doc.stages.final.required.includes("win_points"), "merged, not replaced");
+  assert.ok(doc.stages.offer.required.includes("conditions"));
+  assert.ok(doc.cautions.length >= 12);
+  assert.ok(doc.cautions.some((c) => c.includes("「弊社」「当社」は使わない")));
+  assert.ok(!doc.cautions.join("").includes("［"), "countBlanks counts a fixed line's blank too");
+});
+
+// Interview stages (S5, DECISIONS 11/06): the stage's required sections decide the calls and the document.
+test("stage: the route takes one of the pack's stages, defaults to first, and refuses the rest before any call", async () => {
+  const deps = ok();
+  for (const stage of ["nope", "__proto__", 1]) assert.equal(await code(await prep(post({ ...BODY, stage }), deps)), "bad_request", String(stage));
+  assert.equal(deps.client.calls(), 0);
+  assert.equal((await (await prep(post(BODY), deps)).json()).stage, "first");
+  assert.equal(deps.client.calls(), 4);
+  const casual = await (await prep(post({ ...BODY, stage: "casual" }), deps)).json();
+  assert.equal(casual.stage, "casual");
+  assert.deepEqual(casual.sections.map((s) => s.key), doc.stages.casual.required);
+});
+
+test("stage: executive asks only for its own sections, in fewer and smaller calls than first", async () => {
+  const first = fakeClient({ result: fixture }), exec = fakeClient({ result: fixture });
+  await run(first);
+  const out = await run(exec, { stage: "executive" });
+  assert.equal(exec.calls(), 2);
+  assert.deepEqual(out.generated, ["intro", "domain"]);
+  assert.deepEqual(out.sections.map((s) => s.key), doc.sections.map((s) => s.key).filter((k) => doc.stages.executive.required.includes(k)));
+  assert.ok(allItems(out).every((x) => doc.stages.executive.required.includes(x.section)), "no self-intro or domain answer is made");
+  const tokens = (c) => c.requests.reduce((n, r) => n + r.max_tokens, 0);
+  assert.ok(tokens(exec) < tokens(first), `${tokens(exec)} < ${tokens(first)}`);
+  assert.deepEqual(out.omitted_questions, [], "the session questions are not this stage's, so none is reported as dropped");
+  assert.deepEqual(sectionProblems(out, pack), []);
+});
+
+test("stage: the prompt carries the stage's focus and rule", () => {
+  const plan = planBundles(pack, { questions: QUESTIONS, inputs: {}, company: "サンプルテック", stage: "casual" });
+  assert.deepEqual(plan.bundles.map((b) => b.key), ["intro", "domain"]);
+  const system = buildPrepRequest(pack, plan.bundles[0], { material: RESUME, lang: "ko", stage: "casual" }).system;
+  assert.ok(system.includes(doc.stages.casual.rule));
+  for (const f of doc.stages.casual.focus) assert.ok(system.includes(f), f);
+  assert.ok(buildPrepRequest(pack, plan.bundles[0], { material: RESUME, lang: "ko", stage: "executive" }).system.includes(doc.stages.executive.rule));
+});
+
+test("stage: offer is the pack's own sentences with no call; amounts and dates stay blanks for the user", async () => {
+  const client = fakeClient({ result: fixture });
+  const out = await run(client, { stage: "offer" });
+  assert.equal(client.calls(), 0);
+  assert.deepEqual(out.generated, []);
+  assert.deepEqual(out.sections.map((s) => s.key), doc.stages.offer.required);
+  const lines = section(out, "conditions").lines;
+  assert.deepEqual(lines, doc.stages.offer.lines);
+  assert.ok(lines.some((l) => l.includes("現年収は［ここに金額］")) && lines.some((l) => l.includes("［ここに日付］まで")) && lines.some((l) => l.includes("固定残業代")));
+  assert.doesNotMatch(lines.join(""), /[0-9０-９]/, "no figure or date of its own");
+  const banned = new RegExp(doc.banned_patterns.join("|"));
+  for (const l of lines) assert.doesNotMatch(l, banned, l);
+  assert.equal(section(out, "cautions").lines[0], doc.stages.offer.rule, "with no call, the rule reaches the user here");
+  assert.equal(out.unresolved.filter((u) => u.section === "conditions").length, lines.flatMap((l) => l.match(/［[^］]*］/g) ?? []).length);
+  assert.deepEqual(sectionProblems(out, pack), []);
+  const firstDoc = await run(fakeClient({ result: fixture }));
+  assert.deepEqual(section(firstDoc, "cautions").lines, doc.cautions, "first has no rule, so its cautions do not move");
+  assert.deepEqual(section(firstDoc, "conditions").lines, [doc.sections.find((s) => s.key === "conditions").blank]);
 });

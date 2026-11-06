@@ -82,6 +82,10 @@
     {
       "source": "/api/prep",
       "destination": "/api/research?route=prep"
+    },
+    {
+      "source": "/api/verify",
+      "destination": "/api/research?route=verify"
     }
   ]
 }

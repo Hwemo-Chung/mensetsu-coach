@@ -5,7 +5,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { LANGS } from "../../public/i18n/index.js";
-import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, VIEWPORTS, ROOT, TOUR, tourTo } from "./harness.js";
+import { startServer, launch, openApp, bubbles, send, shot, noHorizontalOverflow, CODE, VIEWPORTS, ROOT, TOUR, tourTo, ANSWER, scriptCard, toAnswer } from "./harness.js";
 
 const ko = LANGS.ko;
 let server, browser;
@@ -180,4 +180,48 @@ test("header: one row at 1440x900 and at 390x844 (≤ 56px on the phone), no ove
     assert.deepEqual(errors, []);
     await context.close();
   }
+});
+
+// Refutation 13 (11/06): Ctrl+Enter submits even with #send disabled, so a second answer went out (and was charged) while one was pending.
+test("Ctrl+Enter while an answer is pending sends nothing more and keeps the text", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop);
+  const reviews = [];
+  page.on("request", (r) => { if (new URL(r.url()).pathname === "/api/review") reviews.push(r.url()); });
+  await toAnswer(page);
+  await page.route("**/api/review", async (r) => { await new Promise((ok) => setTimeout(ok, 1500)); await r.continue(); });
+  await page.fill("#input", ANSWER);
+  await page.press("#input", "Control+Enter");
+  await page.locator("#send:disabled").waitFor();
+  await page.fill("#input", "二回目の答えです。");
+  await page.press("#input", "Control+Enter");
+  await scriptCard(page).getByRole("button", { name: ko.tts.play }).waitFor();
+  await bubbles(page, "coach").filter({ hasText: ko.chat.askPickAgain }).waitFor();
+  assert.equal(reviews.length, 1);
+  assert.equal(await page.inputValue("#input"), "二回目の答えです。");
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
+// Refutation 16 (11/06): the first step depends on /api/access; until it answers, a waiting row shows and nothing can be typed.
+test("first screen: a waiting row while the mode is checked, then the start message", async () => {
+  const context = await browser.newContext({ viewport: VIEWPORTS.desktop, locale: "ko" });
+  await context.addInitScript(() => { try { localStorage.setItem("mensetsu-lang", "ko"); } catch {} });
+  const page = await context.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  let release;
+  const held = new Promise((ok) => { release = ok; });
+  await page.route("**/api/access", async (r) => { await held; await r.continue(); });
+  await page.goto(server.url);
+  await page.locator("#log > .msg.typing").waitFor();
+  assert.equal(await page.locator("#log > .msg.coach").count(), 0, "no start message before the mode is known");
+  assert.ok(await page.locator("#input").evaluate((e) => e.readOnly), "nothing can be typed yet");
+  assert.equal(await page.getAttribute("#input", "placeholder"), "", "not the code placeholder, which the open mode never uses");
+  release();
+  await bubbles(page, "coach").filter({ hasText: ko.chat.askCode }).waitFor();
+  assert.equal(await page.locator("#log > .msg.typing").count(), 0);
+  assert.ok(!(await page.locator("#input").evaluate((e) => e.readOnly)));
+  assert.equal(await page.getAttribute("#input", "placeholder"), ko.chat.codePlaceholder);
+  assert.deepEqual(errors, []);
+  await context.close();
 });

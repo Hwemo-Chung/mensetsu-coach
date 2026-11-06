@@ -1,20 +1,20 @@
 {
   "items": [
-    {"id":"B-1-T1","question":"チームで意見が対立したとき、どう対応しましたか。","answer":"意見の対立への対応、ですね。結論は、双方の前提をそろえてから決めます。基準は納期で、2案の差が3日以内なら品質の高い案を選びます。この進め方と、上長が最終判断する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":true}},
+    {"id":"B-1-T1","question":"チームで意見が対立したとき、どう対応しましたか。","answer":"意見の対立への対応、ですね。結論は、双方の前提をそろえてから決めます。基準は納期で、2案の差が3日以内なら品質の高い案を選びます。この進め方と、上長が最終判断する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":false}},
     {"id":"B-1-T2","question":"チームで意見が対立したとき、どう対応しましたか。","answer":"双方の前提をそろえてから決めました。基準は納期で、2案の差が3日以内なら品質の高い案を選びました。","answers_question":"yes","steps":{"fukusho":false,"ketsuron":true,"kijun":true,"sentakushi":false}},
-    {"id":"B-1-T3","question":"チームで意見が対立したとき、どう対応しましたか。","answer":"意見の対立への対応、ですね。結論は、双方の話を聞いてから決めます。この進め方と、上長が最終判断する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":true}},
+    {"id":"B-1-T3","question":"チームで意見が対立したとき、どう対応しましたか。","answer":"意見の対立への対応、ですね。結論は、双方の話を聞いてから決めます。この進め方と、上長が最終判断する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":false}},
     {"id":"B-1-T5","question":"チームで意見が対立したとき、どう対応しましたか。","answer":"前職では新しい業務システムの導入を担当し、チームで協力して進めました。結果として作業の効率が上がりました。","answers_question":"no"},
-    {"id":"B-2-T1","question":"入社後、最初の半年で何に取り組みたいですか。","answer":"最初の半年の取り組み、ですね。結論は、業務の把握と小さな改善の2つです。基準は、3か月以内に担当業務の手順書を1本仕上げることです。優先順位は、現場の把握を先にする形と、改善提案を先にする形のどちらが御社に合いますでしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":true}},
+    {"id":"B-2-T1","question":"入社後、最初の半年で何に取り組みたいですか。","answer":"最初の半年の取り組み、ですね。結論は、業務の把握と小さな改善の2つです。基準は、3か月以内に担当業務の手順書を1本仕上げることです。優先順位は、現場の把握を先にする形と、改善提案を先にする形のどちらが御社に合いますでしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":false}},
     {"id":"B-2-T2","question":"入社後、最初の半年で何に取り組みたいですか。","answer":"業務の把握と小さな改善の2つに取り組みます。基準は、3か月以内に担当業務の手順書を1本仕上げることです。","answers_question":"yes","steps":{"fukusho":false,"ketsuron":true,"kijun":true,"sentakushi":false}},
-    {"id":"B-2-T3","question":"入社後、最初の半年で何に取り組みたいですか。","answer":"最初の半年の取り組み、ですね。結論は、業務の把握と小さな改善に取り組みます。優先順位は、現場の把握を先にする形と、改善提案を先にする形のどちらが御社に合いますでしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":true}},
+    {"id":"B-2-T3","question":"入社後、最初の半年で何に取り組みたいですか。","answer":"最初の半年の取り組み、ですね。結論は、業務の把握と小さな改善に取り組みます。優先順位は、現場の把握を先にする形と、改善提案を先にする形のどちらが御社に合いますでしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":false}},
     {"id":"B-2-T5","question":"入社後、最初の半年で何に取り組みたいですか。","answer":"前職では、海外拠点との会議の調整を担当していました。毎週の定例を整え、参加者から好評でした。","answers_question":"no"},
-    {"id":"B-3-T1","question":"失敗した経験と、そこから学んだことを教えてください。","answer":"失敗した経験と学び、ですね。結論は、確認を省いて納期に遅れたことと、確認を先に置く習慣を学んだことです。基準は、着手前に確認項目を5つ書き出すことです。この習慣と、都度チームで確認する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":true}},
+    {"id":"B-3-T1","question":"失敗した経験と、そこから学んだことを教えてください。","answer":"失敗した経験と学び、ですね。結論は、確認を省いて納期に遅れたことと、確認を先に置く習慣を学んだことです。基準は、着手前に確認項目を5つ書き出すことです。この習慣と、都度チームで確認する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":false}},
     {"id":"B-3-T2","question":"失敗した経験と、そこから学んだことを教えてください。","answer":"確認を省いて納期に遅れたことが失敗で、確認を先に置く習慣を学びました。基準は、着手前に確認項目を5つ書き出すことです。","answers_question":"yes","steps":{"fukusho":false,"ketsuron":true,"kijun":true,"sentakushi":false}},
-    {"id":"B-3-T3","question":"失敗した経験と、そこから学んだことを教えてください。","answer":"失敗した経験と学び、ですね。結論は、確認を省いて納期に遅れたことと、確認を先に置く習慣を学んだことです。この習慣と、都度チームで確認する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":true}},
+    {"id":"B-3-T3","question":"失敗した経験と、そこから学んだことを教えてください。","answer":"失敗した経験と学び、ですね。結論は、確認を省いて納期に遅れたことと、確認を先に置く習慣を学んだことです。この習慣と、都度チームで確認する進め方のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":false}},
     {"id":"B-3-T5","question":"失敗した経験と、そこから学んだことを教えてください。","answer":"私の強みは、調整力と粘り強さです。どのような場面でも最後まであきらめずに取り組みます。","answers_question":"no"},
-    {"id":"B-4-T1","question":"なぜ日本で働きたいのですか。","answer":"日本で働きたい理由、ですね。結論は、品質を大切にする仕事の進め方に学びたいからです。基準は、納品後の不具合を月1件以下に抑える現場の水準です。この理由について、まず現場の品質基準を学ぶ形と、早めに担当を持つ形のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":true}},
+    {"id":"B-4-T1","question":"なぜ日本で働きたいのですか。","answer":"日本で働きたい理由、ですね。結論は、品質を大切にする仕事の進め方に学びたいからです。基準は、納品後の不具合を月1件以下に抑える現場の水準です。この理由について、まず現場の品質基準を学ぶ形と、早めに担当を持つ形のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":true,"sentakushi":false}},
     {"id":"B-4-T2","question":"なぜ日本で働きたいのですか。","answer":"品質を大切にする仕事の進め方に学びたいからです。基準は、納品後の不具合を月1件以下に抑える現場の水準です。","answers_question":"yes","steps":{"fukusho":false,"ketsuron":true,"kijun":true,"sentakushi":false}},
-    {"id":"B-4-T3","question":"なぜ日本で働きたいのですか。","answer":"日本で働きたい理由、ですね。結論は、品質を大切にする仕事の進め方に学びたいからです。入社後は、まず現場の品質基準を学ぶ形と、早めに担当を持つ形のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":true}},
+    {"id":"B-4-T3","question":"なぜ日本で働きたいのですか。","answer":"日本で働きたい理由、ですね。結論は、品質を大切にする仕事の進め方に学びたいからです。入社後は、まず現場の品質基準を学ぶ形と、早めに担当を持つ形のどちらが御社では一般的でしょうか。","answers_question":"yes","steps":{"fukusho":true,"ketsuron":true,"kijun":false,"sentakushi":false}},
     {"id":"B-4-T5","question":"なぜ日本で働きたいのですか。","answer":"株式会社サンプル商事（仮）では、営業チームの目標管理を担当していました。毎月の振り返りを整えたことで、チームの雰囲気がよくなりました。","answers_question":"no"}
   ]
 }

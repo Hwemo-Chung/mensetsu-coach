@@ -5,10 +5,18 @@ import { selectCheckpoints } from "./conditions.js";
 const EMAIL = /[\w.+-]+[@＠][\w-]+(\.[\w-]+)+/g;
 const PHONE = /\+?[\d０-９][\d０-９ \t.\-－‐]{8,}[\d０-９]/g;
 const DATE = /^(?:\d{4}[.\-/－]\d{1,2}[.\-/－]\d{1,2}|(?:19|20)\d{2}[.\-－]\d{1,2}(?:[.\-－]\d{1,2})?(?:[ \t\-－‐]+(?:19|20)\d{2}[.\-－]\d{1,2}(?:[.\-－]\d{1,2})?)+)$/;
+// 2026-11-05 11:00: PHONE stops at the colon and sees 「2026-11-05 11」. Only with a time right after it, so a phone never passes as this.
+const DATETIME = /^(?:19|20)\d{2}[.\-](?:0?[1-9]|1[0-2])[.\-](?:0?[1-9]|[12]\d|3[01])[ \t]+(?:[01]?\d|2[0-3])$/;
+// 11:00 - 2099-01-02 12:00: the first match starts at the minutes, so they are cut when a colon stands before them.
+const isDate = (m, at, s) => {
+  if (DATE.test(m)) return true;
+  const t = m.normalize("NFKC");
+  return /^[:：時]/.test(s.slice(at + m.length)) && DATETIME.test(/[:：]$/.test(s.slice(0, at)) ? t.replace(/^\d{2}[ \t]*[\-‐][ \t]*/, "") : t);
+};
 const PHONE_PAREN = /(?:\+?[\d０-９]+[ \t.\-－‐]?)?[(（][\d０-９]{1,5}[)）](?:[ \t.\-－‐]?[\d０-９]+)+/g;
 const POSTAL = /(?:〒\s?)?[\d０-９]{3}[-－][\d０-９]{4}/g;
 const SALUTATION = /^[ \t　]*[^\s　、。,.]{1,12}?(?:[ \t　][^\s　、。,.]{1,12}?)?[ \t　]*(様|さん|殿|님)[ \t　]*$/gm;
-export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE_PAREN, (m) => (m.match(/[\d０-９]/g).length >= 9 ? "[phone]" : m)).replace(PHONE, (m) => (DATE.test(m) ? m : "[phone]")).replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
+export const mask = (s) => String(s ?? "").replace(EMAIL, "[email]").replace(PHONE_PAREN, (m) => (m.match(/[\d０-９]/g).length >= 9 ? "[phone]" : m)).replace(PHONE, (m, at, s) => (isDate(m, at, s) ? m : "[phone]")).replace(POSTAL, "[〒]").replace(SALUTATION, "[氏名]$1");
 
 // JP labels are the fallback for sessions saved before the server sent pack meta.
 const JP_STEPS = [{ key: "fukusho", label: "復唱", optional: true }, { key: "ketsuron", label: "結論" }, { key: "kijun", label: "基準・数字" }, { key: "sentakushi", label: "締め" }];
@@ -26,7 +34,7 @@ export function sessionToMarkdown(session, t, debrief = null) {
   }
   session.attempts.forEach((a, i) => {
     const q = session.questions.find((x) => x.id === a.question_id);
-    out.push("", `## ${t.export.practice} ${i + 1}: Q${q ? q.id.slice(1) : "?"}`, "", `> ${q?.question ?? ""}`, "", `**${t.export.myAnswer}**`, "", a.answer, "");
+    out.push("", `## ${t.export.practice} ${i + 1}: Q${q ? q.id.slice(1) : "?"}${practiceTime(a.at) ? ` (${practiceTime(a.at)})` : ""}`, "", `> ${q?.question ?? ""}`, "", `**${t.export.myAnswer}**`, "", a.answer, "");
     if (a.review) {
       const r = a.review;
       // The screen shows icons; the Markdown file keeps text marks (the i18n sentence itself has none).
@@ -44,7 +52,7 @@ export function sessionToMarkdown(session, t, debrief = null) {
     }
     if (a.script) {
       const s = a.script;
-      out.push(`### ${t.script.title}`, "", `**${t.script.text[target]}**`, "", s.text, "");
+      out.push(`### ${t.script.title}`, "", `**${t.script.text[target]}**`, "", s.text, "", ...scriptNotes(s, t));
       // No reading/translation when the interview language is the screen language.
       if (s.reading != null) out.push(`**${t.script.reading[target]}**`, "", s.reading, "", `_${t.script.legend}_`, "");
       if (s.translation != null) out.push(`**${t.script.translation}**`, "", s.translation, "");
@@ -63,6 +71,14 @@ export function sessionToMarkdown(session, t, debrief = null) {
   const written = ["asked", "difficult", "outcome"].filter((k) => debrief?.[k]?.trim());
   if (written.length) out.push("", `## ${t.debrief.title}`, "", written.map((k) => `**${t.debrief[k]}**\n\n${debrief[k].trim()}`).join("\n\n"));
   return mask(out.join("\n")) + researchSection(session, t) + (session.prep ? `\n\n${prepToMarkdown(session.prep, t, { omitBrowser: true })}` : "") + "\n";
+}
+
+// The script card's warnings as lines (render.js renderScript, scriptCheck): the code's word check, then the check against the answer; absent check = nothing claimed.
+function scriptNotes(s, t) {
+  const c = s.check, dropped = c?.dropped ? [t.verify.dropped({ n: c.dropped })] : [];
+  const check = c === null ? [t.script.unchecked] : !c ? [] : c.unsupported.length ? [t.script.unsupported, ...c.unsupported.map((u) => `- 「${u.sentence}」（${t.verify.kinds[u.kind] ?? u.kind}）`), ...dropped] : dropped.length ? dropped : [t.script.checked];
+  const lines = [...(s.unbacked?.length ? [`${t.script.unbacked} 「${s.unbacked.join("」「")}」`] : []), ...check];
+  return lines.length ? [lines.join("\n"), ""] : [];
 }
 
 // Overlap between generated questions and those really asked. Text only, no AI. The tails are what nearly every question ends with; left in, they alone would match.
@@ -117,11 +133,12 @@ export function briefFacts(b) {
   if (b?.research_status !== "ok") return [];
   const fact = (kind) => (c) => (claimFound(c) ? [{ kind, text: c.value, source_ids: citedIds(c) }] : []);
   const co = b.company_snapshot, pos = b.position_analysis;
-  const thisPosition = [pos?.actual_work, pos?.team_context, ...listOf(pos?.required_skills), ...listOf(pos?.preferred_skills)].filter((c) => c?.position_match === "exact"); // a matching posting is good enough to prepare from, unlike to compare conditions against
+  const thisPosition = (l) => l.filter((c) => c?.position_match === "exact"); // a matching posting is good enough to prepare from, unlike to compare conditions against
   return [
     ...SNAPSHOT_FIELDS.flatMap((k) => fact("company")(co?.[k])),
     ...listOf(co?.recent_news).flatMap(fact("news")),
-    ...thisPosition.flatMap(fact("role")),
+    ...thisPosition([pos?.actual_work, pos?.team_context, ...listOf(pos?.required_skills)]).flatMap(fact("role")),
+    ...thisPosition(listOf(pos?.preferred_skills)).flatMap(fact("role")).map((f) => ({ ...f, text: `歓迎: ${f.text}` })), // the prep document shows these as facts of the job (real run 11/06)
     ...listOf(b.interview_intelligence?.reported_questions).flatMap(fact("reported_question")),
   ];
 }
@@ -199,7 +216,7 @@ export function prepSlots(session, desired, t, brief) {
 export function prepView(prep, { wins = [], conditions = [], omitBrowser = false } = {}) {
   const all = objects(prep?.sections), added = { win_points: wins, conditions }, order = all.map((s) => s.key);
   const slot = new Set(all.filter((s) => s.filled_by).map((s) => s.key));
-  const shown = all.filter((s) => !(omitBrowser && s.filled_by)).map((s) => (s.filled_by ? { ...s, lines: [...listOf(s.lines), ...(added[s.key] ?? [])] } : s));
+  const shown = all.filter((s) => !(omitBrowser && s.filled_by && !s.keep)).map((s) => (s.filled_by ? { ...s, lines: [...listOf(s.lines), ...(added[s.key] ?? [])] } : s)); // keep: the pack's own sentences (offer), stored, so the session file has them
   const unresolved = [
     ...objects(prep?.unresolved).filter((u) => !slot.has(u.section)),
     ...shown.filter((s) => s.filled_by).flatMap((s) => s.lines.flatMap(blanksIn).map((text) => ({ kind: "blank", section: s.key, key: s.key, text }))),
@@ -271,7 +288,8 @@ function prepRowLine(s, r, p, pages) {
 
 export function prepToMarkdown(prep, t, slots = {}) {
   const p = t.prep, view = prepView(prep, slots), failed = objects(prep?.failed), omitted = listOf(prep?.omitted_questions);
-  const out = [`# ${p.title} — ${inert(prep?.company)} · ${inert(prep?.position)}`, "", `> ⚠ ${p.verifyNotice}`, "", p.counts(view), "", p.readNote, ""];
+  const stage = prep?.stage ?? "first"; // a document from before stages was a first-interview one
+  const out = [`# ${p.title} — ${inert(prep?.company)} · ${inert(prep?.position)}`, "", `> ⚠ ${p.verifyNotice}`, "", `${p.stage}: ${p.stageNames[stage] ?? inert(stage)}`, "", p.counts(view), "", p.readNote, ""];
   const cited = view.sections.filter((s) => s.key === "sources").flatMap((s) => objects(s.sources));
   const pages = new Map(cited.flatMap((s) => { const url = linkable(s.url); return url ? [[s.id, url]] : []; }));
   if (prep?.outdated) out.push(`> ⚠ ${p.outdated}`, "");
@@ -315,6 +333,10 @@ export const exportFileName = (d) => {
   const p = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Tokyo", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
   return `mensetsu-${p}.md`;
 };
+
+// When a practice was made (attempt.at), on the question card and in the file: Japan time like the calendar; a session saved before has none.
+const AT = new Intl.DateTimeFormat("sv-SE", { timeZone: "Asia/Tokyo", dateStyle: "short", timeStyle: "short" });
+export const practiceTime = (at) => (Number.isFinite(Date.parse(at)) ? `${AT.format(new Date(at))} UTC+9` : "");
 
 // Before/after view: the first and the latest reviewed attempt at one question. null until there are two.
 export function compareAttempts(session, qid) {

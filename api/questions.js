@@ -2,7 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { loadPack, generateQuestions, readBriefFacts, EXPLAIN_LANGS, PACKS, maskInput } from "../lib/coach.js";
 import { researchEnabled } from "../lib/research.js";
 import { toContentBlocks, AttachmentError } from "../lib/attachment.js";
-import { checkAccess, rateLimit } from "../lib/guard.js";
+import { gate, rateLimit } from "../lib/guard.js";
 
 const MAX_MAIL_CHARS = 8000;
 const MAX_PROFILE_CHARS = 200;
@@ -14,7 +14,8 @@ let client;
 export async function POST(request, deps = {}) {
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`questions:${ip}`, { limit: 10 })) return json(429, { code: "rate_limited" });
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
+  const denied = await gate(request);
+  if (denied) return denied;
 
   let body;
   try {

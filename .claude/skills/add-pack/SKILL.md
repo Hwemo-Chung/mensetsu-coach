@@ -39,6 +39,7 @@ description: 新しい国別パックを追加する手順です。packs/ のデ
 | `public/i18n/` | `dest.<id>`、段階とカテゴリの名前を全言語に追加 | `dest` の欠落はテストで検出されず、メニューに `undefined` と出ます |
 | `test/i18n.test.js` | `dest` の一覧に id を追加 | 欠落を検出するためです |
 | `test/lang.test.js` | 登録一覧の期待値、反復するパックの一覧、新しい id の形式テストを追加 | 既存の形式テストは `kr` 専用です |
+| `public/calendar.js`、`public/i18n/` の `calendar.at` | 日時を日本時間（UTC+9、`Asia/Tokyo`）として読む処理と表示 | 時差のある国では、予定が別の時刻に入ります |
 
 新しい言語、または既存の言語を初めて面接の言語にする場合は、次も必要です。`en` のように登録済みの言語でも、初めて面接に使うなら確認します。
 
@@ -47,6 +48,7 @@ description: 新しい国別パックを追加する手順です。packs/ のデ
 | `lib/lang.js` | `TARGET_LANGS`、`READINGS`（全画面言語。欠けると生成で例外）、`EXPLAIN_LANGS` の `isText` にある面接言語ごとの分岐 |
 | `public/stt-whisper.js` | `PROMPT`、`MIN_CHARS_PER_SEC`。語の間に空白を入れない言語なら連結の処理も |
 | `lib/script.js` | `joinParts`（空白の扱い） |
+| `lib/verify.js` | 話す時間の計算。パックに `consistency.chars_target` がなければ `ROUND_CHARS` を使うので、測った値に置き換え、理由をコメントに書く |
 | `public/voice.js` | `DEVICE_VOICES`。ないと端末の音声で読み上げられません |
 | `public/i18n/` | `script.text`、`script.reading`、`chat.askAnswer`、`chat.waitReview`、`steps` の面接言語別キー |
 | `test/lang.test.js` | `EXPECTED_READING` |

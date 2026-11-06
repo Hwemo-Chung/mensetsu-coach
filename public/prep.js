@@ -39,6 +39,10 @@ function openDialog(bundles = null) {
     for (const e of headerInputs()) e.value = saved.header?.[e.dataset.prepHeader] ?? "";
     for (const e of answerInputs()) e.value = saved.inputs?.[e.dataset.prepInput] ?? "";
   }
+  const pick = $("prepStage");
+  pick.value = state.session.prep?.stage ?? "first"; // the stage of the document on screen; a document from before stages was first
+  if (!pick.value) pick.value = "first"; // a stored stage the list does not offer
+  pick.disabled = Boolean(bundles); // a retry remakes parts of that same document
   $("prepMsg").textContent = "";
   $("prep").showModal();
 }
@@ -60,6 +64,7 @@ async function generate(bundles) {
       // briefFacts picks what may leave: the fit sections can quote the desired profile, which only the fit call may receive.
       ...(facts.length && { research_facts: facts, sources: listOf(brief.sources) }),
       header, inputs, lang: state.lang, pack: s.pack?.id ?? "jp", ...(bundles && { bundles }),
+      stage: bundles ? s.prep?.stage ?? "first" : $("prepStage").value, // mergePrep must get the same document's sections back
     };
     const { res, data } = await deps.post("/api/prep", body);
     if (!live()) return;
@@ -183,7 +188,9 @@ function draw() {
   const t = T(), p = t.prep, doc = state.session.prep, view = prepView(doc, slots());
   const had = card.querySelector("details") ? new Set([...card.querySelectorAll("details[open]")].map((d) => d.dataset.section)) : new Set(["self_intro"]);
   card.replaceChildren();
-  card.append(el("p", "title", `${p.title} — ${doc.company ?? ""} · ${doc.position ?? ""}`), el("p", "caution", p.verifyNotice), el("p", "legend", p.counts(view)), el("p", "legend", p.readNote));
+  const head = el("p", "title", `${p.title} — ${doc.company ?? ""} · ${doc.position ?? ""} `);
+  head.append(el("span", "tag stage", p.stageNames[doc.stage ?? "first"] ?? doc.stage));
+  card.append(head, el("p", "caution", p.verifyNotice), el("p", "legend", p.counts(view)), el("p", "legend", p.readNote));
   if (doc.outdated) card.append(el("p", "caution", p.outdated));
   const omitted = listOf(doc.omitted_questions);
   if (omitted.length) card.append(el("p", "caution", p.omitted({ ids: omitted.map((id) => `Q${String(id).slice(1)}`).join(", ") })));

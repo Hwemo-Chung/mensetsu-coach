@@ -70,10 +70,10 @@ test("/api/access reports stt so the UI shows 🎤 only when recording is allowe
   const saved = process.env.STT_ENABLED;
   const call = () => access(new Request("http://x/api/access", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `10.9.0.${++ipN}` } })).then((r) => r.json());
   delete process.env.STT_ENABLED;
-  // Intent unchanged (stt follows the flag): the body gained the research flag 11/04 and the mail and prep flags 11/05; test/research.test.js, test/mail.test.js and test/prep.test.js cover those flags.
-  assert.deepEqual(await call(), { ok: true, stt: false, research: false, mail: false, prep: false });
+  // Intent unchanged (stt follows the flag): the body gained the research flag 11/04 and the mail and prep flags 11/05, open and unlimited 11/06; test/research.test.js, test/mail.test.js, test/prep.test.js and test/guard.test.js cover those.
+  assert.deepEqual(await call(), { ok: true, open: false, unlimited: true, stt: false, research: false, mail: false, prep: false });
   process.env.STT_ENABLED = "1";
-  assert.deepEqual(await call(), { ok: true, stt: true, research: false, mail: false, prep: false });
+  assert.deepEqual(await call(), { ok: true, open: false, unlimited: true, stt: true, research: false, mail: false, prep: false });
   if (saved === undefined) delete process.env.STT_ENABLED; else process.env.STT_ENABLED = saved;
 });
 

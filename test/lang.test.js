@@ -230,7 +230,8 @@ test("ko translation gate: Hangul must be the majority; review notes may still q
   const jp = loadPack("jp");
   const jpTranslation = asModelScript({ ...scriptFixture, translation: "前職で最も大変だったことは導入です。여기" });
   // 2nd call = translation-only retry (generate.test.js); a Japanese translation there fails too.
-  await assert.rejects(generateScript(fakeClient({ responses: [jpTranslation, jpTranslation] }), jp, { question: "Q", answer: "A", lang: "ko" }), /language check/);
+  // Intent changed (11/06): a wrong translation is still never shown, but it no longer costs the whole script (502).
+  assert.ok(!("translation" in await generateScript(fakeClient({ responses: [jpTranslation, jpTranslation] }), jp, { question: "Q", answer: "A", lang: "ko" })));
 });
 
 // Intent changed (11/03): the fixHangulReading hack (drop ッ, ー → -) turned もっとも into 모토모. The model now writes

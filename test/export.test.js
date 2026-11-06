@@ -24,7 +24,7 @@ test("F6 markdown: company, all 10 questions, each attempt with ① review ② c
 
 // m5: public/ cannot import lib/, so export.js carries a copy of lib/privacy.js maskInput; this keeps the two in step.
 test("F6 masking: export mask equals the server maskInput on the same samples (postal code in a memo included)", () => {
-  const samples = ["〒100-0001 東京都千代田区", "100-0001", "連絡先 03-1234-5678 / +81 90 1234 5678", "mail: a.b+c@example.co.jp", "山田様", "  홍길동 님", "〒100-0001\n090-1234-5678", "株式会社サンプル 様式 3-4", "山田 太郎 様", "taro＠example.co.jp", "TEL：０９０－１２３４－５６７８", "090.1234.5678", "03(1234)5678", "TEL 03（1234）5678 / 2026-11-04 (10:00)", "2019.04 - 2023.03", "2019.04-2023.03", "2019-04-01 - 2023-03-31"];
+  const samples = ["〒100-0001 東京都千代田区", "100-0001", "連絡先 03-1234-5678 / +81 90 1234 5678", "mail: a.b+c@example.co.jp", "山田様", "  홍길동 님", "〒100-0001\n090-1234-5678", "株式会社サンプル 様式 3-4", "山田 太郎 様", "taro＠example.co.jp", "TEL：０９０－１２３４－５６７８", "090.1234.5678", "03(1234)5678", "TEL 03（1234）5678 / 2026-11-04 (10:00)", "2019.04 - 2023.03", "2019.04-2023.03", "2019-04-01 - 2023-03-31", "2099-01-02 11:00 - 2099-01-02 12:00", "２０９９－０１－０２ １１：００", "2012-34-56 78:", "2000-11-22 33時", "03 - 2099-01-02 12:"];
   for (const s of samples) assert.equal(mask(s), maskInput(s), s);
   const md = sessionToMarkdown({ ...session, notes: { q1: "面接会場 〒100-0001\n担当 山田様" } }, LANGS.ko);
   assert.ok(!md.includes("100-0001"), "postal code in a memo is masked");
@@ -353,4 +353,35 @@ test("mergePrep: only the regenerated bundle changes; counts follow; a retry tha
 
 test("prepFileName keeps the company out of the file name", () => {
   assert.equal(prepFileName(new Date("2026-11-05T01:00:00Z")), "mensetsu-prep-2026-11-05.md");
+});
+
+// Refutation 8 (11/06): the warnings on the script card reach the downloaded file too, one line each.
+test("F6 markdown: the script's warnings and its check against the answer are in the file", async () => {
+  const ko = LANGS.ko, unbacked = "四半期ごとに見直しました。", flagged = "売上を三倍にしました。";
+  const with_ = (script) => sessionToMarkdown({ ...session, attempts: [{ ...session.attempts[0], script: { ...scriptFixture, ...script } }] }, ko);
+  const md = with_({ unbacked: [unbacked], check: { unsupported: [{ sentence: flagged, kind: "achievement" }], dropped: 1 } });
+  assert.ok(md.includes(`${ko.script.unbacked} 「${unbacked}」`), "the code's word check");
+  assert.ok(md.includes(ko.script.unsupported) && md.includes(`「${flagged}」（${ko.verify.kinds.achievement}）`), "the check's sentences");
+  assert.ok(md.includes(ko.verify.dropped({ n: 1 })));
+  assert.ok(with_({ check: null }).includes(ko.script.unchecked), "a failed check says it was not checked");
+  assert.ok(with_({ check: { unsupported: [] } }).includes(ko.script.checked));
+  const dropped = with_({ check: { unsupported: [], dropped: 2 } });
+  assert.ok(dropped.includes(ko.verify.dropped({ n: 2 })) && !dropped.includes(ko.script.checked), "never 'nothing unsupported' when flags were dropped");
+  const none = with_({});
+  for (const s of [ko.script.unchecked, ko.script.checked, ko.script.unsupported, ko.script.unbacked]) assert.ok(!none.includes(s), "no check ran: nothing is claimed");
+});
+
+// Refutation 5 (11/06): the offer stage's own sentences are the conditions section; the session file keeps them like the prep download,
+// while the browser-only lines (win points, the user's own conditions) still stay out of it.
+test("F6 markdown: an offer-stage prep keeps the pack's sentences in the session file", async () => {
+  const { generatePrep } = await import("../lib/prep.js");
+  const { loadPack } = await import("../lib/pack.js");
+  const noCall = { beta: { messages: { stream() { throw new Error("the offer stage makes no call"); } } } };
+  const doc = await generatePrep(noCall, loadPack("jp"), { material: "架空の経歴です。", questions: [{ id: "q1", question: "架空の質問ですか。", category: "技術" }], context: { company: "サンプルテック", position: "PM", facts: [] }, stage: "offer", lang: "ko" });
+  const lines = doc.sections.find((s) => s.key === "conditions").lines;
+  assert.ok(lines.length > 1);
+  const md = sessionToMarkdown({ ...session, prep: doc }, LANGS.ko);
+  for (const l of lines) assert.ok(md.includes(l.replace(/^([#>+*|=~-])/, "\\$1")), l);
+  const download = prepToMarkdown(doc, LANGS.ko, prepSlots(session, { min_salary_man: "999" }, LANGS.ko, null));
+  assert.ok(download.includes("999") && !md.includes("999"), "the user's own conditions stay in the download only");
 });

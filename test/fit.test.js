@@ -415,3 +415,21 @@ test("the deployment stays within the Hobby plan's 12 functions, and /api/fit re
   const res = await viaResearch(new Request("http://x/api/research?route=fit", { method: "POST", headers: { "x-access-code": "wrong" }, body: "{}" }));
   assert.ok([401, 503].includes(res.status) || (await res.clone().json()).code, "answered by the fit handler");
 });
+
+// Real run 11/06: a preferred skill was reported as the posting's requirement, because the fit call could not tell them apart.
+test("fit request: required and preferred skills stay labelled, and the prompt keeps their strength", () => {
+  const REQUIRED = "開発経験3年以上またはリーダー経験2年以上のいずれか（架空）", PREFERRED = "金融の経験（架空）";
+  const facts = fitFacts({ ...BRIEF, position_analysis: { ...BRIEF.position_analysis, required_skills: [claim(REQUIRED, ["s1"])], preferred_skills: [claim(PREFERRED, ["s1"])] } });
+  assert.equal(facts.find((f) => f.text === REQUIRED).requirement, "required");
+  assert.equal(facts.find((f) => f.text === PREFERRED).requirement, "preferred");
+  assert.ok(facts.filter((f) => ![REQUIRED, PREFERRED].includes(f.text)).every((f) => !("requirement" in f)));
+  const { system } = buildFitRequest(BRIEF, "M", PROFILE, "M", "ja");
+  assert.match(system, /preferred を「要件」「必須」「求められる」と書かず/);
+  assert.match(system, /「いずれか」「または」は、どれか1つを満たせば足ります/);
+});
+
+test("research prompt: required and preferred keep the posting's own strength", () => {
+  const { system } = buildResearchRequest("サンプル（架空）", "PM", "ko", "2099-01-01");
+  assert.match(system, /求人に必須と書かれていない条件を required_skills に入れない/);
+  assert.match(system, /「いずれか」「または」で結ばれた必須条件は分けず/);
+});

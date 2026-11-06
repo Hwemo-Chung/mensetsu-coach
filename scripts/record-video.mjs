@@ -11,15 +11,15 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
 import { startServer, launch, CODE } from "../test/ui/harness.js";
+import { CPS } from "./narration.mjs";
 
-const lang = process.argv[2] ?? "ja";
-const out = process.argv[3] ?? `demo-${lang}-section3.mp4`;
+const [lang = "ja", out = `demo-${lang}-section3.mp4`] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const demo = JSON.parse(readFileSync(new URL(`../public/demo/demo-${lang}.json`, import.meta.url), "utf8"));
 const pack = JSON.parse(readFileSync(new URL("../packs/jp.json", import.meta.url), "utf8"));
 // What the viewer sees of each generation (real: 10–20 s). Over 3 s so the app's own wait label ("checking your
 // answer…") shows up next to the dots: dots alone read as a hang (user, 11/03).
 const GEN_MS = 3100; // still past 3 s, so the wait label shows; faster tempo (user 11/04)
-const HOLD_MS = 1800; // each "stop and explain" pause, at least
+const HOLD_MS = 1200; // each "stop and explain" pause, at least (11/06: was 1800, longer than the shortest lines)
 // Explanation captions (storyboard approved 11/03): one big line + one note. Japanese is the video's language.
 // Every caption states only what the recorded data shows (demo review 11/03): counts are computed, "all ✓" only if true.
 const after = demo.steps[1].review, allOk = after.answers_question === "yes" && Object.values(after.steps).every((s) => s.present);
@@ -47,26 +47,30 @@ const STEP = { paste: 1, questions: 1, research: 2, brief: 2, pick: 3, voice: 4,
 const TONE = { verdict: "alert", compare: "peak" };
 // NARRATE=1 (+ a local VOICEVOX engine): each caption is also spoken. Lines say it in full sentences (no ✓/［］ for
 // the voice). Lines are made before recording, so each hold lasts as long as its line.
+// v8: shorter lines (the take was 77.5 s in v7; the budget is 72 s, storyboard 04-video/v8). Every line is checked
+// with VOICEVOX's kana reading (narration-check.mjs) and the Whisper round trip of the finished video.
 const SAY = {
-  paste: "使い方は、かんたんです。求人メールを貼るだけ。",
-  questions: `その会社だけの質問を、10問作ります。${n}問が、メールの言葉をそのまま使っています。`,
+  paste: "求人メールを、貼るだけ。",
+  questions: `その会社だけの質問、10問。${n}問は、メールの言葉のまま。`,
   research: "会社も調べます。",
-  brief: "メールとの違いを、面接で聞く質問に。デモは架空の会社です。",
-  pick: "練習する質問を、ボタンで選びます。",
+  brief: "メールとの違いを、面接で聞く質問に。会社は架空です。",
+  pick: "質問を、ボタンで選びます。",
   voice: "話したそのままが、端末の中で文字になります。",
-  verdict: "質問に、答えていません。まず見るのは、聞かれたことに答えたかどうかです。",
-  steps: "足りない部分が、赤で分かります。直し方も、すぐ下に出ます。",
-  rule: "直すのは、ルール表の項目だけ。ルールIDで示します。",
-  habit: "口ぐせまで、見つけます。声で答えると、「なんか」もそのまま残るからです。",
-  script: "自分の答えをもとにした台本です。数字は空欄のまま、自分の事実で埋めます。",
-  retry: "空欄を埋めて答え直します。数字はデモ用の架空です。",
-  compare: `${allOk ? "答え直したら、すべてにチェックがつきました。" : "答え直したら、バツがチェックに変わりました。"}最初の答えと並べて比べます。`,
+  verdict: "質問に、答えていません。まず、聞かれたことに答えたかどうか。",
+  steps: "足りない部分が赤。直し方も、すぐ下に。",
+  rule: "直すのは、ルール表の項目だけ。IDで示します。",
+  habit: "口ぐせも見つけます。声だと、「なんか」まで残るからです。", // まで: 「も残る」 was heard as 物凝る (Whisper, smoke v8d)
+  script: "自分の答えをもとにした台本。数字は空欄のまま。",
+  retry: "空欄を埋めて、答え直します。数字は架空です。",
+  compare: `${allOk ? "答え直したら、すべてにチェック。" : "答え直したら、バツがチェックに。"}最初の答えとならべて比べます。`, // ならべて: the engine read 並べて as なべて (Whisper round trip of v7)
   // Bridges: spoken over a wait, so the take has no long silence (v5 measured up to 5.4 s). The wait stays over 3 s for the app's label.
-  waitQuestions: "質問を作っています。待ち時間は、短くしています。",
+  waitQuestions: "質問を作っています。",
   mic: "マイクを押して、話します。",
   waitReview: "AIが、答えを確認しています。",
-  waitAgain: "同じ質問で、もう一度確認します。",
+  waitAgain: "同じ質問で、もう一度。",
 };
+// --lines: the narration table as JSON, nothing recorded (narration-check.mjs reads every line from here).
+if (process.argv.includes("--lines")) { console.log(JSON.stringify(SAY)); process.exit(0); }
 const NARRATE = process.env.NARRATE === "1";
 const lines = {};
 if (NARRATE) {
@@ -81,7 +85,7 @@ const spoken = demo.steps[0].spoken === true;
 const habitRule = demo.steps[0].review.corrections.find((c) => /^del-/.test(c.rule_id) && demo.steps[0].answer.includes(c.before))?.rule_id;
 const VIEW = { width: 854, height: 720 }; // × 1.5 = the right 2/3 of 1920×1080: one column, larger text than the dashboard
 
-const server = await startServer();
+const server = await startServer({ OPEN_ACCESS: "1" }); // the submission's public mode (DECISIONS 11/06 17:40)
 const browser = await launch();
 const dir = mkdtempSync(join(tmpdir(), "mensetsu-video-"));
 const context = await browser.newContext({ viewport: VIEW, deviceScaleFactor: 1.5, locale: lang });
@@ -141,17 +145,21 @@ async function pointer(sel) {
     }
     Object.assign(p.style, { left: `${x}px`, top: `${y}px` });
   }, { x: box.x + Math.max(box.width / 2, box.width - 16), y: box.y + box.height / 2 }); // near the right edge: the label stays visible
-  await page.waitForTimeout(380);
+  await page.waitForTimeout(300); // the ring's own .3 s move
 }
 const click = async (sel) => { await pointer(sel); await page.click(sel); };
 
-// Stop and explain: scroll the target's own scroller (chat log or panel) so it comes up near the top (0.8 s, visible),
+// Stop and explain: scroll the target's own scroller (chat log or panel) so it comes up near the top (0.35 s, visible),
 // dim the rest, frame the target in green above a caption band, hold, then put the layout back. CSSOM only.
 // top: caption band at the top of the screen (the target sits at the bottom, e.g. the input).
 async function explain(sels, caption, hold = HOLD_MS, during) {
   const [title, note] = caption, key = Object.keys(CAPTIONS).find((k) => CAPTIONS[k] === caption), line = lines[key];
   // Silent preview: the same reading time as the narration at TEMPO, so the cut keeps its length.
-  hold = Math.max(hold, line ? Math.round(line.sec * 1000) + 250 : Math.round(SAY[key].length / 7.2 * 1000) + 250);
+  hold = Math.max(hold, line ? Math.round(line.sec * 1000) + 100 : Math.round(SAY[key].length / CPS * 1000) + 100);
+  // 11/06 (user: too many empty gaps): the line and its panel start with the scroll, and the hold counts from here.
+  const t0 = now();
+  if (line) cues.push({ wav: line.wav, t: t0 });
+  panels.push({ key, title, note, step: STEP[key], tone: TONE[key], t: t0 });
   await page.evaluate(async (sels) => {
     const el = document.querySelector(sels[0]);
     let sc = el.parentElement;
@@ -163,7 +171,7 @@ async function explain(sels, caption, hold = HOLD_MS, during) {
     const t0 = performance.now();
     await new Promise((done) => {
       const step = (t) => {
-        const k = Math.min(1, (t - t0) / 500), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+        const k = Math.min(1, (t - t0) / 350), e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
         sc.scrollTop = from + (to - from) * e;
         k < 1 ? requestAnimationFrame(step) : done();
       };
@@ -171,7 +179,6 @@ async function explain(sels, caption, hold = HOLD_MS, during) {
     });
   }, sels);
   if (during) await during();
-  panels.push({ key, title, note, step: STEP[key], tone: TONE[key], t: now() });
   const n = await page.evaluate(({ sels, walk }) => {
     const els = walk.flatMap((s) => (s[0] === "*" ? [...document.querySelectorAll(s.slice(1))].slice(0, 6) : [document.querySelector(s)])).filter(Boolean);
     const hl = document.createElement("div"); hl.id = "rec-hl";
@@ -192,9 +199,9 @@ async function explain(sels, caption, hold = HOLD_MS, during) {
     return els.length;
   }, { sels, walk: WALK[key] ?? sels });
   await page.evaluate(() => window.__walk(0));
-  if (line) cues.push({ wav: line.wav, t: now() + 0.15 }); // starts as the frame lands
-  for (let i = 1; i < n; i++) { await pause(hold / n); await page.evaluate((k) => window.__walk(k), i); }
-  await pause(hold / n);
+  const left = Math.max(0, hold - (now() - t0) * 1000);
+  for (let i = 1; i < n; i++) { await pause(left / n); await page.evaluate((k) => window.__walk(k), i); }
+  await pause(left / n);
   await page.evaluate(() => {
     for (const id of ["rec-hl", "rec-arrow"]) document.getElementById(id)?.remove();
     for (const e of document.querySelectorAll("[data-rec]")) { e.style.paddingBottom = ""; delete e.dataset.rec; }
@@ -210,12 +217,19 @@ async function type(text, perChar) {
   await pause(400);
 }
 
-// Off camera: the access code (trimmed away below).
+// Off camera: the access code, only while the app still asks for one (DECISIONS 11/06 17:25: the gate becomes a daily
+// limit). body[data-stage] is the app's own marker, so this works before and after that change. The take keeps the chat
+// above it, so such a take shows the code prompt and its •••• echo, which the video may not (user 11/06 18:12):
+// panels.json records codeStage and build-video.mjs takes only codeStage: false outside PREVIEW.
 await page.goto(server.url);
 await page.locator(".msg.coach").first().waitFor();
-await page.fill("#input", CODE);
-await page.click("#send");
-await page.waitForFunction(() => document.querySelector("#input").placeholder && !document.querySelector("#send").disabled);
+const codeStage = await page.evaluate(() => document.body.dataset.stage === "code");
+if (codeStage) {
+  console.warn("the app still asks for an access code: this take shows its prompt and •••• echo (PREVIEW only)");
+  await page.fill("#input", CODE);
+  await page.click("#send");
+  await page.waitForFunction(() => document.body.dataset.stage !== "code" && !document.querySelector("#send").disabled);
+}
 await pause(300);
 await cdp.send("Page.startScreencast", { format: "jpeg", quality: 92, everyNthFrame: 1 });
 await pause(500);
@@ -244,7 +258,7 @@ await explain(["#input"], CAPTIONS.paste);
 await click("#send");
 bridge("waitQuestions");
 await page.locator("#log .q").first().waitFor({ timeout: 15000 });
-await pause(250);
+await pause(100);
 await explain(["#log .q:nth-of-type(1)", "#log .q:nth-of-type(3)"], CAPTIONS.questions);
 // Stage R with the tour's fictional sample (0 AI calls): confirm, brief, the mismatch, then the question to ask.
 await page.locator(".brief-confirm .inline-btn").waitFor({ timeout: 15000 });
@@ -253,7 +267,7 @@ await click(".brief-confirm .inline-btn");
 const flag = demo.brief.mismatch_flags[0], check = demo.brief.company_checkpoints[0].question;
 await page.waitForFunction((q) => document.querySelector("#log").innerText.includes(q), flag.side_b.quote, { timeout: 15000 });
 await page.waitForFunction(() => !document.querySelector("#send").disabled, null, { timeout: 15000 });
-await pause(250);
+await pause(100);
 await page.evaluate(({ a, b, c, q }) => {
   const find = (t, tag = "p") => [...document.querySelectorAll(`#log .brief ${tag}`)].find((e) => e.textContent.includes(t));
   find(a).id = "rec-flag-a"; find(b).id = "rec-flag-b"; find(c).id = "rec-flag-c"; find(q, "*:not(div)").id = "rec-check";
@@ -263,21 +277,21 @@ const pick = `#log .q button[data-pick="${demo.pick + 1}"]:not([disabled])`;
 await page.evaluate((s) => { document.querySelector(s).closest(".q").id = "rec-pick"; }, pick); // the first match in the regenerated set
 await explain(["#rec-pick"], CAPTIONS.pick);
 await click(pick);
-await pause(400);
+await pause(200);
 if (spoken) { // answer by voice; the transcript lands in the box (fillers kept), checked, then sent
   await click("#mic");
   bridge("mic");
-  await pause(1800); // the recording timer runs while the "user" speaks (shortened)
+  await pause(1500); // the recording timer runs while the "user" speaks (shortened; 11/06: 1800 → 1500)
   await click("#mic");
   await page.waitForFunction(() => document.querySelector("#input").value.length > 20);
-  await pause(250);
+  await pause(100);
   await explain(["#input", "#mic"], CAPTIONS.voice);
 } else await type(demo.steps[0].answer, 12); // the off-target answer
 await click("#send");
 bridge("waitReview");
 await page.locator(R).waitFor({ timeout: 15000 });
 await page.locator(`${SC} .listen`).waitFor({ timeout: 15000 });
-await pause(250);
+await pause(100);
 await explain([`${R} .verdict`, `${R} .verdict + .tr`], CAPTIONS.verdict);
 await explain([`${R} .step.miss, ${R} .step.tip`, `${R} .hint`], CAPTIONS.steps);
 await explain([`${R} .rule`, `${R} .rule + .ja`], CAPTIONS.rule);
@@ -292,17 +306,17 @@ await explain([SC], CAPTIONS.script, 2600, () => click(`${SC} .listen`));
 const again = page.locator(`#log button[data-pick="${demo.pick + 1}"]:not([disabled])`);
 if (await again.count()) await click(`#log button[data-pick="${demo.pick + 1}"]:not([disabled])`);
 else { await page.fill("#input", String(demo.pick + 1)); await click("#send"); }
-await pause(300);
+await pause(100);
 await pointer("#input");
 await page.fill("#input", demo.steps[1].answer);
 await explain(["#input"], CAPTIONS.retry);
 await click("#send");
 bridge("waitAgain");
 await page.locator("#log .msg.compare").waitFor({ timeout: 15000 });
-await pause(250);
+await pause(100);
 // The peak (benchmark A3): the ✗ → ✓ table grows before it is framed, so it reads at a glance.
 await explain(["#log .msg.compare .cmp"], CAPTIONS.compare, 2600, () => page.evaluate(() => { document.querySelector("#log .msg.compare .cmp").style.zoom = "1.9"; }));
-await pause(300);
+await pause(150);
 const end = now();
 await cdp.send("Page.stopScreencast");
 await browser.close();
@@ -310,7 +324,7 @@ server.stop();
 
 // Screencast frames arrive only when the page changes: each frame lasts until the next one (variable rate → 30 fps).
 const shots = frames.filter((f) => f.t >= start - 1 && f.t <= end);
-writeFileSync(`${out}.panels.json`, JSON.stringify({ duration: end - shots[0].t, panels: panels.map((p, i) => ({ ...p, t: i ? p.t - shots[0].t : 0 })) }, null, 1));
+writeFileSync(`${out}.panels.json`, JSON.stringify({ duration: end - shots[0].t, codeStage, panels: panels.map((p, i) => ({ ...p, t: i ? p.t - shots[0].t : 0 })) }, null, 1));
 const list = shots.map((f, i) => `file '${f.file}'\nduration ${((shots[i + 1]?.t ?? end) - f.t).toFixed(3)}`).join("\n");
 writeFileSync(join(dir, "list.txt"), `${list}\nfile '${shots.at(-1).file}'\n`);
 execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", join(dir, "list.txt"), "-vf", "scale=1280:1080:flags=lanczos,fps=30", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "20", "-movflags", "+faststart", join(dir, "out.mp4")]);
@@ -320,4 +334,4 @@ if (cues.length) { // mix the lines in at their caption times (video t = 0 is th
   execFileSync("ffmpeg", ["-y", "-loglevel", "error", "-i", join(dir, "out.mp4"), ...cues.flatMap((c) => ["-i", c.wav]), "-filter_complex", filter, "-map", "0:v", "-map", "[aout]", "-c:v", "copy", "-c:a", "aac", "-ar", "48000", "-ac", "1", "-t", String(end - t0), join(dir, "narrated.mp4")]);
   copyFileSync(join(dir, "narrated.mp4"), out);
 } else copyFileSync(join(dir, "out.mp4"), out);
-console.log(`${out}: ${(end - start).toFixed(1)} s, ${shots.length} frames (one take, ${reviews} reviews${spoken ? `, spoken; habit caption: ${habitRule ?? "none"}` : ""}${cues.length ? `, ${cues.length} narrated captions` : ""})`);
+console.log(`${out}: ${(end - start).toFixed(1)} s, ${shots.length} frames (one take, ${reviews} reviews${spoken ? `, spoken; habit caption: ${habitRule ?? "none"}` : ""}${cues.length ? `, ${cues.length} narrated captions` : ""}${codeStage ? ", CODE STEP ON SCREEN: PREVIEW only" : ""})`);

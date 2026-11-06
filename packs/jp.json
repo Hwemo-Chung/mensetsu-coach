@@ -9,20 +9,24 @@
     "steps": [
       { "key": "fukusho", "label": "復唱", "label_native": "질문 확인", "optional": true, "rule": "最初の1文で、聞かれた質問を短く言い直す。", "example": "見積もりがずれたときの判断、ですね。" },
       { "key": "ketsuron", "label": "結論", "label_native": "결론", "rule": "復唱の直後（復唱がなければ最初の1文）で結論を言い切る。「〜で判断します」のような枠だけでなく、何をした・何をするという中身を言う（回答にない中身は［空欄］）。前置きをしない。", "example": "範囲を縮小して、続けると判断しました。" },
-      { "key": "kijun", "label": "基準・数字", "label_native": "근거 하나", "rule": "根拠は基準か数字を1つだけ。複数並べない。", "example": "基準は、残りのコストと、残りのリターンです。" },
+      { "key": "kijun", "label": "基準・数字", "label_native": "근거 하나", "rule": "根拠は基準か数字で示す。判断・状況の質問では1つだけにし、複数並べない。「なぜ当社か」は「3点あります」と、特徴と自分の接点を並べてよい。", "example": "基準は、［ここに基準］です。" },
       { "key": "sentakushi", "label": "締め", "label_native": "맺음", "rule": "最後は、質問の種類に合った形で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。" }
     ],
     "core_principle": "質問されたことに答える。準備してきた別の質問の答えを話さない。",
     "closings": {
-      "options": { "label": "選択肢", "rule": "判断・状況の質問なので、最後は相手が判断できる選択肢の形で返す。", "example": "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。", "must": "どちらから.*ましょうか。$" },
-      "contribution": { "label": "貢献", "rule": "経験・志望の質問なので、最後は応募先でどう活かすか（入社後の貢献）で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。", "must": "(御社|入社後).*ます。$" },
-      "improvement": { "label": "改善", "rule": "弱みの質問なので、最後は改善の取り組みを続けて応募先で貢献することで締める。", "example": "御社でも、確認の手順を続けながら、早めに共有します。", "must": "御社.*ます。$" },
-      "question": { "label": "質問", "rule": "逆質問なので、自分の経験と考えを一言添えて、質問を一つだけ聞く。", "example": "前職では導入初期の定着に苦労しました。御社では、導入後の定着をどのように支えていますか。", "must": "(か。|？)$" }
+      "options": { "label": "選択肢", "rule": "判断・状況の質問なので、最後は相手が判断できる選択肢を示して締める（平叙文でも問いかけでもよい）。選択肢の2つは回答の中身から選び、例文の言葉をそのまま使わない。", "example": "判断の基準と、関係者への伝え方のどちらから、詳しくお話ししましょうか。", "must": "選択肢|どちら|いずれか|ご提示|ご判断いただけ" },
+      "contribution": { "label": "貢献", "rule": "経験・志望の質問なので、最後は応募先でどう活かすか（入社後の貢献）で締める。", "example": "御社でも、導入初期のお客様で、この手順を活かします。", "must": "(?:御社|貴社|御行|御院|御校|(?<![仕同多模異客])様(?![々子式相])|入社後).*ます。$", "skip": ["fukusho"] },
+      "improvement": { "label": "改善", "rule": "弱みの質問なので、最後は改善の取り組みを続けて応募先で貢献することで締める。", "example": "御社でも、確認の手順を続けながら、早めに共有します。", "must": "(?:御社|貴社|御行|御院|御校|(?<![仕同多模異客])様(?![々子式相])).*ます。$", "skip": ["fukusho"] },
+      "question": { "label": "質問", "rule": "逆質問なので、自分の経験と考えを一言添えて、質問を一つだけ聞く。", "example": "前職では導入初期の定着に苦労しました。御社では、導入後の定着をどのように支えていますか。", "must": "(か。|？)$", "skip": ["fukusho"] },
+      "self_intro": { "label": "挨拶・接続・選択肢", "rule": "自己紹介の締め。時間の指定（30秒、1分など）があれば、その長さに収めて挨拶か応募先への接続で締める。指定がなければ場面に合わせ、挨拶、応募先への接続、または相手が続きを選べる一言（経歴と実績のどちらから、など）で締めてよい。どれで締めても締めとして十分。冒頭は挨拶と経歴の総括で始めるが、冒頭の有無はこの締めの判定に含めない。", "example": "本日はどうぞよろしくお願いいたします。", "skip": ["fukusho"], "no_tip": ["fukusho"] },
+      "short_fact": { "label": "事実", "rule": "条件・事実の質問なので、事実を短く答える。相談できることが回答にあれば、最後に添える。", "example": "［ここに相談できる範囲］はご相談できます。", "skip": ["fukusho", "kijun"], "no_tip": ["fukusho"], "chars": [20, 120] }
     },
     "closing_rules": [
       { "category": "逆質問", "closing": "question" },
       { "match": "質問はありますか|伺いたいこと|聞きたいこと", "closing": "question" },
-      { "match": "判断(?:します|する)|どう(?:対応|対処|判断|決め|管理|進め|考え)?(?:します|されます|ます)|どのように(?:判断し|対応し|対処し|決め|管理し|進め)ます|場合|としたら", "closing": "options" },
+      { "match": "自己紹介(?:を|から|お願い|ください|いただけ|願い|して(?:ください|いただけ|もらえ))", "closing": "self_intro" },
+      { "match": "^(?!.*(?:なぜ|理由|ましたか|大変|苦労|工夫|難し|経験|(?:どう|どのように)(?!お考え|なって))).*(?:年収|入社可能|入社時期|他社(?!と比|より)|選考状況|出社|常駐|在留|転勤|残業|勤務地|いつ頃|いつから(?:働|勤務|入社))", "closing": "short_fact" },
+      { "match": "判断(?:します|する)|どう(?:対応|対処|判断|決め|管理|進め|考え)?(?:します|されます|ます)|どのように(?:判断し|対応し|対処し|決め|管理し|進め)ます|どのような(?:判断|対応)[^。？?、]{0,12}(?:され|し|行い|取り|下し)ます|(?:どう|どのように|何を基準に)[^。？?]{0,20}(?:判断|決め|立て直)(?:し|され)?(?:て[^。？?]{0,8})?ます|アクション[^。？?]{0,8}何|(?:やめ|止め|続け)ますか|場合|としたら", "closing": "options" },
       { "match": "弱み|短所|苦手(?:な|分野)", "closing": "improvement" },
       { "closing": "contribution" }
     ]
@@ -42,27 +46,31 @@
     { "id": "del-katachi", "token": "形", "pattern": "〜の形 / 〜という形で", "type": "delete", "replacement": "", "reason": "意味がない。1回も言わない。文が短くなる。", "example_before": "チームで共有する形で進めました。", "example_after": "チームで共有して進めました。" },
     { "id": "del-chanto", "token": "ちゃんと", "pattern": "ちゃんと", "type": "delete", "replacement": "確実に / 最後まで / 具体的な動詞（確認する・合意する・止める）", "reason": "幼く聞こえる。", "example_before": "ちゃんと確認しました。", "example_after": "［いつ・何を］確認しました。" },
     { "id": "del-nanka", "token": "なんか", "pattern": "なんか", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "なんか、課題が多かったです。", "example_after": "課題が多かったです。" },
-    { "id": "del-chotto", "token": "ちょっと", "pattern": "ちょっと（形容詞として使う場合以外）", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "ちょっと説明させてください。", "example_after": "説明させてください。" },
+    { "id": "del-chotto", "token": "ちょっと", "pattern": "副詞の『ちょっと』（少し・やや）", "type": "delete", "replacement": "", "reason": "減点だけで、意味を足さない。", "example_before": "ちょっと説明させてください。", "example_after": "説明させてください。" },
     { "id": "del-gyakuni", "token": "逆に", "pattern": "逆に（逆接でない所）", "type": "delete", "replacement": "", "reason": "逆接でない所で使うと意味が反転して聞こえる。", "example_before": "逆に、私はテストを重視しています。", "example_after": "私はテストを重視しています。" },
     { "id": "rep-jibunteki", "token": "自分的", "pattern": "自分的には", "type": "replace", "replacement": "私としては", "reason": "砕けすぎ。", "example_before": "自分的には、この方法が良いと考えます。", "example_after": "私としては、この方法が良いと考えます。" },
     { "id": "rep-touka", "token": "透過", "pattern": "透過", "type": "replace", "replacement": "理解", "reason": "透過は物理現象を表す言葉。", "example_before": "おっしゃる内容を十分透過しております。", "example_after": "おっしゃる内容を十分理解しております。" },
     { "id": "rep-shuchu", "token": "集中", "pattern": "集中いたしました（承知の意味で）", "type": "replace", "replacement": "承知いたしました", "reason": "集中は別の意味。了解の意味なら承知。", "example_before": "集中いたしました。", "example_after": "承知いたしました。" },
-    { "id": "rep-shisan", "token": "資産", "pattern": "資産（工数・費用の意味で）", "type": "replace", "replacement": "コスト / 工数 / リソース", "reason": "資産は会計用語。", "example_before": "資産をどこまで使うかを決めます。", "example_after": "工数をどこまで使うかを決めます。" },
+    { "id": "rep-shisan", "token": "資産", "pattern": "資産（工数・費用の意味で）", "type": "replace", "replacement": "コスト / 工数 / リソース", "reason": "資産は会計用語。どこまで使うか、いくらかかるかという量の話なら直す。持っているものや担当しているものの話は、置き換えると意味が変わるので直さない。どちらの意味か決められないときは直さない。", "example_before": "資産をどこまで使うかを決めます。", "example_after": "工数をどこまで使うかを決めます。" },
     { "id": "rep-jijitsu", "token": "事実", "pattern": "〜ことが事実になる", "type": "replace", "replacement": "〜も事実です", "reason": "不自然な言い回し。", "example_before": "遅れたことが事実になるんですけど。", "example_after": "遅れたことも事実です。" },
     { "id": "rep-omoimasu", "token": "と思(?:い|っ)", "pattern": "〜と思います（連続使用）", "type": "replace", "replacement": "事実は断定形、未来は「〜と考えています」", "reason": "連続すると自信がない印象になる。", "example_before": "効果があったと思います。改善できると思います。", "example_after": "効果がありました。さらに改善できると考えています。" },
     { "id": "str-ketsuron", "pattern": "結論が冒頭にない", "type": "structure", "replacement": "復唱の直後（なければ最初の1文）で結論を言い切る", "reason": "結論が後ろにあると、面接官は質問が伝わったか分からない。", "example_before": "前職では色々なプロジェクトがあって、その中で…、結果的にAを選びました。", "example_after": "Aを選びました。理由は〜です。" },
-    { "id": "str-number", "pattern": "根拠が複数並ぶ / 数字がない", "type": "structure", "replacement": "根拠は数字か基準を1つだけ", "reason": "根拠が多いと、どれが本当の理由か伝わらない。", "example_before": "理由は3つあって、1つ目は…2つ目は…3つ目は…", "example_after": "基準は、残りのコストです。" },
+    { "id": "str-number", "pattern": "根拠が複数並ぶ（判断・状況の質問で。「なぜ当社か」を「3点あります」で答える形は除く） / 数字がない", "type": "structure", "replacement": "判断・状況の質問では、根拠は数字か基準を1つだけ", "reason": "根拠が多いと、どれが本当の理由か伝わらない。", "example_before": "理由は3つあって、1つ目は…2つ目は…3つ目は…", "example_after": "基準は、［ここに基準］です。" },
     { "id": "str-rebuttal", "pattern": "反論されたときに対抗する", "type": "structure", "replacement": "相手の正しさを先に認める → 目的を分ける → 使い分けを言う", "reason": "対抗すると論点がずれる。反論しない。目的が違う、で終える。", "example_before": "いえ、スクラムの方が早いです。", "example_after": "おっしゃる通りです。目的が違うので、納期固定ならウォーターフォール、新規事業なら2週間単位で使い分けます。" },
     { "id": "str-answer-first", "pattern": "自分の答えを言う前に「どう思いますか」と返す", "type": "structure", "replacement": "まず自分の考えを言い、質問は後に1つだけ", "reason": "答えが空のまま質問を返すと、考えがない印象になる。", "example_before": "AI活用について、御社はどう思いますか。", "example_after": "まず私の考えを申し上げます。AIはチームの再現性を高めるために使うべきだと考えています。そのうえで、1点伺ってもよろしいでしょうか。" },
-    {"id": "rep-sasete-itadaku", "token": "させて(?:いただ|頂)", "pattern": "〜させていただきました／〜させていただきます（相手の許可も恩恵もない自分の行為）", "type": "replace", "replacement": "〜しました／〜いたします", "reason": "許可を受けて恩恵を得る行為以外に使うと冗長になる。経歴は言い切る。", "example_before": "2018年に大学を卒業させていただき、物流会社で在庫管理を担当させていただきました。", "example_after": "2018年に大学を卒業し、物流会社で在庫管理を担当しました。"},
+    {"id": "rep-sasete-itadaku", "token": "させて(?:いただ|頂)", "pattern": "〜させていただきました／〜させていただきます（相手の許可も恩恵もない自分の行為。「〜させていただけますか」という許可の依頼と「控えさせていただきます」という断りは直さない）", "type": "replace", "replacement": "〜しました／〜いたします", "reason": "許可を受けて恩恵を得る行為以外に使うと冗長になる。経歴は言い切る。", "example_before": "2018年に大学を卒業させていただき、物流会社で在庫管理を担当させていただきました。", "example_after": "2018年に大学を卒業し、物流会社で在庫管理を担当しました。"},
     {"id": "str-visa-facts", "pattern": "ビザは大丈夫です / ビザは問題ありません", "type": "structure", "replacement": "在留資格名＋（期限がある資格なら）在留期限＋就労できる範囲を事実だけで。転職時の届出は、届出が必要な資格の場合だけ述べる", "reason": "「大丈夫」では就労できるか判断できない。資格によって期限や届出の有無が違うので、自分の資格の事実だけを言う（永住者など就労制限のない資格は「就労制限はありません」）。", "example_before": "ビザは大丈夫です。", "example_after": "在留資格は［在留資格名］で、期限は［年月］です。［就労できる範囲］で働くことができます。"},
-    {"id": "rep-uchi-keishou", "token": "部長|課長|社長|係長|室長|おっしゃ|いらっしゃ|なさ", "pattern": "勤務先の上司を面接官に対して「〇〇部長」「おっしゃる」などで立てる", "type": "replace", "replacement": "「上司の〇〇」「部長の〇〇」＋普通の動詞（言う・申す）", "reason": "社外の相手に対しては自分側の人物を立てない。名前＋役職はウチ扱いにならない。", "example_before": "現職では、鈴木部長がいつもおっしゃっているとおり、週次で数字を報告しています。", "example_after": "現職では、上司の鈴木がいつも申しているとおり、週次で数字を報告しています。"}
+    {"id": "rep-uchi-keishou", "token": "部長|課長|社長|係長|室長|おっしゃ|いらっしゃ|なさ", "pattern": "勤務先の上司を面接官に対して「〇〇部長」「おっしゃる」などで立てる", "type": "replace", "replacement": "「上司の〇〇」「部長の〇〇」＋普通の動詞（言う・申す）", "reason": "社外の相手に対しては自分側の人物を立てない。名前＋役職はウチ扱いにならない。", "example_before": "現職では、鈴木部長がいつもおっしゃっているとおり、週次で数字を報告しています。", "example_after": "現職では、上司の鈴木がいつも申しているとおり、週次で数字を報告しています。"},
+    {"id": "rep-genshoku", "token": "弊社|当社|うちの会社", "pattern": "弊社 / 当社 / うちの会社（面接で自分の勤め先を指すとき。面接官の言葉の引用は除く）", "type": "replace", "replacement": "現職（在職中）/ 前職（退職後）/ 勤務先（どちらか分からないとき）", "reason": "面接では会社の代表ではなく個人として話すので、取引先向けの呼び方は合わない。", "example_before": "弊社では週次で数字を報告しています。", "example_after": "現職では週次で数字を報告しています。"},
+    {"id": "rep-onsha", "token": "貴社|そちらの会社|こちらの会社|御社様|貴社殿", "pattern": "貴社 / そちらの会社 / こちらの会社 / 御社様（面接で話すときに応募先を指す場合。書類とメールの「貴社」は正しいので直さない）", "type": "replace", "replacement": "御社（銀行は御行、学校は御校、病院は御院）", "reason": "話すときは「御社」、書くときは「貴社」が通例。「御社」に様や殿は付けない。", "example_before": "貴社の事業に関心があります。", "example_after": "御社の事業に関心があります。"},
+    {"id": "rep-daijoubu", "token": "大丈夫", "pattern": "「大丈夫です」だけの返事（理由がある文、在留資格の話、「〜でも大丈夫でしょうか」という質問は除く）", "type": "replace", "replacement": "問題ありません（承諾）/ 結構です（お断り）", "reason": "承諾にも断りにも聞こえ、相手が判断できない。", "example_before": "出社は大丈夫です。", "example_after": "出社は問題ありません。［理由］"}
   ],
   "model_answer_format": {
     "duration_seconds": 60
   },
   "question_taxonomy": {
-    "stages": ["一次面接", "最終面接"],
+    "stages": ["カジュアル面談", "一次面接", "二次面接", "役員面接", "最終面接"],
+    "stage_rules": ["カジュアル面談の stage を付ける質問では、志望動機を聞かない（関心のある点や確認したいことを聞く）。", "役員面接と最終面接は、面接官で選ぶ（役員が担当する質問は役員面接、社長や採用を最終決定する方が担当する質問は最終面接）。"],
     "categories": ["経歴・志望動機", "技術", "マネジメント", "逆質問"],
     "optional_categories": ["日本で働く理由・在留"],
     "generic_terms": ["経験", "開発", "チーム", "入社", "面接", "仕事", "業務", "会社", "当社", "御社", "弊社", "応募", "志望", "転職", "理由", "成果", "課題", "担当", "役割", "メンバー"]
@@ -70,12 +78,15 @@
   "culture_notes": [
     "前回の面談で分かった前提は、逆質問で確認し直さず、前提として話す。準備の証拠になる。",
     "エージェント経由の面接では、面接ごとに企業固有の前提（組織・役割・評価・出社条件）を押さえてから答える。",
-    "敬語の正確さより、質問に答えている構造のほうが評価に効く。",
-    "本籍・出生地・家族・住宅・宗教・支持政党・尊敬する人物・愛読書など、適性・能力と関係のない事項は面接質問として生成しない。",
+    "敬語の正確さより、まず質問に答える構造を優先する（作者の経験）。",
+    "本籍・出生地・国籍・家族・住宅・健康状態・宗教・支持政党・尊敬する人物・愛読書など、適性・能力と関係のない事項は面接質問として生成しない。",
     "選考段階の在留資格の確認は口頭か書面が適切とされ、在留カードの確認は内定後とされるので、答えは資格名・期限・就労可否を事実で短く述べる。",
     "期間の定めのない雇用は退職の申し入れから2週間で終わるのが民法の原則だが、就業規則の申し出期間と引き継ぎも踏まえて入社可能日を答える。",
     "前職の退職後、正当な理由なく就労資格の活動をしない期間が3か月（高度専門職2号は6か月）以上続くと在留資格取消しの事由になり得るため、退職日と現状は事実だけを短く述べ、取消しの可否は判断しない。",
-    "就労資格証明書は本人の申請で任意に取得する書類なので、持っていなくても在留資格名と期限で就労可否を答え、企業に求められれば取得に協力すると述べる。"
+    "就労資格証明書は本人の申請で任意に取得する書類なので、持っていなくても在留資格名と期限で就労可否を答え、企業に求められれば取得に協力すると述べる。",
+    "一次面接の質問は、応募書類と説明の一致、転職理由、業務への適合を確かめるものを中心にする。",
+    "社長や役員が担当する最終面接の質問は、事業への貢献、キャリアの方向性、理念との適合、同業他社ではなくこの会社を選ぶ理由を問うものを中心にする。面接官の役職と回数は企業で異なる。",
+    "入社後の立ち上がりを問う場合は、前職とやり方が違うときの向き合い方、他部署を含む関係づくり、最初の3か月の進め方を確かめる質問にする。"
   ],
   "research": {
     "review_sites": [{"url": "https://www.openwork.jp/"}, {"url": "https://en-hyouban.com/"}, {"url": "https://jobtalk.jp/"}, {"url": "https://careerconnection.jp/"}, {"url": "https://www.onecareer.jp/"}, {"url": "https://www.indeed.com/"}, {"url": "https://www.glassdoor.com/"},
@@ -105,7 +116,8 @@
       "思想|信条|人生観|尊敬する人物|愛読|購読",
       "労働組合|社会運動|学生運動",
       "結婚|出産|妊娠|恋人|交際",
-      "生活環境|家庭環境|自宅|住宅|資産"
+      "生活環境|家庭環境|自宅|住宅|資産",
+      "(?<!多)国籍|持病|既往"
     ],
     "checkpoint_templates": [
       {
@@ -242,7 +254,11 @@
         "audience": "manager",
         "ask": "interview",
         "text": "働き方やチームの雰囲気について、ご自身の見方を教えていただけますでしょうか。"
-      }
+      },
+      {"axis": "common", "audience": "hr", "ask": "agent", "text": "想定年収には、賞与がどのような前提で含まれていますでしょうか。固定給と賞与の内訳を教えていただけますでしょうか。"},
+      {"axis": "common", "audience": "hr", "ask": "agent", "text": "裁量労働制や管理監督者として扱われる場合、その理由と残業代の扱いを教えていただけますでしょうか。"},
+      {"axis": "common", "audience": "manager", "ask": "interview", "text": "中途入社の方は、最初の1か月をどのように進めることが多いでしょうか。"},
+      {"axis": "common", "audience": "executive", "ask": "interview", "text": "このポジションに、最初の1年で最も期待されることは何でしょうか。"}
     ]
   },
   "daily_questions": [
@@ -259,8 +275,8 @@
   ],
   "script_doc": {
     "version": 1,
-    "note": "面接準備ドキュメントの生成仕様。形式だけを定義する。実在の会社・経歴を入れない。question_taxonomy は変更しない（F2 のゲートが参照）。v1 が使う段階は first だけで、company_types・position_types と他の段階は未使用のデータ。",
-    "speech_rate_chars_per_sec": { "range": [3.0, 4.2], "warn_only": true, "note": "秒×この範囲を外れても警告だけ。実測は 2.4〜5.2 字/秒で幅が広い。" },
+    "note": "面接準備ドキュメントの生成仕様。形式だけを定義する。実在の会社・経歴を入れない。F2 のゲートが参照するのは question_taxonomy の generic_terms と categories で、question_taxonomy の stages は質問カードの表示と生成の選択肢にだけ使う。script_doc の stages は準備資料を作るときに選ぶ段階で、required が作る節を決める。company_types・position_types は未使用のデータ。",
+    "speech_rate_chars_per_sec": { "range": [3.0, 4.2], "warn_only": true, "note": "秒×この範囲を外れても警告だけ。以前の台本の字数と秒数の目安は 2.4〜5.2 字/秒で幅が広い。" },
     "answer_band": { "chars": [37, 226], "warn_only": true, "note": "以前の回答の p2〜p98。不合格の基準にしない。consistency.chars_gate は F5 の模範回答用で、この文書には使わない。" },
     "numbers_per_answer": { "max": 3, "warn_only": true, "applies_to": ["must_ask_qa", "experience_qa", "domain_qa"], "note": "自己紹介と志望動機には適用しない。" },
     "text_modes": {
@@ -284,7 +300,13 @@
       "現職の社内システム名・取引先・障害の詳細は話さない。聞かれたら控える。",
       "未確認の数字や肩書きを断定しない。公開情報は「拝見した」と確認する言い方で話す。",
       "その場で決められないことは即答せず、確認してから答える。",
-      "最後に、残りの選考と次の連絡を確認する。"
+      "最後に、残りの選考と次の連絡を確認する。",
+      "相手の会社は、話すときは「御社」、書類とメールでは「貴社」。自分の勤め先は、在職中なら「現職」、退職後なら「前職」と言う。面接で「弊社」「当社」は使わない。",
+      "「大丈夫です」だけで答えない。承諾は「問題ありません」と理由を言い、断るときは「結構です」と言う。",
+      "聞き取れないときは推測で答えず、「恐れ入りますが、もう一度おっしゃっていただけますか」と聞き直す。意味が分からないときは、質問の要旨を言い直して確認する。同じ質問が繰り返されたら、答えの焦点がずれていないか考える。",
+      "面接のあと、相手、聞かれたこと、答えたこと、次の段階を記録する。数字と理由は応募書類と前回の答えにそろえる。低く言い直すのも食い違いになる。",
+      "次の面接でも、同じ質問には同じ結論で答えてよい。根拠と具体を足し、確認済みの前提を聞き直さない。面接官が替わったら省略せずに話す。",
+      "年収や残業などの条件は、エージェント経由ならエージェントに聞く。直接応募なら、業務の質問のあとで人事の方に聞く。役員には給与テーブルの細部を聞かない（小規模な会社では経営層が決めていることもある）。"
     ],
     "sections": [
       { "key": "header", "label": "基本情報", "label_native": "기본 정보", "mode": "input_only", "fields": [{ "key": "company", "label": "会社" }, { "key": "position", "label": "ポジション" }, { "key": "date", "label": "日時" }, { "key": "format", "label": "形式" }, { "key": "counterpart", "label": "相手" }] },
@@ -298,7 +320,7 @@
       { "key": "experience_qa", "label": "経験の深掘り", "label_native": "경력 심화", "categories": ["scale", "top_result", "hard_project", "stakeholder", "management", "failure", "first_90_days"] },
       { "key": "domain_qa", "label": "職種・領域", "label_native": "직무·도메인", "categories": ["no_domain_experience", "business_understanding", "tech_depth", "ai_use", "future"], "always": ["no_domain_experience"], "session_questions": true, "questions": [4, 6] },
       { "key": "conditions", "label": "年収・条件", "label_native": "연봉·조건", "mode": "input_only", "blank": "［ここに年収を聞かれたときの答え］", "filled_by": "browser" },
-      { "key": "reverse_questions", "label": "逆質問", "label_native": "역질문", "questions": [5, 8], "columns": ["質問", "意図"], "excludes_conditions": true },
+      { "key": "reverse_questions", "label": "逆質問（準備は4〜8問、時間に合わせて2〜3問を選ぶ）", "label_native": "역질문 (4~8개 준비, 시간에 맞춰 2~3개 선택)", "questions": [4, 8], "columns": ["質問", "意図"], "excludes_conditions": true },
       { "key": "cautions", "label": "注意", "label_native": "주의", "mode": "fixed" },
       { "key": "unresolved", "label": "要本人確認", "label_native": "본인 확인 필요", "generated_by": "code" },
       { "key": "sources", "label": "作成の根拠", "label_native": "작성 근거", "generated_by": "code" }
@@ -311,7 +333,7 @@
     ],
     "qa_patterns": {
       "fact": { "use": "成果・役割・進め方", "order": ["結論か事実を1文", "具体を1〜2文", "持論か応募先への接続を1文"] },
-      "no_experience": { "use": "業界・製品の未経験", "order": ["経験の有無を答える", "条件が同じ経験を1文", "共通点を1文", "学習の順序か最初の貢献"], "example": "［ここに未経験の領域］の実務経験はありません。一方で、［ここに同じ条件の経験］を担当しました。進め方は共通すると考えています。入社後は最優先で学びます。" },
+      "no_experience": { "use": "業界・製品の未経験", "order": ["経験の有無を答える", "条件が同じ経験を1文", "共通点を1文", "学習の順序か最初の貢献"], "example": "［ここにこの領域の経験の有無と範囲］です。一方で、［ここに同じ条件の経験］を担当しました。進め方は共通すると考えています。入社後は最優先で学びます。" },
       "method": { "use": "どう進めますか", "order": ["定義を1文", "手順を3つまで", "経験に戻す"] },
       "three_points": { "use": "なぜ当社か", "order": ["3点あります", "特徴と自分の接点を1組ずつ"] },
       "pressure": { "use": "不満・短期在籍・規模の疑い", "order": ["疑いを最初の1文で切る", "事実", "役割の構造", "次に責任を持つこと"] },
@@ -334,7 +356,7 @@
       { "key": "management", "label": "マネジメント経験", "pattern": "fact", "mode": "frame", "question": "マネジメント経験を教えてください。" },
       { "key": "failure", "label": "失敗", "mode": "frame", "question": "失敗した経験を教えてください。", "order": ["状況と自分の判断", "何がずれたか", "何を変えたか", "組織に残したもの"], "must_have_blank": true },
       { "key": "first_90_days", "label": "入社後の最初の取り組み", "pattern": "method", "mode": "frame", "question": "入社後、最初に何をしますか。" },
-      { "key": "no_domain_experience", "label": "業界未経験", "pattern": "no_experience", "mode": "draft", "question": "この業界の経験はありますか。", "first_sentence": "ありません|未経験|ございません|経験がな|^はい|経験.*(?:あり|ござい)ます" },
+      { "key": "no_domain_experience", "label": "業界未経験", "pattern": "no_experience", "mode": "draft", "question": "この業界の経験はありますか。", "first_sentence": "ありません|未経験|ございません|経験がな|^はい|経験.*(?:あり|ござい)ます|^［ここに[^］]*有無" },
       { "key": "business_understanding", "label": "事業の理解", "pattern": "fact", "mode": "draft", "question": "{company}の事業をどう理解していますか。" },
       { "key": "tech_depth", "label": "技術の深掘り", "pattern": "method", "mode": "frame", "question": "技術選定は、どう決めますか。" },
       { "key": "ai_use", "label": "AI活用", "pattern": "fact", "mode": "frame", "question": "AIを業務でどう使っていますか。" },
@@ -344,16 +366,16 @@
       { "keys": ["failure"], "match": "失敗|うまくいかな", "asked": "何がずれたかと、自分の判断", "neighbor": "「最大の成果」を話さない" },
       { "keys": ["top_result"], "match": "成果|実績", "asked": "成果の中身と、自分の役割", "neighbor": "「失敗」や苦労話を話さない" },
       { "keys": ["hard_project"], "match": "大変|困難|難し", "asked": "困難の中身と、自分の判断", "neighbor": "「最大の成果」を話さない" },
-      { "keys": [], "match": "ずれた|遅れた|起きた|どう判断|場合|としたら", "pattern": "judgment", "asked": "起きたあとの判断", "neighbor": "「起きないようにする予防」を話さない" },
+      { "keys": [], "match": "ずれた|遅れた|起きた|どう判断|(?:ずれ|遅れ|遅延|障害|トラブル|問題|炎上)[^。？?]{0,30}(?:場合|としたら)", "pattern": "judgment", "asked": "起きたあとの判断", "neighbor": "「起きないようにする予防」を話さない" },
       { "keys": ["why_us"], "match": "なぜ(当社|弊社|御社)|志望", "asked": "他社ではなくこの会社を選ぶ理由", "neighbor": "「なぜこの業態か」を話さない" },
       { "keys": ["why_type"], "asked": "この業態を選ぶ理由", "neighbor": "「なぜこの会社か」を話さない" },
       { "keys": ["change_reason"], "match": "転職(理由|を考え)|退職", "asked": "今の役割から動く理由", "neighbor": "「志望動機」を話さない。応募先の話を混ぜない" },
       { "keys": ["motivation"], "asked": "この会社を志望する理由", "neighbor": "「転職理由」を話さない" }
     ],
     "neighbor_default": { "pattern": "fact", "asked": "質問そのものへの答え", "neighbor": "準備した別の質問の答えを話さない" },
-    "structural_numbers": ["[1-5一二三四五]点", "[1-5一二三四五]つ目?", "第[1-5一二三四五]に", "最初の90日", "入社後90日"],
-    "banned_patterns": ["の形(?![態式状成])|形で|形に", "ちゃんと", "なんか", "ちょっと", "逆に", "自分的", "させて(?:いただ|頂)", "辞めたい", "上が詰まって", "評価されなく", "安定しているから", "御社しかない", "何でもできます", "全部主導", "特別にありません|特にありません"],
-    "banned_phrases": ["「形」という語（の形・形で・形に）", "ちゃんと", "なんか", "ちょっと", "逆に", "自分的", "させていただく", "辞めたい", "上が詰まって", "評価されなく", "安定しているから", "御社しかない", "何でもできます", "全部主導", "特にありません"],
+    "structural_numbers": ["1[oO][nN]1", "[1-5一二三四五]点", "[1-5一二三四五]つ目?", "第[1-5一二三四五]に", "最初の90日", "入社後90日"],
+    "banned_patterns": ["の形(?![態式状成])|形で|形に", "ちゃんと", "なんか", "ちょっと", "逆に", "自分的", "させて(?:いただ|頂)(?!け)", "辞めたい", "上が詰まって", "評価されなく", "安定しているから", "御社しかない", "何でもできます", "全部主導", "特別にありません|特にありません"],
+    "banned_phrases": ["「形」という語（の形・形で・形に）", "ちゃんと", "なんか", "ちょっと", "逆に", "自分的", "させていただく（「〜させていただけますか」という許可の依頼は除く）", "辞めたい", "上が詰まって", "評価されなく", "安定しているから", "御社しかない", "何でもできます", "全部主導", "特にありません"],
     "max_to_omou": 1,
     "motive_words": "御社|貴社|(?<![仕同多模異客])様(?![々子式相])",
     "title_tokens": ["部長", "課長", "係長", "室長", "主任", "社長", "取締役", "執行役員", "責任者", "CTO", "VPoE", "EM", "PM", "PdM", "PMO", "テックリード", "チームリーダー", "リーダー", "マネージャー", "マネジャー"],
@@ -372,10 +394,12 @@
     },
     "stages": {
       "agent": { "required": ["header", "how_to_use", "first_check", "company_position", "self_intro", "must_ask_qa", "conditions", "unresolved", "sources"], "focus": ["転職の軸", "条件", "他社状況", "紹介先の正式名"] },
-      "casual": { "required": ["header", "how_to_use", "first_check", "company_position", "self_intro", "motivation", "reverse_questions", "unresolved", "sources"], "drop_categories": ["failure"] },
+      "casual": { "required": ["header", "how_to_use", "first_check", "company_position", "self_intro", "motivation", "reverse_questions", "unresolved", "sources"], "drop_categories": ["failure"], "focus": ["本日の位置づけの確認", "関心のある点", "確認したい3点"], "rule": "選考の場でないとされていても、発言は共有され得る前提で話す。志望動機を聞かれたら、まだ応募を決めていないことと関心を持った点を話す。" },
       "first": { "required": ["header", "how_to_use", "first_check", "company_position", "win_points", "self_intro", "motivation", "must_ask_qa", "experience_qa", "domain_qa", "conditions", "reverse_questions", "cautions", "unresolved", "sources"], "focus": ["経歴の整合性", "組織との適合"] },
-      "second": { "required": ["header", "how_to_use", "first_check", "win_points", "experience_qa", "reverse_questions", "unresolved", "sources"], "rule": "前回の繰り返しをしない。" },
-      "final": { "required": ["header", "how_to_use", "first_check", "win_points", "motivation", "reverse_questions", "cautions", "unresolved", "sources"], "focus": ["入社後に何を任せられるか"] }
+      "second": { "required": ["header", "how_to_use", "first_check", "win_points", "experience_qa", "reverse_questions", "unresolved", "sources"], "rule": "同じ質問には同じ結論で答え、根拠と具体を足す。確認済みの前提を聞き直さない。面接官が替わったら省略せずに話す。" },
+      "executive": { "required": ["header", "how_to_use", "first_check", "win_points", "motivation", "reverse_questions", "cautions", "unresolved", "sources"], "focus": ["事業への貢献", "方向性と理念", "同業他社ではなくこの会社を選ぶ理由"], "rule": "現場の道具や業務の流れは聞かない。公開情報は確認の形で触れる。" },
+      "final": { "required": ["header", "how_to_use", "first_check", "win_points", "motivation", "reverse_questions", "cautions", "unresolved", "sources"], "focus": ["入社後に何を任せられるか", "前回までの答えとの一貫性", "入社の意思と入社可能時期"] },
+      "offer": { "required": ["header", "how_to_use", "first_check", "conditions", "cautions", "unresolved", "sources"], "focus": ["通知書の項目", "年収の内訳", "回答期限", "退職を伝える順序"], "rule": "条件を書面で確認して承諾するまで、退職の意思を伝えない。", "lines": ["現年収は［ここに金額］です。賞与と手当は［ここに含む／含まない］金額です。", "希望は［ここに金額または幅］を目安に考えています。役割と等級を伺ったうえで、ご相談できればと存じます。", "今回のポジションの等級と、年収の考え方を伺えますでしょうか。", "調整いただける余地があるか、伺えますでしょうか。", "［ここに目標と見直しの時期］を書面に記載いただくことは可能でしょうか。", "募集要項では［ここに募集要項の条件］と伺っておりましたが、通知書では［ここに通知書の条件］となっております。どちらが正しいか、ご確認いただけますでしょうか。", "［ここに日付］までお時間をいただくことは可能でしょうか。［ここに確認したい点］を確認したうえでお返事いたします。", "固定残業代は何時間分で、超過分はどのように支給されますでしょうか。", "業務と就業場所の変更の範囲について、実際の運用例を伺えますでしょうか。"] }
     },
     "must_not_invent": [
       "現職の肩書き", "経験年数と在籍期間", "担当システムの規模", "チームの人数", "件数と成果の数字", "現年収・希望年収・下限", "下限を話すかどうか",
@@ -386,7 +410,7 @@
       { "id": "doc-answer-the-question", "check": "model", "rule": "聞かれたことに答える。予防を聞かれていないのに予防を答えない。", "example_before": "遅れないように、毎週確認します。", "example_after": "遅れたときは、残りのコストで続けるかを判断します。" },
       { "id": "doc-no-invention", "check": "code", "rule": "空欄の外の数字と単位は、入力にあるものだけ。" },
       { "id": "doc-frame-for-depth", "check": "model", "rule": "深掘りの例文は、入力にない事実を空欄にする。" },
-      { "id": "doc-failure-is-real", "check": "code", "rule": "失敗談は実際の事実を本人が埋める。必ず空欄を残し、順序だけを示す。空欄は3個までなので、失敗と判断は1つにまとめる。", "example_after": "［ここに実際の失敗と当時の判断］でしたが、［ここに何がずれたか］という結果になり、［ここに変えたこと］に改めました。" },
+      { "id": "doc-failure-is-real", "check": "code", "rule": "失敗談は、資料にある失敗の事実はそのまま書き、資料にない当時の判断や変えたことだけを空欄にする。必ず空欄を1つは残す。資料に失敗の事実がなければ、順序だけを示して空欄にする。空欄は3個までなので、足りなければ1つにまとめる。" },
       { "id": "doc-public-info-tone", "check": "model", "rule": "調査の内容は断定せず、確認の形で使う。会社の数字を回答に書かない。", "example_before": "御社の従業員は100名です。", "example_after": "公開情報で拝見したのですが、現在の体制を教えていただけますでしょうか。" },
       { "id": "doc-unknown-name", "check": "model", "rule": "面接官の名前と役職を推測しない。" },
       { "id": "doc-no-title-guess", "check": "model", "rule": "肩書きより権限を聞く。相手の業界で通じない肩書きを使わない。" },

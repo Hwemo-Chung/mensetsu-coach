@@ -309,7 +309,7 @@ test("owner tip: no data is the common tip; no internal id on any date in any la
   assert.ok(plain.text.includes("■ 이번 주 확인 포인트"), "Monday, no tags → a general checkpoint");
   assert.ok(!ownerTip(pack, new Date("2026-11-17T00:00:00Z"), null).text.includes("■ 이번 주 확인 포인트"), "Tuesday → none");
   const expressions = pack.correction_rules.filter((r) => r.token);
-  assert.equal(expressions.length, 13);
+  assert.equal(expressions.length, 16);
   const seen = new Set();
   const visa = { ...WEAK, rules: { "str-visa-facts": 9 } };
   for (const lang of ["ko", "en", "ja"]) for (let d = 0; d < 130; d++) {
@@ -319,7 +319,7 @@ test("owner tip: no data is the common tip; no internal id on any date in any la
     assert.ok(!text.includes("ビザは大丈夫です"), "the visa rule's example is not mailed");
     for (const r of expressions) if (text.includes(`${r.example_before}\n→ ${r.example_after}`)) seen.add(r.id);
   }
-  assert.equal(seen.size, 13, "every expression comes round");
+  assert.equal(seen.size, 16, "every expression comes round");
 });
 
 test("weak API: needs the access code and the owner token; a short configured token disables it", async () => {

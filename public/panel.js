@@ -1,6 +1,6 @@
 // Side panel (첨삭 | 노트) re-draws the latest review; chat bubbles stay the source. Desktop: beside the chat.
 // Mobile: full-screen overlay, opened only by the button, with the chat behind it inert.
-import { $, el, state, T, persist, renderReview, renderCompare, renderScript, habitsLine, renderRail, JP_STEPS, stepName } from "./render.js";
+import { $, el, state, T, persist, renderReview, renderVerify, renderCompare, renderScript, habitsLine, renderRail, JP_STEPS, stepName } from "./render.js";
 import { addListen } from "./voice.js";
 
 export const panel = $("panel");
@@ -70,6 +70,15 @@ export function showReview(r, cmp, script) {
     c.firstChild.prepend("④ "); // ①②③ are in the i18n titles; the chat compare card keeps its plain title
     parts.push(c);
   }
+  $("reviewBox").replaceChildren(...parts);
+  $("reviewEmpty").hidden = true;
+}
+
+// F15: the script check takes the 첨삭 tab. One of the two is missing when its call failed.
+export function showVerify(review, verify) {
+  const parts = [];
+  if (review) { const rv = el("div"); renderReview(review, rv, true); rv.className = "script review"; parts.push(rv); }
+  if (verify) { const v = el("div"); renderVerify(verify, v); v.className = "script verify"; parts.push(v); }
   $("reviewBox").replaceChildren(...parts);
   $("reviewEmpty").hidden = true;
 }

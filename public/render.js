@@ -1,6 +1,6 @@
 // Shared state and the chat cards. Leaf module: imports only i18n, export.js and session.js.
 import { LANGS } from "./i18n/index.js";
-import { habitCounts, statusOf, basisTag } from "./export.js";
+import { habitCounts, statusOf, basisTag, practiceTime } from "./export.js";
 import { saveSession } from "./session.js";
 
 export const $ = (id) => document.getElementById(id);
@@ -89,13 +89,14 @@ export const JP_STEPS = [
 export function renderQuestions(data) {
   const { company_context: c, questions, specificity, research_basis } = data;
   const t = T();
-  for (const old of log.querySelectorAll("button[data-pick]")) old.disabled = true;
+  for (const old of log.querySelectorAll("button[data-pick], .calendar-open")) old.disabled = true;
   const b = bubble("coach qs", t.chat.questionsMade({ company: c.company, position: c.position, count: questions.length }));
   // F7: always shown (also on the demo and a restored session), not only when the gate fails.
   if (specificity) b.append(el("p", "legend", t.chat.specificity({ n: specificity.referenced, total: questions.length })));
   if (research_basis) b.append(el("p", "legend research-refs", t.chat.researchRefs({ n: research_basis.referenced, total: questions.length })));
   for (const q of questions) {
     const item = el("div", "q");
+    item.dataset.q = q.id;
     item.append(el("span", "tag", t.stages[q.stage] ?? q.stage), el("span", "tag", t.categories[q.category] ?? q.category));
     if (basisTag(q, t)) {
       const tag = item.appendChild(el("span", "tag", basisTag(q, t)));
@@ -109,12 +110,24 @@ export function renderQuestions(data) {
     go.dataset.pick = q.id.slice(1);
     go.disabled = state.demoActive;
     item.append(go);
+    practiceLog(item, q.id, data.attempts);
     b.append(item);
   }
+  // Only the latest set's is live (app.js opens the dialog); the demo's too, since the link needs no server.
+  const cal = b.appendChild(el("button", "inline-btn calendar-open", t.calendar.button));
+  cal.type = "button";
   renderRail(state.session ?? data);
   $("panelToggle").hidden = false;
   log.scrollTop = log.scrollHeight;
   return b;
+}
+
+// The practice record on a question card (DECISIONS 11/06): how many answers and when the last was made; nothing before the first.
+export function practiceLog(item, qid, attempts) {
+  const mine = (attempts ?? []).filter((a) => a.question_id === qid);
+  if (!mine.length) return;
+  const p = item.querySelector(".practice-log") ?? item.insertBefore(el("p", "legend practice-log"), item.querySelector(".practice"));
+  p.textContent = T().chat.practiced({ n: mine.length, at: practiceTime(mine.at(-1).at) });
 }
 
 // The log is history, but a source id on it would now point into the new brief's list.
@@ -196,12 +209,14 @@ function summary(r) {
   if (missing.length) out.push(iel("p", "sum miss", "x", `${t.improve}: ${missing.map(name).join(", ")}`));
   return out;
 }
-export function renderReview(r, slot) {
-  const t = T().review;
+// checking: the F15 result numbers the same parts ①②③, with ④⑤ in the card after it.
+export function renderReview(r, slot, checking = false) {
+  const t = T().review, v = T().verify;
   const b = fill(slot, "coach script review");
-  b.append(el("p", "title", t.title));
+  b.append(el("p", "title", checking ? v.answers : t.title));
   if (T().ui.western) b.append(...summary(r));
   b.append(iel("p", `verdict ${r.answers_question}`, VERDICT_ICON[r.answers_question] ?? "question", t.answers[r.answers_question]), el("p", "tr", r.answers_question_reason));
+  if (checking) b.append(el("p", "title", v.steps));
   // PRD §16-15: an optional step (復唱) that is missing is a tip, not ✗; the last step is named by r.closing.
   const steps = state.session?.pack?.steps ?? JP_STEPS;
   steps.forEach((step, i) => {
@@ -212,13 +227,36 @@ export function renderReview(r, slot) {
     else b.append(iel("p", "step miss", "x", name), el("p", "hint", `→ ${v.note}`));
   });
   // English UI: ② starts folded, its count in the title (benchmark 11/04, progressive disclosure); chat and panel alike.
-  const into = T().ui.western ? fold(b, `${t.corrections} (${r.corrections.length})`, "script review fold-body") : (b.append(el("p", "title", t.corrections)), b);
+  const corrections = checking ? v.corrections : t.corrections;
+  const into = T().ui.western ? fold(b, `${corrections} (${r.corrections.length})`, "script review fold-body") : (b.append(el("p", "title", corrections)), b);
   if (!r.corrections.length) into.append(el("p", "tr", t.noCorrections));
   for (const c of r.corrections) {
     into.append(el("p", "rule", `【${c.rule_id}】`), el("p", "ja", `${c.before} → ${c.after}`), el("p", "tr why", c.reason)); // .why: margin note in the panel
   }
   // F7: the server drops corrections whose `before` is not in the answer; 0 is shown too, so the gate is visible.
   if (r.dropped != null) into.append(el("p", "legend", t.dropped({ n: r.dropped })));
+  log.scrollTop = log.scrollHeight;
+}
+
+// F15 ④⑤ from /api/verify. ④ is a range at the pack's slow and fast speeds; only running over warns (user decision 11/06), a condition question has no target.
+export function renderVerify(d, slot) {
+  const t = T().verify, b = fill(slot, "coach script verify");
+  b.append(el("p", "title", t.time));
+  if (d.seconds == null) b.append(el("p", "tr", t.noTime));
+  else {
+    const [lo, hi] = d.seconds, [fast, slow] = d.rate, range = t.seconds({ chars: d.chars, lo, hi, fast: fast.toFixed(1), slow: slow.toFixed(1) }), target = d.target_seconds;
+    if (target == null) b.append(el("p", "tr", `${range} — ${t.noTarget}`));
+    else b.append(iel("p", `step ${d.over ? "tip" : "ok"}`, d.over ? "tip" : "check", `${range} — ${d.over ? t.longer({ n: Math.max(1, lo - target), target }) : t.within({ target })}`));
+  }
+  b.append(el("p", "tr", d.blanks ? t.blanks({ n: d.blanks }) : t.noBlanks));
+  b.append(el("p", "title", t.grounds));
+  if (d.failed) b.append(el("p", "err", message({ code: d.failed }))); // the model failed: ④ above is the code's and stays
+  else if (!d.checked) b.append(el("p", "tr", t.noMaterial));
+  else if (d.unsupported.length) b.append(el("p", "legend", t.notALie));
+  else if (!d.dropped && !d.blanks) b.append(el("p", "tr", t.allFound)); // only when nothing went unchecked
+  for (const u of d.unsupported) b.append(el("p", "ja", u.sentence), el("p", "tr why", `${t.kinds[u.kind]}: ${t.notFound}`));
+  if (d.dropped) b.append(el("p", "legend", t.dropped({ n: d.dropped })));
+  if (d.checked && d.blanks) b.append(el("p", "legend", t.blanksUnchecked({ n: d.blanks })));
   log.scrollTop = log.scrollHeight;
 }
 
@@ -241,6 +279,22 @@ export function renderCompare(c, slot) {
   return b;
 }
 
+// The /api/verify check of the script against the user's answer (app.js checkScript): s.check = { unsupported, dropped? } after the call, null when it
+// failed, absent when it never ran or has not ended (the demo, an older session, a reload mid-check) — then the line is there but hidden, and app.js fills it while the call runs.
+export function scriptCheck(s) {
+  const t = T().script, p = el("p", "script-check legend");
+  if (s.check === undefined) p.hidden = true;
+  else if (s.check === null) p.textContent = t.unchecked;
+  else if (!s.check.unsupported.length) p.textContent = s.check.dropped ? T().verify.dropped({ n: s.check.dropped }) : t.checked; // dropped flags went unchecked: never "nothing unsupported"
+  else {
+    p.className = "script-check warn"; // not .caution: that class is the code's word check, one line per card
+    p.append(t.unsupported);
+    for (const u of s.check.unsupported) p.append(el("br"), `「${u.sentence}」（${T().verify.kinds[u.kind] ?? u.kind}）`);
+    if (s.check.dropped) p.append(el("br"), T().verify.dropped({ n: s.check.dropped }));
+  }
+  return p;
+}
+
 export function renderScript(s, slot) {
   const t = T().script;
   const b = fill(slot, "coach script");
@@ -253,6 +307,8 @@ export function renderScript(s, slot) {
     b.addEventListener("click", (e) => { if (e.composedPath().some((n) => n.classList?.contains("listen") || n.classList?.contains("readaloud"))) into.parentElement.open = true; });
   } else b.append(el("p", "title", t.title));
   into.append(el("p", "label", t.text[targetOf()]), el("p", "ja", s.text));
+  if (s.unbacked?.length) into.append(el("p", "caution", `${t.unbacked} 「${s.unbacked.join("」「")}」`));
+  into.append(scriptCheck(s));
   // Same language as the screen (e.g. Japan + Japanese): the server sends no reading or translation.
   if (s.reading != null) into.append(el("p", "label", t.reading[targetOf()]), el("p", "reading", s.reading), el("p", "legend", t.legend));
   if (s.translation != null) into.append(el("p", "label", t.translation), el("p", "tr", s.translation));

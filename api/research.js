@@ -1,10 +1,11 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { EXPLAIN_LANGS } from "../lib/lang.js";
 import { redact } from "../lib/privacy.js";
-import { checkAccess, rateLimit } from "../lib/guard.js";
+import { gate, rateLimit } from "../lib/guard.js";
 import { PACKS, loadPack } from "../lib/pack.js";
 import { POST as fit } from "../lib/fit-api.js";
 import { POST as prep } from "../lib/prep-api.js";
+import { POST as verify } from "../lib/verify-api.js";
 import { researchEnabled, runResearch, today } from "../lib/research.js";
 
 const MAX_NAME_CHARS = 100; // a name, not a pasted mail: this cap is part of what keeps candidate text out of the search
@@ -33,9 +34,11 @@ export async function POST(request, deps = {}) {
   const route = new URL(request.url).searchParams.get("route");
   if (route === "fit") return fit(request, deps); // /api/fit: vercel.json rewrite, the Hobby plan allows 12 functions
   if (route === "prep") return prep(request, deps); // /api/prep: same rewrite, its own flag (PREP_ENABLED)
+  if (route === "verify") return verify(request, deps); // /api/verify: same rewrite
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`research:${ip}`, { limit: 5 })) return json(429, { code: "rate_limited" });
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
+  const denied = await gate(request);
+  if (denied) return denied;
   if (!(deps.enabled ?? researchEnabled())) return json(503, { code: "research_unavailable" });
 
   let body;

@@ -1,0 +1,8 @@
+{
+  "unsupported": [
+    { "sentence": "前職では新しいシステムの導入で売上を三倍にしました。", "kind": "number" },
+    { "sentence": "御社の理念に感動したので志望しました。", "kind": "motive" },
+    { "sentence": "前職では、遅れを［期限］以内に報告するルールを作り、手戻りを［ここに実績の数字］減らしました。", "kind": "achievement" },
+    { "sentence": "台本にない文は画面に出ません。", "kind": "career" }
+  ]
+}

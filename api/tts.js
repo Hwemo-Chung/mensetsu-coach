@@ -1,5 +1,5 @@
 import { loadPack, PACKS, TARGET_LANGS, maskInput } from "../lib/coach.js";
-import { checkAccess, rateLimit, signed } from "../lib/guard.js";
+import { gate, rateLimit, signed } from "../lib/guard.js";
 import { synthesize, TtsError, VOICES, MAX_TTS_CHARS } from "../lib/tts.js";
 
 // A cached script is ~6 MB: stream it too, since Vercel caps non-streamed responses at 4.5 MB.
@@ -17,7 +17,8 @@ export async function POST(request, deps = {}) {
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   // A learner replays scripts; replays are mostly served from the cache.
   if (!rateLimit(`tts:${ip}`, { limit: 60 })) return json(429, { code: "rate_limited" });
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
+  const denied = await gate(request);
+  if (denied) return denied;
 
   let body;
   try {

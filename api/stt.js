@@ -1,5 +1,5 @@
 import { loadPack, PACKS, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
-import { checkAccess, rateLimit } from "../lib/guard.js";
+import { gate, rateLimit } from "../lib/guard.js";
 import { transcribe, SttError, AUDIO_TYPES, speechQuality, wavDurationMs, sttEnabled } from "../lib/stt.js";
 
 const MAX_AUDIO_BYTES = 4 * 1024 * 1024; // 90 s of opus/aac is ~1 MB; under Vercel's 4.5 MB request body limit
@@ -34,7 +34,8 @@ async function readCapped(body, max) {
 export async function POST(request, deps = {}) {
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`stt:${ip}`, { limit: 20 })) return json(429, { code: "rate_limited" });
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
+  const denied = await gate(request);
+  if (denied) return denied;
   const apiKey = deps.apiKey ?? process.env.GEMINI_API_KEY;
   if (!(deps.enabled ?? sttEnabled()) || !apiKey) return json(503, { code: "stt_unavailable" }); // fail closed, before reading the audio
 

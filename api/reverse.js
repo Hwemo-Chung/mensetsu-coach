@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { loadPack, generateReverse, readReverseFacts, EXPLAIN_LANGS, maskInput } from "../lib/coach.js";
 import { researchEnabled } from "../lib/research.js";
-import { checkAccess, rateLimit } from "../lib/guard.js";
+import { gate, rateLimit } from "../lib/guard.js";
 
 const json = (status, body) => Response.json(body, { status, headers: { "cache-control": "no-store" } });
 const MAX_FACTS = 20;
@@ -13,7 +13,8 @@ let client;
 export async function POST(request, deps = {}) {
   const ip = (request.headers.get("x-forwarded-for") || "local").split(",")[0].trim();
   if (!rateLimit(`reverse:${ip}`, { limit: 10 })) return json(429, { code: "rate_limited" });
-  if (!checkAccess(request.headers.get("x-access-code"))) return json(401, { code: "access_denied" });
+  const denied = await gate(request);
+  if (denied) return denied;
   let body;
   try {
     body = await request.json();

@@ -171,7 +171,9 @@ for (const [name, fail] of [["an error answer", BUSY], ["no connection", DOWN]])
     await page.route("**/api/review", fail, { times: 1 });
     await page.route("**/api/script", fail, { times: 1 });
     await submit(page, ANSWER);
-    await page.waitForFunction(() => document.querySelectorAll("#log > .msg.err").length === 2);
+    // Intent changed (refutation 14, 11/06): the same error from both calls shows once, as in the script check (onVerify).
+    await page.waitForFunction(() => document.querySelectorAll("#log > .msg.err").length === 1 && !document.querySelector("#log > .msg.typing"));
+    assert.equal(await bubbles(page, "err").count(), 1);
     assert.equal(await composer(page), ANSWER);
     assert.equal(await page.locator("body").getAttribute("data-stage"), "answer");
     assert.equal(await page.locator("#log > .quick").count(), 0);

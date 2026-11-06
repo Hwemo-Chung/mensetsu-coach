@@ -74,6 +74,16 @@ test("briefFacts: sourced company, news, this position and reported questions; n
   for (const s of ["not_found", "類似求人", "年収", "週2日", "残業", "希望", "プロダクト担当", "開発体制"]) assert.ok(!text.includes(s), s);
 });
 
+// Real run 11/06: a welcome condition read as a confirmed fact of the job in the prep document.
+test("briefFacts and reverseFacts: a preferred skill says so; a required one and a missing one do not", () => {
+  const pos = { required_skills: [found("必須のスキル（架空）", { position_match: "exact" })], preferred_skills: [found("歓迎のスキル（架空）", { position_match: "exact" }), { value: "not_found", source_count: 0, position_match: "exact" }] };
+  const brief = { ...BRIEF, position_analysis: pos };
+  for (const facts of [briefFacts(brief), reverseFacts(brief)]) {
+    const texts = facts.filter((f) => f.kind === "role").map((f) => f.text);
+    assert.deepEqual(texts, ["必須のスキル（架空）", "歓迎: 歓迎のスキル（架空）"]);
+  }
+});
+
 test("briefFacts: no facts from an unavailable, absent or broken brief", () => {
   assert.deepEqual(briefFacts({ research_status: "unavailable", research_date: "2026-11-04" }), []);
   assert.deepEqual(briefFacts(undefined), []);
@@ -304,6 +314,18 @@ test("F10 gate: a phrase the summary already held grounds nothing; one retry, th
   const fixed = fakeClient({ responses: [reverseCiting(), reverseCiting(NEWS)] });
   assert.equal((await generateReverse(fixed, pack, { context: CTX, brief: FACTS })).research_basis.passed, true);
   assert.equal(fixed.calls(), 2);
+});
+
+// Real run 11/06: one question per attempt copied a Korean word from the brief, so no attempt had 3 valid ones and the
+// user got a 502. Valid questions are now pooled across the two attempts.
+test("F10: a stray invalid question in each attempt still yields 3 valid questions", async () => {
+  const a = reverseCiting(NEWS), b = reverseCiting(NEWS);
+  a.questions[0] = { ...a.questions[0], question: "풀スタックの配属はどのように決まりますか。" };
+  b.questions[2] = { ...b.questions[2], question: "풀スタックの評価はどう決まりますか。" };
+  b.questions[0] = { ...b.questions[0], question: b.questions[0].question.replace(/。$/, "も含めて伺えますか。") };
+  const out = await generateReverse(fakeClient({ responses: [a, b] }), pack, { context: CTX, brief: FACTS });
+  assert.equal(out.questions.length, 3);
+  assert.ok(out.questions.every((q) => reverseQuestionOk(q.question)));
 });
 
 test("F10 with a brief: the condition gate stays hard", async () => {

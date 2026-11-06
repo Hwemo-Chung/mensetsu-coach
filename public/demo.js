@@ -21,7 +21,7 @@ export const TOUR_TIPS = "mensetsu-tour-tips";
 export const tourTipsOn = () => { try { return localStorage.getItem(TOUR_TIPS) !== "0"; } catch { return true; } };
 
 // Tutorial tips on (default): coach-mark tour. Off: the plain replay with an explanation bubble per step.
-// onTry = app.js askForCode, passed in so this module does not import app.js.
+// onTry = app.js askForStart, passed in so this module does not import app.js.
 export async function startDemo(onTry) {
   const my = state.epoch;
   state.demoActive = true;

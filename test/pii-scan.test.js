@@ -11,17 +11,22 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { logQueries } from "../lib/research.js";
-import { researchMessage } from "./fake-claude.js";
+import { researchMessage, fakeClient, reviewFixture, scriptFixture, asModelScript } from "./fake-claude.js";
+import { POST as reviewPOST } from "../api/review.js";
+import { POST as scriptPOST } from "../api/script.js";
 // Every tracked text file (plus untracked files under research/ that are about to be committed).
-const tracked = (() => { try { return execFileSync("git", ["ls-files", "-co", "--exclude-standard"], { cwd: fileURLToPath(root), encoding: "utf8" }).split("\n"); } catch { return []; } })();
+const tracked = (() => { try { return execFileSync("git", ["ls-files", "-z", "-co", "--exclude-standard"], { cwd: fileURLToPath(root), encoding: "utf8" }).split("\0"); } catch { return []; } })();
 const targets = tracked.filter((p) => p && /\.(json|md|js|mjs|txt|html|css)$/.test(p) && !p.startsWith("node_modules/") && existsSync(new URL(p, root)));
 
+// git quotes a non-ASCII path ("01_\354…") unless -z, and the quoted name exists nowhere: every file under 01_설계문서/ went unscanned (11/06).
+test("the scan reads files under non-ASCII paths", () => assert.ok(targets.includes("01_설계문서/PRD-INTERVIEW-COACH.md")));
+
 test("no denylisted personal identifiers in packs/ or research outputs", { skip: !existsSync(denyPath) && ".pii-denylist.txt not present" }, () => {
-  const terms = readFileSync(denyPath, "utf8").split("\n").map((s) => s.trim()).filter((s) => s && !s.startsWith("#"));
+  const terms = readFileSync(denyPath, "utf8").split("\n").map((s, i) => [s.trim(), i + 1]).filter(([s]) => s && !s.startsWith("#"));
   const hits = [];
   for (const p of targets) {
     const text = readFileSync(new URL(p, root), "utf8");
-    for (const t of terms) if (text.includes(t)) hits.push(`${p}: "${t}"`);
+    for (const [t, n] of terms) if (text.includes(t)) hits.push(`${p}: denylist line ${n}`); // never the term: test output gets shared
   }
   assert.deepEqual(hits, [], `PII found:\n${hits.join("\n")}`);
 });
@@ -35,13 +40,16 @@ test("PII detector still catches phone/email but ignores URL document IDs", () =
   assert.equal(piiMatches("文書番号 001603370 と 001366995"), null, "document numbers starting 00 are not phones");
 });
 
+// Resend's documented test sender (PRD §15.5, MAIL-SERVICE-EVAL): a service's address, not a person's. Exact match only.
+const PUBLIC_ADDRESSES = ["onboarding@resend.dev"];
+
 test("generic PII patterns (phone / email) absent from packs and research", () => {
   const bad = [];
   // test/ holds deliberate fake contacts for masking tests; the denylist test above still covers it.
   for (const p of targets.filter((x) => !x.startsWith("test/"))) {
     const text = readFileSync(new URL(p, root), "utf8");
-    const m = piiMatches(text)?.filter((x) => !/@(?:[\w-]+\.)*example(?:\.[a-z]+)+$/i.test(x));
-    if (m?.length) bad.push(`${p}: ${[...new Set(m)].join(", ")}`);
+    const m = piiMatches(text)?.filter((x) => !/@(?:[\w-]+\.)*example(?:\.[a-z]+)+$/i.test(x) && !PUBLIC_ADDRESSES.includes(x));
+    if (m?.length) bad.push(`${p}: line ${[...new Set(m.map((x) => text.slice(0, text.indexOf(x)).split("\n").length))].join(", ")}`); // lines, not the values
   }
   assert.deepEqual(bad, [], bad.join("\n"));
 });
@@ -64,4 +72,18 @@ test("the development query log shows no contact in the queries actually sent (s
   rmSync(dir, { recursive: true });
   assert.deepEqual(leaked, [{ q: "採用担当 [email] [phone]", redacted: true }]);
   assert.equal(piiMatches(log), null);
+});
+
+// The question comes from the browser like the answer: /api/review and /api/script mask it before Claude, as /api/verify does.
+test("/api/review and /api/script mask the question before Claude", async () => {
+  process.env.ACCESS_CODE = "c0de";
+  const question = "採用担当 hr-contact@example.jp 03-1234-5678 に伝えた志望動機を教えてください。";
+  for (const [i, [post, result]] of [[reviewPOST, reviewFixture], [scriptPOST, asModelScript(scriptFixture)]].entries()) {
+    const client = fakeClient({ result });
+    const res = await post(new Request("http://x/api", { method: "POST", headers: { "x-access-code": "c0de", "x-forwarded-for": `8.8.0.${i}`, "content-type": "application/json" }, body: JSON.stringify({ question, answer: "物流システムの開発を担当しました。" }) }), { client });
+    assert.equal(res.status, 200);
+    const sent = JSON.stringify(client.requests);
+    assert.ok(sent.includes("[email]") && sent.includes("[phone]"), "the masked question is in the prompt");
+    assert.ok(!sent.includes("hr-contact@example.jp") && !sent.includes("03-1234-5678"), i ? "script" : "review");
+  }
 });

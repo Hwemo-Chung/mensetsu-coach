@@ -91,3 +91,14 @@ test("en copy: every sentence ≤ 25 words; singular and plural counts read righ
   assert.match(en.chat.restored({ q: 10, a: 1 }), /\b1 answer\b/);
   assert.match(en.chat.specificity({ n: 1, total: 10 }), /\b1 question quotes\b/);
 });
+
+// Refutation 4 (11/06): the start card and the tour's last step show in both access modes, and the open mode has no code step.
+test("the start card and the tour's last step do not send anyone to a code step", () => {
+  for (const [code, L] of Object.entries(LANGS)) for (const s of [L.start.lead, L.start.cta, L.tour.steps.at(-1).body]) assert.doesNotMatch(s, new RegExp(L.chat.codePlaceholder, "i"), `${code}: ${s}`);
+});
+
+// Refutation 19 (11/06): the screen names prep sections from these labels (public/prep.js), so the pack's guidance
+// 「準備は4〜8問、時間に合わせて2〜3問を選ぶ」 never reached it.
+test("the reverse-question section label says how many to prepare and how many to ask, in every language", () => {
+  for (const [code, L] of Object.entries(LANGS)) assert.match(L.prep.sections.reverse_questions, /4\D{1,3}8[^]*2\D{1,3}3/, code);
+});

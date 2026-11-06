@@ -148,6 +148,25 @@ test("V4: no kana in the transcript → ask to read again, no ratio or details",
   await context.close();
 });
 
+// Real run 11/06: the check found sentences the answer never said, and nothing on the screen told the user.
+test("a script sentence with words the answer lacks is named on the card", async () => {
+  const { context, page, errors } = await openApp(browser, server.url, VIEWPORTS.desktop, "ja");
+  const ja = LANGS.ja, sentence = "遅れが出たら、早めに範囲を縮小します。"; // invented
+  await page.route("**/api/script", (route) => route.fulfill({ json: { text: scriptFixture.text, points: ["結論から話します。"], unbacked: [sentence] } }));
+  await send(page, CODE);
+  await bubbles(page, "coach").filter({ hasText: ja.chat.askMail.split("\n")[0] }).waitFor();
+  await send(page, MAIL);
+  await bubbles(page, "coach").filter({ hasText: ja.chat.askPick({ count: 10 }) }).waitFor();
+  await send(page, "1");
+  await page.fill("#input", ANSWER);
+  await page.press("#input", "Control+Enter");
+  const note = scriptCard(page).locator(".caution");
+  await note.waitFor();
+  assert.ok((await note.textContent()).includes(sentence) && (await note.textContent()).startsWith(ja.script.unbacked));
+  assert.deepEqual(errors, []);
+  await context.close();
+});
+
 test("V4 hidden: same-language screen (jp + ja), KR pack, demo/tutorial replay", async () => {
   // jp + Japanese screen: the server sends no reading, so no kana to compare with.
   {

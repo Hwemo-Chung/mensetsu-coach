@@ -8,6 +8,7 @@ export const reviewFixture = load("review.json");
 export const reverseFixture = load("reverse.json");
 export const fitFixture = load("fit.json");
 export const prepFixture = load("prep.json");
+export const verifyFixture = load("verify.json");
 const research = load("research.json");
 // One raw response in the shape the search call gets: server tool blocks, then the JSON text (MOCK_CLAUDE=1 and tests).
 export const researchMessage = { stop_reason: "end_turn", usage: research.usage, content: [...research.blocks, { type: "text", text: JSON.stringify(research.model) }] };
@@ -31,6 +32,8 @@ export function fakeClient({ result = fixture, responses, stop = "end_turn", sto
     calls++;
     return { stop_reason: stops?.[calls - 1] ?? stop, content: [{ type: "text", text: typeof r === "string" ? r : JSON.stringify(r) }] };
   };
-  const requests = [];
-  return { beta: { messages: { stream: (req) => (requests.push(req), { finalMessage }) } }, calls: () => calls, requests };
+  const requests = [], raw = [];
+  // ask() wraps a string system prompt into a cached text block; tests read the text, `raw` keeps the wire shape.
+  const flat = (req) => (Array.isArray(req.system) ? { ...req, system: req.system.map((b) => b.text).join("") } : req);
+  return { beta: { messages: { stream: (req) => (raw.push(req), requests.push(flat(req)), { finalMessage }) } }, calls: () => calls, requests, raw };
 }
