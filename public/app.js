@@ -175,7 +175,7 @@ function restore(saved) {
   const b = bubble("coach", T().chat.restored({ q: state.session.questions.length, a: state.session.attempts.length }));
   const again = el("button", "inline-btn", T().chat.restoreNew);
   again.type = "button";
-  again.addEventListener("click", finish); // same as 끝내기·저장: download first, never a delete-only button
+  again.addEventListener("click", finish); // same as 終了・保存: download first, never a delete-only button
   b.append(el("br"), again);
   if (packOf() === "jp") b.append(" ", reverseButton());
   if (prepOn && packOf() === "jp") b.append(" ", prepButton());

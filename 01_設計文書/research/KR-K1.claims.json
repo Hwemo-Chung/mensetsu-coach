@@ -1,0 +1,302 @@
+[
+  {
+    "id": "K1-01",
+    "claim_ko": "고용24（雇用24）のガイドは、志望動機を'회사와 직무를 이해하고 입사 의지가 확고한지'（訳：会社と職務を理解し、入社意欲が確固としているか）を確認する項目として説明し、職務への志望動機と会社への志望動機に分けて準備するよう案内しています。",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리（公共ヌリ）表示なし) — work24 のガイドページに공공누리の表示なし（著作権保護方針のみ確認）。事実のみ要約",
+    "key_tokens": [
+      "지원동기",
+      "직무",
+      "회사",
+      "입사 의지"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-02",
+    "claim_ko": "고용24のガイドは、職務遂行経験は'요구 역량 보유 여부, 직무 성과 가능성, 조직 내 기능'（訳：求められる能力の保有の有無、職務成果の見込み、組織内での機能）を推し量る根拠として用いられるとし、最近の経験1~2件を具体的に説明するよう勧めています。",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리（公共ヌリ）表示なし) — work24 のガイドページに공공누리の表示なし（著作権保護方針のみ確認）。事実のみ要約",
+    "key_tokens": [
+      "직무수행 경험",
+      "역량",
+      "성과",
+      "1~2개"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-03",
+    "claim_ko": "고용24のガイドは、入社後の抱負をキャリアビジョンと成長可能性を見る項目として説明し、短期・中期・長期の段階で実現可能な計画を立てるよう案内しています。",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리（公共ヌリ）表示なし) — work24 のガイドページに공공누리の表示なし（著作権保護方針のみ確認）。事実のみ要約",
+    "key_tokens": [
+      "입사 후 포부",
+      "단기",
+      "중기",
+      "장기",
+      "실현 가능"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-04",
+    "claim_ko": "고용24のガイドは、経験を状況(S)・任務(T)・行動(A)・結果(R)の順で記述し、結果は数値で示すよう勧めています。",
+    "source_url": "https://www.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide4.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리（公共ヌリ）表示なし) — work24 のガイドページに공공누리の表示なし（著作権保護方針のみ確認）。事実のみ要約",
+    "key_tokens": [
+      "STAR",
+      "상황",
+      "임무",
+      "행동",
+      "결과"
+    ],
+    "confidence": "high"
+  },
+  {
+    "id": "K1-05",
+    "claim_ko": "고용24の自己紹介書ガイドは、自己紹介書が面接の根拠資料となるため、書類の内容と面接での回答が食い違ってはならず、最近は定型的な質問よりも具体的な質問で能力・求める人材像への適合を確認する傾向にあると説明しています。",
+    "source_url": "https://m.work24.go.kr/wk/r/d/1111/resumeSelfIntroGuide2.do",
+    "publisher": "고용노동부·한국고용정보원 (고용24)",
+    "kind": "private",
+    "terms_url": "https://www.work24.go.kr (공공누리（公共ヌリ）表示なし) — work24 のガイドページに공공누리の表示なし（著作権保護方針のみ確認）。事実のみ要約",
+    "key_tokens": [
+      "면접 근거자료",
+      "구체적인 질문",
+      "인재상"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-06",
+    "claim_ko": "経験者採用の面接は一般に職務（実務）面接と役員面接の1~2次構造であり、会社によっては課題選考や3次が加わるという民間コラムの説明があります。",
+    "source_url": "personal-blog (URL非公開)",
+    "publisher": "개인 블로그 (brunch)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "경력직",
+      "직무 면접",
+      "임원 면접",
+      "1차",
+      "2차"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-07",
+    "claim_ko": "同じコラムは、職務面接は主に専門性を、役員面接は主に人柄と態度を見ると整理しています。公的な根拠は確認できませんでした。",
+    "source_url": "personal-blog (URL非公開)",
+    "publisher": "개인 블로그 (brunch)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "직무 면접",
+      "전문성",
+      "임원 면접",
+      "인성",
+      "태도"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-08",
+    "claim_ko": "同じコラムは、経験者向けの質問を開放型（中核的能力・成功したプロジェクト）、過去型（ブランク期間など）、未来型（抱負・ビジョン）、否定型（転職回数・弱みによる圧迫）に分類しています。",
+    "source_url": "personal-blog (URL非公開)",
+    "publisher": "개인 블로그 (brunch)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "개방형",
+      "과거형",
+      "미래형",
+      "부정형"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-09",
+    "claim_ko": "転職理由は前職への不満よりも成長と今後の方向性を中心に話すようにという助言が民間の転職戦略の記事にあり、年収だけを理由に挙げる回答は危険だとしています。",
+    "source_url": "検証不可 (元URL 404)",
+    "publisher": "개인 블로그 (tistory)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "이직 사유",
+      "성장",
+      "연봉"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-10",
+    "claim_ko": "NCS 基盤の面接は、経歴・経験中心の非構造的な面接から脱し、経験面接、状況面接、発表(PT)面接、討論面接のような構造化された方式で職務能力を評価すると、報道・教育資料で説明されています。",
+    "source_url": "https://dhnews.co.kr/news/view/179522277807971",
+    "publisher": "대구대 프로그램 보도(대학 뉴스, 민간 매체)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "NCS",
+      "경험면접",
+      "상황면접",
+      "발표면접",
+      "토론면접"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-11",
+    "claim_ko": "経験面接は過去の職務関連の経験を問い、状況面接は提示された業務状況での対処を問うという区分が、NCS の解説記事に出てきます。",
+    "source_url": "https://sgsg.hankyung.com/article/2016041552891",
+    "publisher": "한경 sgsg(언론, 민간)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "경험면접",
+      "상황면접",
+      "구조화"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-12",
+    "claim_ko": "채용절차법（採用手続法）第4条の3は、職務と無関係な身体条件、出身地域、婚姻の有無、財産、直系尊属・卑属・兄弟姉妹の学歴・職業・財産を基礎審査資料に求めること、または立証資料として収集することを禁止しており、違反時は500万ウォン以下の過料（第17条第2項）です。確認した本文は2020.5.26施行版の위키문헌（ウィキソース）の写しです。",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。原文 law.go.kr は直接照会に失敗、위키문헌（ウィキソース）の写し（法律第17326号）を確認",
+    "key_tokens": [
+      "제4조의3",
+      "신체조건",
+      "출신지역",
+      "혼인",
+      "500만원"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-13",
+    "claim_ko": "채용절차법第4条の2は、採用に関する不当な請託・圧力・強要と、金品・接待の提供・授受を禁止しており、違反時は3千万ウォン以下の過料（第17条第1項）です。",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。위키문헌（ウィキソース）の写し（法律第17326号）を確認",
+    "key_tokens": [
+      "제4조의2",
+      "채용강요",
+      "3천만원"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-14",
+    "claim_ko": "채용절차법第8条は、採用日程、審査の遅延、採用過程の変更を求職者に知らせるよう定め、第10条は採否を遅滞なく知らせるよう定めています。",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。위키문헌（ウィキソース）の写しを確認",
+    "key_tokens": [
+      "제8조",
+      "제10조",
+      "채용 여부",
+      "고지"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-15",
+    "claim_ko": "채용절차법第9条は、採用書類の提出費用以外の採用審査費用を求職者に負担させることを禁じ（例外は雇用労働部長官の承認）、第11条は、採用確定後に求職者から返還請求があれば採用書類を返還し、期限を過ぎれば個人情報保護法に従って破棄するよう定めています。",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。위키문헌（ウィキソース）の写しを確認",
+    "key_tokens": [
+      "제9조",
+      "제11조",
+      "채용서류 반환",
+      "파기"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-16",
+    "claim_ko": "채용절차법第4条は、採用を装った虚偽の採用広告を禁止し、正当な理由なく採用広告の内容や採用後の労働条件を求職者に不利に変更することも禁止しています。処遇協議の段階で、募集時の条件と提示された条件が異なる場合に参考にできます。",
+    "source_url": "https://ko.wikisource.org/wiki/%EC%B1%84%EC%9A%A9%EC%A0%88%EC%B0%A8%EC%9D%98_%EA%B3%B5%EC%A0%95%ED%99%94%EC%97%90_%EA%B4%80%ED%95%9C_%EB%B2%95%EB%A5%A0",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。위키문헌（ウィキソース）の写しを確認",
+    "key_tokens": [
+      "제4조",
+      "거짓 채용광고",
+      "근로조건",
+      "불리하게"
+    ],
+    "confidence": "medium"
+  },
+  {
+    "id": "K1-17",
+    "claim_ko": "근로기준법（勤労基準法）第17条は、労働契約の締結時に賃金、所定労働時間、休日、年次休暇などの労働条件を明示するよう定めています。確認した本文は2014.7.1施行版の위키문헌の写しであるため、現行の改正有無は未確認です。",
+    "source_url": "https://ko.wikisource.org/wiki/%EA%B7%BC%EB%A1%9C%EA%B8%B0%EC%A4%80%EB%B2%95",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 2014 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。2014年の写しのため、現行法との照合が必要",
+    "key_tokens": [
+      "제17조",
+      "근로조건 명시",
+      "임금",
+      "소정근로시간"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-18",
+    "claim_ko": "근로기준법第35条は、試用期間中の労働者を解雇予告の適用例外の一つとしていますが、確認した写しには期間の上限が見当たらず、試用3か月の基準は確認できませんでした。",
+    "source_url": "https://ko.wikisource.org/wiki/%EA%B7%BC%EB%A1%9C%EA%B8%B0%EC%A4%80%EB%B2%95",
+    "publisher": "법제처 국가법령정보센터 법령(위키문헌 2014 사본으로 확인)",
+    "kind": "public",
+    "terms_url": "https://www.law.go.kr (法令は公共の事実) — 法令は公共の事実。2014年の写しのため、現行法との照合が必要",
+    "key_tokens": [
+      "제35조",
+      "수습",
+      "해고예고"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-19",
+    "claim_ko": "リファレンスチェックは、候補者の事前同意なしに行うと個人情報保護法違反のおそれが大きいという民間の解説が多数ありますが、同意のない評判照会は違法ではないという趣旨の紛争調停決定を紹介するものもあり、公的な解説は確認できませんでした。",
+    "source_url": "https://shiftee.io/ko/blog/article/referenceCheckWhenHiring",
+    "publisher": "시프티 블로그(민간 HR 업체)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "레퍼런스 체크",
+      "사전 동의",
+      "개인정보보호법"
+    ],
+    "confidence": "low"
+  },
+  {
+    "id": "K1-20",
+    "claim_ko": "面接での結婚・子どもの計画、身体条件、職務と無関係な障害に関する質問は差別のおそれがあるという報道・法律解説があります。面接中の質問そのものは채용절차법違反ではないという고용노동부（雇用労働部）の判断を伝える報道もあります。",
+    "source_url": "https://view.asiae.co.kr/article/2021101511252364153",
+    "publisher": "아시아경제 외 언론(민간)",
+    "kind": "private",
+    "terms_url": null,
+    "key_tokens": [
+      "면접 불필요한 질문",
+      "결혼",
+      "신체조건",
+      "차별"
+    ],
+    "confidence": "low"
+  }
+]

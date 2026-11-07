@@ -22,7 +22,7 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - All errors are `{ code }`; the UI turns codes into sentences. `dev.js` runs the same handlers with `vercel.json` headers; `MOCK_CLAUDE=1` uses per-route fixtures (0 tokens). Model ids live only in `lib/claude.js` `MODELS`.
 - `public/`: no inline script (CSP `script-src 'self' 'wasm-unsafe-eval'`, COOP/COEP for threaded WASM). Enter = newline, Ctrl/Cmd+Enter = send (keep). `test/i18n.test.js` fails on a missing key. Session JSON stays in browser localStorage.
 - Answer 🎤 is on-device Whisper (`research/STT-OSS-EVAL.md`); Gemini STT serves only the read-aloud check (`?kana=1`, `STT_ENABLED`).
-- Stage R (`RESEARCH_ENABLED=1`, jp pack only; spec `01_설계문서/SUPPLEMENT-AUTO-RESEARCH.md`): Haiku needs the basic `web_search_20250305` tools (the newer ones made zero real searches). The extraction schema sits near the API's compiled-grammar limit: adding fields returns 400 for every call, and offline tests cannot see it. Review sites are never collected.
+- Stage R (`RESEARCH_ENABLED=1`, jp pack only; spec `01_設計文書/SUPPLEMENT-AUTO-RESEARCH.md`): Haiku needs the basic `web_search_20250305` tools (the newer ones made zero real searches). The extraction schema sits near the API's compiled-grammar limit: adding fields returns 400 for every call, and offline tests cannot see it. Review sites are never collected.
 - Vercel Hobby allows 12 functions (`api/` is at the limit, a test guards it): `/api/fit` is `lib/fit-api.js` behind a `vercel.json` rewrite to `/api/research?route=fit`.
 - `/api/verify` (F15, the script check: ④⑤; ①②③ are `/api/review`) is `lib/verify-api.js` behind the same kind of rewrite, `/api/research?route=verify`. It calls Claude only when there is material (a pasted resume or mail, or the user's own answer: the UI checks every model script against its answer once), and nothing it receives is stored.
 - Access: `lib/guard.js` `gate()` runs on every route that calls a model or an outside API. The right code passes uncounted, a wrong one is 401; no code is 401 unless `OPEN_ACCESS=1`, then a JST-day limit (KV, else per-instance memory). Answering one question costs 3 (review, script, verify).
@@ -33,10 +33,10 @@ Deadline: **11/8 (日) 20:00 submit, target 17:00** (キックオフ告知、非
 
 ## Layout
 
-- `01_설계문서/` — public specs and research. **`PRD-INTERVIEW-COACH.md` is the source of truth** (scope, features, data model, daily milestones). DEVLOG, `research/`. The original design and the rejected backup idea were deleted on 11/06 (git history only). Internal ops docs (schedule, submission drafts, competitor scans, market analysis) live in `../BuiltWithClaude-2026-private/internal-docs/`, not in the repo.
-- Private folder `../BuiltWithClaude-2026-private/` (outside the repo): `02_로컬원본/`, `samples/`, `internal-docs/`, `secrets/` (`.env`, `.env.local`, `.pii-denylist.txt`).
-  - `02_로컬원본/` and the private `samples/` are reference material. **Read-only input, not code to reuse.** Never copy their contents into the repo. Tests and demo use `TEST-CASES.md` and the repo's `samples/` (synthetic).
-  - The correction rules behind `packs/jp.json` come from there, as rule data only. `02_로컬원본/im-not-ai/` is a separate third-party git repo (own CLAUDE.md), style-correction reference only.
+- `01_設計文書/` — public specs and research. **`PRD-INTERVIEW-COACH.md` is the source of truth** (scope, features, data model, daily milestones). DEVLOG, `research/`. The original design and the rejected backup idea were deleted on 11/06 (git history only). Internal ops docs (schedule, submission drafts, competitor scans, market analysis) live in `../BuiltWithClaude-2026-private/internal-docs/`, not in the repo.
+- Private folder `../BuiltWithClaude-2026-private/` (outside the repo): `02_ローカル原本/`, `samples/`, `internal-docs/`, `secrets/` (`.env`, `.env.local`, `.pii-denylist.txt`).
+  - `02_ローカル原本/` and the private `samples/` are reference material. **Read-only input, not code to reuse.** Never copy their contents into the repo. Tests and demo use `TEST-CASES.md` and the repo's `samples/` (synthetic).
+  - The correction rules behind `packs/jp.json` come from there, as rule data only. `02_ローカル原本/im-not-ai/` is a separate third-party git repo (own CLAUDE.md), style-correction reference only.
 
 ## Contest rules that constrain code
 

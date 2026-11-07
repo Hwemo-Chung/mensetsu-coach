@@ -1,0 +1,192 @@
+[
+  {
+    "id": "c2-01",
+    "claim_ko": "「(お・ご)…(さ)せていただく」は、基本的に自分側の行為を、ア) 相手・第三者の許可を受けて行い、イ) それによって恩恵を受けるという事実・気持ちがある場合に使い、二つの条件をどの程度満たすかによって適切・不適切が分かれます（敬語の指針 p.40 【18】解説1）。",
+    "source_url": "https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/keigo_tosin.pdf",
+    "publisher": "文化審議会答申「敬語の指針」(2007-02-02), 文化庁",
+    "kind": "public",
+    "terms_url": "https://www.mext.go.jp/b_menu/1351168.htm",
+    "key_tokens": ["させていただく", "許可", "恩恵", "【18】"],
+    "confidence": "high"
+  },
+  {
+    "id": "c2-02",
+    "claim_ko": "許可の条件（ア）がない場合は「発表させていただきます」より「発表いたします」の方が簡潔であるとし、自己紹介での「○○高校を卒業させていただきました」は、二つの条件がないと感じれば不適切と判断されると説明しています（敬語の指針 p.40-41 【18】解説2）。",
+    "source_url": "https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/keigo_tosin.pdf",
+    "publisher": "文化審議会答申「敬語の指針」(2007-02-02), 文化庁",
+    "kind": "public",
+    "terms_url": "https://www.mext.go.jp/b_menu/1351168.htm",
+    "key_tokens": ["発表いたします", "卒業させていただきました", "自己紹介"],
+    "confidence": "high"
+  },
+  {
+    "id": "c2-03",
+    "claim_ko": "「二重敬語」は、一つの語に同じ種類の敬語を二重に使ったもの（例：お読みになられる）と定義され、一般的に適切ではないとされますが、習慣として定着している例（お召し上がりになる、お伺いする等）もあります（敬語の指針 p.30）。役職名+様は、この定義の中で直接扱われていません。",
+    "source_url": "https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/keigo_tosin.pdf",
+    "publisher": "文化審議会答申「敬語の指針」(2007-02-02), 文化庁",
+    "kind": "public",
+    "terms_url": "https://www.mext.go.jp/b_menu/1351168.htm",
+    "key_tokens": ["二重敬語", "お読みになられる", "一つの語"],
+    "confidence": "high"
+  },
+  {
+    "id": "c2-04",
+    "claim_ko": "取引先の社員に自社の部長のことを話す場合、ウチとして扱えば「田中」または「部長の田中」と呼ぶことができ、「田中部長」はウチとして扱ったことにならないため不適切であり、名前を避けて「弊社の部長」「うちの部長」と言うこともできます（敬語の指針 p.44 【24】）。",
+    "source_url": "https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/keigo_tosin.pdf",
+    "publisher": "文化審議会答申「敬語の指針」(2007-02-02), 文化庁",
+    "kind": "public",
+    "terms_url": "https://www.mext.go.jp/b_menu/1351168.htm",
+    "key_tokens": ["ウチ扱い", "部長の田中", "【24】"],
+    "confidence": "high"
+  },
+  {
+    "id": "c2-05",
+    "claim_ko": "社外の人が多い場では会社のウチ・ソトの関係が生じるため、ウチである社長を高めない方がよいと説明しています（敬語の指針 p.44-45 【25】）。",
+    "source_url": "https://www.bunka.go.jp/seisaku/bunkashingikai/kokugo/hokoku/pdf/keigo_tosin.pdf",
+    "publisher": "文化審議会答申「敬語の指針」(2007-02-02), 文化庁",
+    "kind": "public",
+    "terms_url": "https://www.mext.go.jp/b_menu/1351168.htm",
+    "key_tokens": ["社外", "ウチ・ソト", "【25】"],
+    "confidence": "high"
+  },
+  {
+    "id": "c2-06",
+    "claim_ko": "韓国語には日本語と似た敬語の形式があるが、外部の人に自分の家族や会社の目上の人の行為を話す場合にも敬語を使うことができる点が、日本の共通語と異なると説明しています（尾崎喜光、ことば研究館 Q&A、2002年初出・2022-02-24再掲載）。",
+    "source_url": "https://kotoba.ninjal.ac.jp/qa/yokuaru/qa-160/",
+    "publisher": "国立国語研究所 ことば研究館 (尾崎喜光)",
+    "kind": "private",
+    "terms_url": "https://kotoba.ninjal.ac.jp/terms-of-service/",
+    "key_tokens": ["韓国語", "身内", "社長", "敬語"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-07",
+    "claim_ko": "大学の日韓逐次通訳の授業（日本語母語話者対象）のビジネス会話練習で、韓国語の絶対敬語と日本語の相対敬語の違いに注意を喚起したという実践報告があります（『朝鮮語教育―理論と実践―』16号、2021、pp.81-101のうちp.96付近）。",
+    "source_url": "https://www.jstage.jst.go.jp/article/jaskle/16/0/16_81/_pdf/-char/ja",
+    "publisher": "朝鮮語教育研究会『朝鮮語教育―理論と実践―』第16号 (2021)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["絶対敬語", "相対敬語", "逐次通訳"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-08",
+    "claim_ko": "日本では敬語の使い分けの基準として、家族をウチとみなす規則（ウチ・ソトの関係）が働いていると分析しています（李吉鎔「韓国語と日本語における聞き手敬語用法の30年間の変化」阪大社会言語学研究ノート16、2019、p.123付近）。",
+    "source_url": "https://ir.library.osaka-u.ac.jp/repo/ouka/all/73643/sln16-112.pdf",
+    "publisher": "大阪大学『阪大社会言語学研究ノート』第16号 (2019)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["ウチ・ソト", "家族", "聞き手敬語"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-09",
+    "claim_ko": "韓国語母語の日本語学習者2名の約1年間の発話データを分類した研究で、誤用カテゴリーとして「韓国語の漢語をそのまま直訳」（例：成功与否 → 成功したかどうか）と「助詞の韓国語意味の影響」（例：自転車に乗る の助詞の誤用）が示されました。標本が2名であるため、頻度を一般化する根拠にはなりません（金・赤堀・清水、日本教育工学雑誌 21(1)、1997、pp.16-17）。",
+    "source_url": "https://www.jstage.jst.go.jp/article/jmet/21/1/21_21.1_13/_pdf/-char/ja",
+    "publisher": "日本教育工学会『日本教育工学雑誌』21(1) (1997)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["漢語をそのまま直訳", "成功与否", "助詞", "発話誤用"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-10",
+    "claim_ko": "御社と貴社の違いは話し言葉と書き言葉の違いであり、面接・電話・説明会では御社、メール・履歴書・職務経歴書では貴社を使うと案内しています（マイナビ転職、2025-07-09更新）。",
+    "source_url": "https://tenshoku.mynavi.jp/knowhow/caripedia/20/",
+    "publisher": "マイナビ転職 (株式会社マイナビ)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["御社", "貴社", "話し言葉", "書き言葉"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-11",
+    "claim_ko": "御社は面接・電話・説明会などの会話で、貴社はメール・書類などの文書で使い、どちらも敬称であるため「御社様」「貴社殿」のように重ねると誤りであると案内しています（キャリタス就活、ページ内の日付表記は2025-12-10/2026-09-16が混在）。",
+    "source_url": "https://job.career-tasu.jp/guide/howto/140/",
+    "publisher": "キャリタス就活 編集部 (運営会社名未確認)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["御社", "貴社", "御社様"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-12",
+    "claim_ko": "面接では、応募者は現職の代表ではなく個人として話すため、弊社・当社は使わないと案内しています（マイナビ転職、2025-07-09更新）。単一出典であり、敬語の指針 【24】は会社員が取引先に話す場面で「弊社の部長」を許容しているため、場面が異なります。",
+    "source_url": "https://tenshoku.mynavi.jp/knowhow/caripedia/20/",
+    "publisher": "マイナビ転職 (株式会社マイナビ)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["弊社", "当社", "面接"],
+    "confidence": "low"
+  },
+  {
+    "id": "c2-13",
+    "claim_ko": "社長様・部長様・課長様のような役職名+様は二重敬語のため誤りとみなし、話すときは「○○社長」または「社長の○○様」を勧め、面接では「○○社長」が最も無難で「○○様」も可能と案内しています（マイナビニュース、2025-11-14更新）。",
+    "source_url": "https://news.mynavi.jp/article/20230914-2740068/",
+    "publisher": "マイナビニュース (株式会社マイナビ)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["社長様", "部長様", "二重敬語", "社長の○○様"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-14",
+    "claim_ko": "役職名がすでに敬意を含んでいるため、「社長様」「部長様」のような二重の敬称は避けるよう案内しています（Forbes JAPAN、2024-08-14）。",
+    "source_url": "https://forbesjapan.com/articles/detail/72950",
+    "publisher": "Forbes JAPAN (株式会社linkties)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["部長様", "社長様", "役職名"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-15",
+    "claim_ko": "「大丈夫です」が勧誘・提案を断る意味で広く使われるようになり、承諾と受け取った聞き手との間で誤解が生じる事例があり、明鏡国語辞典はこの用法を本来不適切と記しており、メディアでの記録は2002年頃からであると説明しています（川口良、現代ビジネス、2020-04-02）。",
+    "source_url": "https://gendai.media/articles/-/71361",
+    "publisher": "講談社 現代ビジネス (川口良, 文教大学)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["大丈夫です", "断り", "明鏡国語辞典"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-16",
+    "claim_ko": "「大丈夫です」は断り（不要）と承諾（構わない）の両方に使われ、文脈なしでは意味が不明確であり、大辞泉は補注でこの用法を記述し、明鏡は不適切とみなしていると説明しています（JapanKnowledge「日本語、どうでしょう？」、2012-09-03）。",
+    "source_url": "https://japanknowledge.com/articles/blognihongo/entry.html?entryid=124",
+    "publisher": "ジャパンナレッジ (株式会社ネットアドバンス)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["大丈夫です", "大辞泉", "明鏡"],
+    "confidence": "medium"
+  },
+  {
+    "id": "c2-17",
+    "claim_ko": "「頑張ります」は前向きではあるが、面接官には抽象的で根拠がないと受け取られうるため、どのように努力し、どのような手段で成果を出すかを述べるよう案内しています（type就活、2025-11-14更新）。この表現を直接扱った出典はこの1件のみです。",
+    "source_url": "https://typeshukatsu.jp/s/article/step/interview-step/108394/",
+    "publisher": "type就活 (株式会社キャリアデザインセンター)",
+    "kind": "private",
+    "terms_url": "",
+    "key_tokens": ["頑張ります", "抽象的", "具体"],
+    "confidence": "low"
+  },
+  {
+    "id": "c2-18",
+    "claim_ko": "文化庁ホームページは、コンテンツの利用を「文部科学省ウェブサイト利用規約」に従うものとしており、この規約は公共データ利用規約（第1.0版）に準拠し、CC BY 4.0と互換性があります。別紙の適用除外リストに敬語の指針は含まれていません。",
+    "source_url": "https://www.bunka.go.jp/bunkacho_homepage/index.html",
+    "publisher": "文化庁 / 文部科学省",
+    "kind": "public",
+    "terms_url": "https://www.mext.go.jp/b_menu/1351168.htm",
+    "key_tokens": ["文部科学省ウェブサイト利用規約", "公共データ利用規約", "CC BY"],
+    "confidence": "high"
+  },
+  {
+    "id": "c2-19",
+    "claim_ko": "ことば研究館のコンテンツの著作権は著者または国立国語研究所に帰属し、複製・配布には事前の問い合わせが必要であると明記しているため、PDL1.0・政府標準利用規約・CC BY の条件を満たさず、private に分類します。",
+    "source_url": "https://kotoba.ninjal.ac.jp/terms-of-service/",
+    "publisher": "国立国語研究所",
+    "kind": "private",
+    "terms_url": "https://kotoba.ninjal.ac.jp/terms-of-service/",
+    "key_tokens": ["著作権", "国立国語研究所", "お問い合わせ"],
+    "confidence": "high"
+  }
+]

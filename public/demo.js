@@ -203,7 +203,7 @@ function startTour(d, my, onTry) {
 async function play(n) {
   const tr = state.tour;
   tr.i = n;
-  tr.marks[n] = log.children.length; // [이전] removes what this step appended
+  tr.marks[n] = log.children.length; // [戻る] removes what this step appended
   tr.panels[n] = [...$("reviewBox").children]; // ...and puts back the panel as it was before this step
   showTip(n);
   busy(true);
@@ -244,7 +244,7 @@ export function endTour(done = false) {
   resetPanel(); // the demo's review must not stay in the panel once the tour is over
   startCard.hidden = !done;
 }
-// [건너뛰기]/Esc: close the popup and leave only step 6 (the "enter your code" button).
+// [スキップ]/Esc: close the popup and leave only step 6 (the "enter your code" button).
 export function skipTour() {
   const tr = state.tour;
   if (!tr) return;

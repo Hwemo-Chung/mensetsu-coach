@@ -267,7 +267,7 @@ body[data-stage="verify"] .attach, body[data-stage="verify"] .chip { display: no
 .rail-q[data-status="ok"] > .rail-status { color: var(--green-ink); }
 .rail-text { grid-column: 2 / -1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
-/* Review pane (첨삭 | 노트), a document: ① structure ② corrections ③ model script ④ first ↔ latest.
+/* Review pane (添削 | ノート), a document: ① structure ② corrections ③ model script ④ first ↔ latest.
    Mobile: full-screen overlay; the chat behind it is made inert by panel.js. */
 .panel { position: fixed; inset: 0; z-index: 10; background: #fff; display: flex; flex-direction: column; min-width: 0; }
 .panel-head { display: flex; align-items: center; gap: 4px; padding: 0 8px; border-bottom: 1px solid var(--line); }

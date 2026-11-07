@@ -72,4 +72,4 @@ createServer(async (req, res) => {
     console.error(e);
     res.writeHead(500).end();
   }
-}).listen(PORT, () => console.log(`http://localhost:${PORT}${MOCK ? " (MOCK_CLAUDE: 고정 응답, Claude 호출 없음)" : ""}`));
+}).listen(PORT, () => console.log(`http://localhost:${PORT}${MOCK ? " (MOCK_CLAUDE: 固定の応答、Claude の呼び出しなし)" : ""}`));

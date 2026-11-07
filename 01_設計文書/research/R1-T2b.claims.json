@@ -1,0 +1,421 @@
+[
+ {
+  "id": "R1T2b-01",
+  "claim_ko": "[法律] 民法627条1項：雇用の期間を定めなかった場合、各当事者はいつでも解約の申入れをすることができ、雇用は申入れの日から2週間を経過すると終了します。",
+  "source_url": "https://laws.e-gov.go.jp/law/129AC0000000089",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "民法627条",
+   "解約の申入れ",
+   "二週間"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-02",
+  "claim_ko": "[法律] 民法627条2項（報酬の期間単位による解約時期の制限）と3項は、条文上'使用者からの'解約の申入れにのみ適用されます。したがって労働者側の辞職の予告は、給与の支払形態にかかわらず1項の2週間が基準です（条文の文言に基づく解釈）。",
+  "source_url": "https://laws.e-gov.go.jp/law/129AC0000000089",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "使用者からの解約の申入れ",
+   "次期以後"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-03",
+  "claim_ko": "[法律] 民法628条：期間を定めた雇用は、やむを得ない事由があるときは直ちに解除することができ、その事由が一方の過失によるものであるときは、相手方に対して損害賠償の責任を負います。",
+  "source_url": "https://laws.e-gov.go.jp/law/129AC0000000089",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "民法628条",
+   "やむを得ない事由"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-04",
+  "claim_ko": "[法律] 労働基準法15条1項：使用者は労働契約の締結に際し、賃金・労働時間等の労働条件を明示しなければならず、賃金・労働時間等の省令で定める事項は、省令で定める方法で明示しなければなりません。",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "労働基準法15条",
+   "労働条件の明示"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-05",
+  "claim_ko": "[法律] 労働基準法15条2項：明示された労働条件が事実と相違する場合、労働者は即時に労働契約を解除することができます。3項は、就業のために住居を変更した労働者が14日以内に帰郷する場合、使用者が旅費を負担するよう定めています。",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "事実と相違",
+   "即時に労働契約を解除"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-06",
+  "claim_ko": "[法律] 労働基準法施行規則5条1項：明示すべき労働条件には、契約期間、就業の場所と業務（その変更の範囲を含む）、始業・終業の時刻と休日、賃金の決定・計算・支払の方法と昇給、退職（解雇の事由を含む）などが含まれます。",
+  "source_url": "https://laws.e-gov.go.jp/law/322M40000100023",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "施行規則5条",
+   "変更の範囲",
+   "昇給"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-07",
+  "claim_ko": "[法律] 労働基準法22条：労働者が退職の際に使用期間・業務の種類・地位・賃金・退職の事由の証明書を請求した場合、使用者は遅滞なく交付しなければならず、労働者が請求しない事項を記入してはなりません。",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000049",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "退職時等の証明",
+   "請求しない事項"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-08",
+  "claim_ko": "[法律] 職業安定法5条の3第3項：求人者が職業紹介事業者の紹介による求職者と契約を締結する際に、先に明示した業務内容・賃金等を変更する場合は、その変更内容を契約の相手方に明示しなければなりません（1項の紹介事業者の明示義務は R1T4-13）。",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000141",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "職業安定法5条の3",
+   "変更する場合"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-09",
+  "claim_ko": "[法律] 職業安定法32条の3第2項：有料職業紹介事業者は、原則として求職者から手数料を徴収してはなりません。例外は省令で定める場合のみです。",
+  "source_url": "https://laws.e-gov.go.jp/law/322AC0000000141",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "32条の3",
+   "求職者からは手数料を徴収してはならない"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-10",
+  "claim_ko": "[法律] 職業安定法施行規則20条2項：求職者手数料の例外は、芸能家・モデルとして紹介した場合と、賃金が厚生労働大臣の定める額を超える科学技術者・経営管理者・熟練技能者として紹介した場合であり、就職後6か月以内の賃金の11%（免税事業者は10.3%）以下に制限されます。大臣の定める額そのものは今回確認していません。",
+  "source_url": "https://laws.e-gov.go.jp/law/322M40002000012",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "施行規則20条",
+   "経営管理者",
+   "百分の十一"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-11",
+  "claim_ko": "[指針] 厚生労働省のリーフレット：職業紹介事業者は、自らが紹介して無期雇用で就職した者に対し、就職日から2年間、転職を勧奨してはなりません。同じリーフレットは、2021-04-01の指針改正により、'就職お祝い金'等の名目での過度な金銭の提供による求職の申込みの勧奨が禁止されたと案内しています。",
+  "source_url": "https://www.mhlw.go.jp/content/11600000/001603370.pdf",
+  "publisher": "厚生労働省・都道府県労働局",
+  "kind": "public",
+  "terms_url": "https://www.mhlw.go.jp/chosakuken/index.html",
+  "key_tokens": [
+   "転職の勧奨",
+   "２年間",
+   "お祝い金"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-12",
+  "claim_ko": "[法律・指針] 同じリーフレット：紹介事業者は、人材サービス総合サイトに就職者数、無期雇用就職者のうち6か月以内の離職者数、手数料表、返戻金制度の有無を提供しなければならず（職業安定法32条の16第3項）、返戻金制度を設けることが望ましく、求職者・求人者双方の手数料を双方に明示しなければなりません。",
+  "source_url": "https://www.mhlw.go.jp/content/11600000/001603370.pdf",
+  "publisher": "厚生労働省・都道府県労働局",
+  "kind": "public",
+  "terms_url": "https://www.mhlw.go.jp/chosakuken/index.html",
+  "key_tokens": [
+   "人材サービス総合サイト",
+   "返戻金制度",
+   "32条の16"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-13",
+  "claim_ko": "[行政案内] 茨城労働局 Q&A：労働者の辞職の意思表示は、使用者の承諾がなくても、到達の翌日から数えて2週間を経過すると効力が生じます。",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "承諾",
+   "2週間"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-14",
+  "claim_ko": "[行政案内] 同じ Q&A：就業規則が不当に長くない予告期間（例：1か月）を定めている場合は、紛争予防のために従うことが望ましいと勧めています（法的効力の基準ではなく推奨）。",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "就業規則",
+   "1か月"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-15",
+  "claim_ko": "[行政案内] 同じ Q&A：後任が決まるまで待つようにという要求は辞職の効力を妨げるものではなく、問題が生じた場合は総合労働相談コーナーや労働基準監督署への相談を案内しています。",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "後任",
+   "総合労働相談コーナー"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T2b-16",
+  "claim_ko": "[矛盾メモ] 同じ Q&A は、完全月給制の労働者は賃金計算期間の前半に申し出なければならないという趣旨の説明を掲載していますが、現行の民法627条2項の文言は使用者側の申入れのみを規定しています。この説明は採用しません（改正前の記述が残っているものと推定。改正の施行日は未確認）。",
+  "source_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/yokuaru_goshitsumon/shurouchu/worker_d/qa_wyametai.html",
+  "publisher": "茨城労働局 (照合: e-Gov 民法)",
+  "kind": "public",
+  "terms_url": "https://jsite.mhlw.go.jp/ibaraki-roudoukyoku/policy.html",
+  "key_tokens": [
+   "完全月給制",
+   "使用者からの"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-17",
+  "claim_ko": "[判例紹介、民間 kind] 厚生労働省の'確かめよう労働条件'ページは、就業規則で2週間の期間を大幅に延ばしたり、会社の許可を条件としたりする規定を無効とした下級審判例（東京地判 昭和51.10.29）を紹介しています。サイトの利用規約が見つからなかったため private としています。",
+  "source_url": "https://www.check-roudou.mhlw.go.jp/study/roudousya_taisyoku.html",
+  "publisher": "厚生労働省「確かめよう労働条件」",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "大幅に伸ばす",
+   "無効"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-18",
+  "claim_ko": "[法的解釈、民間 kind] 同じページ：合意退職の申入れは会社が承諾するまでに限り撤回でき、会社が承諾しなくても、一方的な辞職は2週間後に効力が生じます。",
+  "source_url": "https://www.check-roudou.mhlw.go.jp/study/roudousya_taisyoku.html",
+  "publisher": "厚生労働省「確かめよう労働条件」",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "合意退職",
+   "撤回"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-19",
+  "claim_ko": "[法的解釈、民間 kind] 労働契約ポータル（委託運営）：就業規則に退職手続きがある場合は、内容が合理的である限り従うべきであるとし、採用内定によって契約の成立が認められる場合、内定取消しには客観的に合理的な理由が必要であると説明しています。",
+  "source_url": "https://roukeiseminar.mhlw.go.jp/expiration.html",
+  "publisher": "厚生労働省 労働契約等解説セミナー (委託運営)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "採用内定",
+   "合理的"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-20",
+  "claim_ko": "[慣行] リクルートエージェントの記事：面接で希望年収を聞かれたら、現在の年収をもとに最低額と希望額を分けて伝え、昇給予定・実績などの根拠を添えるよう勧めています。'貴社の規定に従います'という言葉は、柔軟性を示す補助的な一文として扱っています。",
+  "source_url": "https://www.r-agent.com/guide/article11673/",
+  "publisher": "株式会社リクルート (リクルートエージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "希望年収",
+   "現年収",
+   "最低希望額"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-21",
+  "claim_ko": "[慣行] JACの記事：希望年収は質問を受けてから、求人票の範囲内で、現在の年収を基準に根拠とともに答え、最低ラインを添える方法もあります。結婚・住宅ローンのような個人的な事情を理由に挙げたり、途中で金額を変えたりすることは避けるよう述べています。",
+  "source_url": "https://www.jac-recruitment.jp/market/knowhow/annual-income/jobchange-annual-income/",
+  "publisher": "株式会社ジェイエイシーリクルートメント",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "求人票",
+   "最低ライン",
+   "一貫性"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-22",
+  "claim_ko": "[慣行] 二つの記事（リクルート・JAC）はいずれも、企業の想定額を大きく超える希望額は選考の優先順位を下げうるとみています。手取り額と総支給額を混同して伝えることをNGとして挙げているのはリクルートの1件のみです。",
+  "source_url": "https://www.r-agent.com/guide/article11673/",
+  "publisher": "株式会社リクルート / JAC",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "想定",
+   "手取り",
+   "総支給"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-23",
+  "claim_ko": "[慣行] 時期：リクルートは、聞かれたらその時に答え、聞かれなければ内定前に切り出すが、選考の序盤は避けるよう述べています。JACは、聞かれなければ最終面接の前後を勧めています。",
+  "source_url": "https://www.r-agent.com/guide/article11673/",
+  "publisher": "株式会社リクルート / JAC",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "内定前",
+   "最終面接"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-24",
+  "claim_ko": "[慣行] マイナビ転職エージェント：内定前は希望を伝えるにとどめ、条件交渉は内定後の処遇面談（オファー面談）で行います。エージェントには条件の優先順位、譲れない条件・譲れる条件、その理由を伝えるよう述べています。",
+  "source_url": "https://mynavi-agent.jp/knowledge/common/71.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "処遇面談",
+   "オファー面談",
+   "優先順位"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-25",
+  "claim_ko": "[慣行] MyVisionの記事：エージェントは企業が条件を提示する前に候補者の希望を企業と調整するのが通常であり、交渉の時期は正式な条件提示後、内定承諾前です。依頼時には現年収・実績・希望額とその根拠・期待される役割を伝え、要求ではなく相談として切り出すよう述べています。コンサルティング業界特化型エージェントの単一出典です。",
+  "source_url": "https://my-vision.co.jp/articles/offer-negotiation",
+  "publisher": "株式会社MyVision",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "条件提示",
+   "内定承諾前",
+   "相談"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1T2b-26",
+  "claim_ko": "[慣行] マイナビの記事：転職の内定の回答期限は数日~1週間が多く、保留は1週間程度であれば受け入れられやすいが、2週間以上は企業次第、1か月以上は難しいとしています（単一出典の数値）。",
+  "source_url": "https://mynavi-agent.jp/knowledge/common/1555.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "回答期限",
+   "1週間",
+   "保留"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1T2b-27",
+  "claim_ko": "[慣行] 同じ記事：保留をお願いする際は、保留であることを明確にし、理由は短く、期限は本人が提示します。他社の選考中であることを隠す必要はないが、面接で伝えた志望度と食い違わないようにと述べています。エージェント経由であれば、保留期間の交渉はエージェントが担います。",
+  "source_url": "https://mynavi-agent.jp/knowledge/common/1555.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "他社選考中",
+   "志望度",
+   "保留期間"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-28",
+  "claim_ko": "[慣行] リクルートエージェントの記事：内定通知には、まず受け取った旨の返信を早めに送り、期限内に回答します。エージェント経由であれば回答をエージェントに送り、企業への伝達を依頼します。延長の依頼には他社の選考状況と具体的な希望日を、辞退には感謝・お詫び・明確な結論を盛り込み、理由は短く書きます。",
+  "source_url": "https://www.r-agent.com/guide/article12635/",
+  "publisher": "株式会社リクルート (リクルートエージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "内定通知",
+   "延長",
+   "辞退"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-29",
+  "claim_ko": "[慣行] マイナビのFAQ：エージェント経由の内定辞退は、企業ではなく担当エージェントに、できれば電話で（メールも可）早めに伝えます。承諾後の辞退も入社の14日以上前であれば可能と説明していますが、これは民法627条（R1T2b-01）に依拠した民間の解釈です。",
+  "source_url": "https://mynavi-agent.jp/service/faq/agent/1713.html",
+  "publisher": "株式会社マイナビ (マイナビ転職エージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "担当エージェント",
+   "電話",
+   "14日"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-30",
+  "claim_ko": "[慣行] リクルートエージェントの記事：在職中であれば、退職交渉・引き継ぎ・有給休暇の消化までに1~2か月が一般的で、就業規則に'Oか月前'という申し出期間を設けている会社が多く、引き留めが強ければ2か月以上かかります。入社可能日を聞かれたら最短日と希望日を併せて伝え、退職日が未定であれば遅れる可能性を添えるよう述べています。",
+  "source_url": "https://www.r-agent.com/guide/article12715/",
+  "publisher": "株式会社リクルート (リクルートエージェント)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "入社可能日",
+   "最短",
+   "引き継ぎ"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T2b-31",
+  "claim_ko": "[慣行] リクルートダイレクトスカウトの記事：内定から入社まではおおむね1~3か月で、就業規則の退職の申し出期限を事前に確認し、引き継ぎに2週間程度を見込むよう述べています。入社日の交渉は内定前に行うのが基本としています。",
+  "source_url": "https://directscout.recruit.co.jp/contents/article/4232",
+  "publisher": "株式会社リクルート (リクルートダイレクトスカウト)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "1〜3カ月",
+   "退職の告知",
+   "入社日"
+  ],
+  "confidence": "medium"
+ }
+]

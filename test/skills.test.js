@@ -33,7 +33,7 @@ test("skills with outside effects run only when the user asks", () => {
 test("files a skill points to exist, in the skill folder or the repository", () => {
   const repo = fileURLToPath(new URL("../", import.meta.url));
   for (const name of SKILLS) {
-    for (const [, rel] of frontmatter(name).body.matchAll(/`((?:scripts|references|lib|test|packs|public|01_설계문서)\/[^`\s<*]+)`/g)) {
+    for (const [, rel] of frontmatter(name).body.matchAll(/`((?:scripts|references|lib|test|packs|public|01_設計文書)\/[^`\s<*]+)`/g)) {
       assert.ok(existsSync(join(root, name, rel)) || existsSync(join(repo, rel)), `${name}: ${rel}`);
     }
   }

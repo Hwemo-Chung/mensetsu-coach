@@ -1,0 +1,413 @@
+[
+ {
+  "id": "R1T5-01",
+  "claim_ko": "在留資格「技術・人文知識・国際業務」の活動は、本邦の公私の機関との契約に基づいて、自然科学・人文科学の分野の技術・知識を要する業務、または外国の文化に基盤を有する思考・感受性を要する業務に従事するものです（入管法 別表第一の二）。該当例として、機械工学の技術者、通訳、デザイナー、私企業の語学教師、マーケティング業務が示されています。",
+  "source_url": "https://www.moj.go.jp/isa/applications/status/gijinkoku.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "別表第一の二",
+   "本邦の公私の機関との契約",
+   "マーケティング業務従事者"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-02",
+  "claim_ko": "技人国の在留期間は5年、3年、1年または3か月です。",
+  "source_url": "https://www.moj.go.jp/isa/applications/status/gijinkoku.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "５年、３年、１年又は３月"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-03",
+  "claim_ko": "上陸基準省令(平成2年法務省令16号)上、自然・人文分野の業務には、①関連科目を専攻して大学を卒業（または同等以上の教育） ②関連科目を専攻して本邦の専修学校の専門課程を修了（告示の要件を満たす場合） ③10年以上の実務経験（関連科目の専攻期間を含む）のいずれかが必要です。告示で定める情報処理試験の合格者・資格保有者は例外です。",
+  "source_url": "https://www.moj.go.jp/isa/content/001366995.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "十年以上の実務経験",
+   "関連する科目を専攻",
+   "情報処理技術"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-04",
+  "claim_ko": "同じ省令上、外国の文化に基盤を有する業務（翻訳・通訳・語学指導・広報・宣伝・海外取引・デザイン・商品開発等）には、関連業務について3年以上の実務経験が必要です。ただし、大学卒業者が翻訳・通訳・語学指導に従事する場合は例外です。",
+  "source_url": "https://www.moj.go.jp/isa/content/001366995.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "三年以上の実務経験",
+   "翻訳、通訳又は語学の指導"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-05",
+  "claim_ko": "上陸基準省令（およびこれを再掲した明確化ガイドライン）は、日本人が従事する場合に受ける報酬と同等額以上の報酬を受けることを要件としています。ガイドラインは、通勤・扶養・住宅手当等の実費弁償の性格を有するもの（課税対象外）は報酬に含まないと説明しています。",
+  "source_url": "https://www.moj.go.jp/isa/content/001413639.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "日本人が従事する場合に受ける報酬と同等額以上"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-06",
+  "claim_ko": "出入国在留管理庁のガイドライン「技術・人文知識・国際業務の在留資格の明確化等について」は、大学（海外の大学を含む）・高専の専攻と業務の関連性は従来から柔軟に判断し、専修学校は原則として相当程度の関連性が必要であると説明しています。専修学校の修了者であっても、関連性が認められた業務に3年程度従事した場合は、その後の業務との関連性は柔軟に判断すると記しています。",
+  "source_url": "https://www.moj.go.jp/isa/content/001413639.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "従来より柔軟に判断",
+   "相当程度の関連性",
+   "３年程度従事"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-07",
+  "claim_ko": "同じガイドラインは、活動を在留期間全体で見て判断し、当該業務がごく一部で、残りが特段の技術・知識を必要としない業務や反復訓練で可能な業務であれば、技人国に該当しないとしています。日本人も同じ研修を受ける入社当初の研修の一環であれば、該当するものとして取り扱います。",
+  "source_url": "https://www.moj.go.jp/isa/content/001413639.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "活動全体として捉えて判断",
+   "反復訓練によって従事可能な業務"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-08",
+  "claim_ko": "同じガイドラインは、技人国への変更許可の審査において、入管法 19条の7~19条の13、19条の15、19条の16の届出等の義務（所属機関等に関する届出を含む）を履行しているかが考慮されると記しています。",
+  "source_url": "https://www.moj.go.jp/isa/content/001413639.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "届出等の義務を履行",
+   "第１９条の１６"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-09",
+  "claim_ko": "令和8年4月15日以降の申請から、カテゴリー3・4の所属機関の場合は、①所属機関の代表者に関する申告書 ②（主に言語能力を用いて対人業務等に従事する場合）業務上使用する言語のCEFR B2相当の能力を証明する資料が追加で必要です。JLPT N2以上、BJT 400点以上、日本の大学卒業等はB2相当とみなされます。",
+  "source_url": "https://www.moj.go.jp/isa/applications/status/gijinkoku.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "令和８年４月１５日",
+   "ＣＥＦＲ・Ｂ２相当",
+   "ＪＬＰＴ・Ｎ２以上"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-10",
+  "claim_ko": "すでに在留中の者も、業務内容の変更・転職によって言語能力を用いる業務に主に従事することになった場合は、在留期間更新許可申請の際に上記のB2資料の提出が必要です。従前から同じ業務を継続している場合、更新時は原則として不要です（審査上求められることはあります）。",
+  "source_url": "https://www.moj.go.jp/isa/applications/status/gijinkoku.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "業務内容の変更や転職等",
+   "在留期間更新許可申請時"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-11",
+  "claim_ko": "入管法 19条の16は届出の対象を3つの号に分けています。第1号（教授・高度専門職1号ハ・経営・管理・企業内転勤・留学等）は活動機関の変更・離脱・移籍、第2号（高度専門職1号イ・ロ・研究・技術・人文知識・国際業務・介護・興行（契約型）・技能・特定技能）は契約機関の名称・所在地の変更、消滅、契約の終了、新たな契約の締結、第3号（家族滞在・日本人の配偶者等・永住者の配偶者等の配偶者）は離婚・死別が事由であり、いずれも14日以内です。永住者は対象の号に含まれていません。",
+  "source_url": "https://laws.e-gov.go.jp/law/326CO0000000319",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "第十九条の十六",
+   "十四日以内",
+   "契約の終了若しくは新たな契約の締結"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-12",
+  "claim_ko": "所属(契約)機関に関する届出は、電子届出システムで24時間365日オンライン提出が可能で、届出事項を証明する資料の提出は不要です。窓口（在留カードを提示）または郵送も可能です。契約の終了（参考様式1の4）、新たな契約（1の5）、両方を同時に（1の7）届け出る様式があります。",
+  "source_url": "https://www.moj.go.jp/isa/applications/procedures/nyuukokukanri10_00015.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "電子届出システム",
+   "資料の提出は必要ありません",
+   "参考様式１の７"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-13",
+  "claim_ko": "19条の16の届出をしない場合は20万円以下の罰金（入管法 71条の5 第3号）、虚偽の届出は1年以下の拘禁刑または20万円以下の罰金（71条の2 第1号）の対象です。",
+  "source_url": "https://laws.e-gov.go.jp/law/326CO0000000319",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "第七十一条の五",
+   "第七十一条の二",
+   "二十万円以下の罰金"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-14",
+  "claim_ko": "入管法 22条の4 第1項 第6号：別表第一の在留資格を有する者が当該活動を継続して3か月（高度専門職2号は6か月）以上行わずに在留している場合、正当な理由がある場合を除き、法務大臣は在留資格を取り消す'ことができる'（裁量）とされています。",
+  "source_url": "https://laws.e-gov.go.jp/law/326CO0000000319",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "第二十二条の四",
+   "継続して三月",
+   "正当な理由がある場合を除く"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-15",
+  "claim_ko": "出入国在留管理庁 Q&A（Q2）：すでに就労資格を持つ者を採用して同じ在留資格の活動を継続する場合、在留資格変更許可申請は不要ですが、外国人本人による'契約機関に関する届出'または'活動機関に関する届出'が必要です（どちらになるかは在留資格によって異なります）。在留期間の満了日が近い場合は更新許可申請が必要です。",
+  "source_url": "https://www.moj.go.jp/isa/content/001344550.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "在留資格変更許可申請は不要",
+   "契約機関に関する届出"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-16",
+  "claim_ko": "同じ Q&A（Q2・Q4）：外国人（芸術・宗教・報道・技能実習・特定技能を除く就労資格）を雇用し、または雇用を終了した事業主は、'中長期在留者の受入れに関する届出'を提出するよう努めなければなりません（努力義務）。",
+  "source_url": "https://www.moj.go.jp/isa/content/001344550.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "中長期在留者の受入れに関する届出",
+   "努めることとされています"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-17",
+  "claim_ko": "同じ Q&A（Q3）：採用後に従事させる業務がその人の在留資格で行える活動かどうかは、外国人が就労資格証明書の交付申請をすることで確認できます。",
+  "source_url": "https://www.moj.go.jp/isa/content/001344550.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "就労資格証明書",
+   "確認することができます"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-18",
+  "claim_ko": "就労資格証明書 交付申請：対象は就労が認められた外国人、申請者は本人（法定代理人・承認された取次者・届出をした弁護士/行政書士も可）、手数料は許可時に2,000円（オンラインは1,600円）です。転職等で勤務先・活動内容が変わった（変わる）人は、別の書類一式を提出します。",
+  "source_url": "https://www.moj.go.jp/isa/applications/procedures/16-9.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "２，０００円",
+   "１，6００円",
+   "転職等によって勤務先や活動内容が変わる"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-19",
+  "claim_ko": "在留期間更新許可申請の申請期間は在留期間の満了日以前であり、6か月以上の在留期間を有する者は満了の3か月前からです（特別な事情がある場合はそれ以前でも受け付けられます）。",
+  "source_url": "https://www.moj.go.jp/isa/applications/procedures/16-3.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "満了する３か月前から"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-20",
+  "claim_ko": "入管法 19条 第1項の活動の制限（資格外の収入を伴う活動の禁止）は、別表第一の在留資格を有する者にのみ適用されます。したがって別表第二（居住資格）である永住者・日本人の配偶者等・永住者の配偶者等・定住者は、この条項による就労活動の制限を受けません（R1T4-15の告示の記述と一致）。",
+  "source_url": "https://laws.e-gov.go.jp/law/326CO0000000319",
+  "publisher": "e-Gov法令検索 (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "第十九条",
+   "別表第一の上欄の在留資格"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-21",
+  "claim_ko": "出入国在留管理庁の在留資格一覧表は、別表第二（居住資格）として永住者（在留期間は無期限）、日本人の配偶者等、永住者の配偶者等、定住者の4つを挙げています。",
+  "source_url": "https://www.moj.go.jp/isa/applications/status/qaq5.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "居住資格",
+   "無期限"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-22",
+  "claim_ko": "高度人材ポイント制は2012年5月7日に導入され、活動を高度学術研究（高度専門職1号イ）・高度専門・技術（ロ）・高度経営・管理（ハ）の3類型に分け、学歴・職歴・年収等の項目ごとのポイントの合計が70点に達すると、出入国在留管理上の優遇措置を与えるものです。",
+  "source_url": "https://www.moj.go.jp/isa/applications/resources/newimmiact_3_system_index.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "平成２４年５月７日",
+   "７０点"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-23",
+  "claim_ko": "高度専門職1号の優遇：複合的な活動の許容、在留期間5年の一律付与、永住要件の緩和（高度人材としての活動を3年継続、80点以上は1年）、配偶者の就労、一定の条件の下での親・家事使用人の帯同、審査の優先処理（在留審査は5日以内が目標）。",
+  "source_url": "https://www.moj.go.jp/isa/applications/resources/newimmiact_3_preferential_index.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "在留期間「５年」",
+   "80点以上",
+   "5日以内を目途"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-24",
+  "claim_ko": "高度専門職2号は、1号の活動に加えて就労資格のほぼすべての活動が可能で、在留期間は無期限です。",
+  "source_url": "https://www.moj.go.jp/isa/applications/resources/newimmiact_3_preferential_index.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "高度専門職2号",
+   "無期限"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-25",
+  "claim_ko": "ポイント計算表：高度専門・技術および高度経営・管理の分野は年収300万円以上が最低基準で、合格点は70点です。ボーナスとして、JLPT N1（または海外の大学で日本語を専攻して卒業）15点、N2 10点があります。",
+  "source_url": "https://www.moj.go.jp/isa/content/930001657.pdf",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "年収３００万円以上",
+   "合格点",
+   "日本語能力試験Ｎ１"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-26",
+  "claim_ko": "「高度専門職1号」で在留する者が活動内容を変更する場合（所属機関の変更を含む）にも、在留資格変更許可申請が必要です。つまり1号の転職は届出だけでは済みません。",
+  "source_url": "https://www.moj.go.jp/isa/applications/status/designatedactivities02_00004.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "所属機関の変更を含む",
+   "在留資格変更許可申請が必要"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-27",
+  "claim_ko": "e-Gov利用規約は、e-gov.go.jpおよびそのサブドメインのサイトのコンテンツにPDL1.0が適用されると明示しています。したがってlaws.e-gov.go.jpもPDL1.0の範囲です（R1-T4の'個別規約未確認'を解消）。",
+  "source_url": "https://www.e-gov.go.jp/terms",
+  "publisher": "e-Gov (デジタル庁)",
+  "kind": "public",
+  "terms_url": "https://www.e-gov.go.jp/terms",
+  "key_tokens": [
+   "サブドメイン",
+   "PDL1.0"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-28",
+  "claim_ko": "出入国在留管理庁のサイトのコンテンツは、権利表記がない限りPDL1.0が適用され、出典の記載（出典：出入国在留管理庁ホームページ(URL)）と、加工した場合は加工した旨の記載が必要です。",
+  "source_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "publisher": "出入国在留管理庁",
+  "kind": "public",
+  "terms_url": "https://www.moj.go.jp/isa/copyright/index2.html",
+  "key_tokens": [
+   "PDL1.0",
+   "出典記載例"
+  ],
+  "confidence": "high"
+ },
+ {
+  "id": "R1T5-29",
+  "claim_ko": "民間の法律実務解説は、3か月の活動不履行による取消制度を根拠に、転職者の採用面接で前職の退職日を確認するよう事業主に勧めています（慣行の根拠。法的根拠そのものは R1T5-14）。",
+  "source_url": "https://www.businesslawyers.jp/practices/1163",
+  "publisher": "BUSINESS LAWYERS (民間)",
+  "kind": "private",
+  "terms_url": "未確認",
+  "key_tokens": [
+   "退職日",
+   "在留資格取消し"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1T5-30",
+  "claim_ko": "同じ民間解説は、就労資格証明書を取得しておくと次回の更新審査が簡易になると書いていますが、出入国在留管理庁の一次資料（16-9ページ、Q&A Q3）では'業務該当性の確認'の用途までしか確認できませんでした。更新の簡素化効果は未確認です。",
+  "source_url": "https://www.businesslawyers.jp/practices/1163",
+  "publisher": "BUSINESS LAWYERS (民間)",
+  "kind": "private",
+  "terms_url": "未確認",
+  "key_tokens": [
+   "就労資格証明書",
+   "任意"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1T5-31",
+  "claim_ko": "民間の採用ガイドの中には、面接当日に在留カードの原本を持参するよう勧めるものがあります。これは厚労省 Q&A（選考段階は口頭・書面で確認、在留カードは内定後、R1T4-07）と矛盾するため、§3に従い公的規範を優先します。",
+  "source_url": "https://treeglobalpartners.com/articles/gaikokujin-saiyo-mensetsu/",
+  "publisher": "人材紹介業 事業者コラム (民間)",
+  "kind": "private",
+  "terms_url": "未確認",
+  "key_tokens": [
+   "在留カード",
+   "原本"
+  ],
+  "confidence": "medium"
+ }
+]

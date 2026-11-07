@@ -18,8 +18,8 @@ import { POST as scriptPOST } from "../api/script.js";
 const tracked = (() => { try { return execFileSync("git", ["ls-files", "-z", "-co", "--exclude-standard"], { cwd: fileURLToPath(root), encoding: "utf8" }).split("\0"); } catch { return []; } })();
 const targets = tracked.filter((p) => p && /\.(json|md|js|mjs|txt|html|css)$/.test(p) && !p.startsWith("node_modules/") && existsSync(new URL(p, root)));
 
-// git quotes a non-ASCII path ("01_\354…") unless -z, and the quoted name exists nowhere: every file under 01_설계문서/ went unscanned (11/06).
-test("the scan reads files under non-ASCII paths", () => assert.ok(targets.includes("01_설계문서/PRD-INTERVIEW-COACH.md")));
+// git quotes a non-ASCII path ("01_\350…") unless -z, and the quoted name exists nowhere: every file under 01_設計文書/ went unscanned (11/06).
+test("the scan reads files under non-ASCII paths", () => assert.ok(targets.includes("01_設計文書/PRD-INTERVIEW-COACH.md")));
 
 test("no denylisted personal identifiers in packs/ or research outputs", { skip: !existsSync(denyPath) && ".pii-denylist.txt not present" }, () => {
   const terms = readFileSync(denyPath, "utf8").split("\n").map((s, i) => [s.trim(), i + 1]).filter(([s]) => s && !s.startsWith("#"));

@@ -1,4 +1,4 @@
-// Side panel (첨삭 | 노트) re-draws the latest review; chat bubbles stay the source. Desktop: beside the chat.
+// Side panel (添削 | ノート) re-draws the latest review; chat bubbles stay the source. Desktop: beside the chat.
 // Mobile: full-screen overlay, opened only by the button, with the chat behind it inert.
 import { $, el, state, T, persist, renderReview, renderVerify, renderCompare, renderScript, habitsLine, renderRail, JP_STEPS, stepName } from "./render.js";
 import { addListen } from "./voice.js";
@@ -54,7 +54,7 @@ export function openByDefault() {
   try { closedByUser = sessionStorage.getItem(PANEL_CLOSED) === "1"; } catch {}
   if (wide.matches && panel.hidden && !closedByUser) openPanel();
 }
-// 첨삭 tab = one document of the latest attempt: ①② review, ③ model script (when there is one), ④ first ↔ latest.
+// 添削 tab = one document of the latest attempt: ①② review, ③ model script (when there is one), ④ first ↔ latest.
 // Copies of the chat cards without bubble styling; ③ gets its own 🔊 (review M3: the panel copy is the readable one).
 export function showReview(r, cmp, script) {
   const rv = el("div");
@@ -74,7 +74,7 @@ export function showReview(r, cmp, script) {
   $("reviewEmpty").hidden = true;
 }
 
-// F15: the script check takes the 첨삭 tab. One of the two is missing when its call failed.
+// F15: the script check takes the 添削 tab. One of the two is missing when its call failed.
 export function showVerify(review, verify) {
   const parts = [];
   if (review) { const rv = el("div"); renderReview(review, rv, true); rv.className = "script review"; parts.push(rv); }
@@ -83,11 +83,11 @@ export function showVerify(review, verify) {
   $("reviewEmpty").hidden = true;
 }
 
-// 노트 tab: a free memo per question (the one being practiced, else the last one answered). Kept in the session,
+// ノート tab: a free memo per question (the one being practiced, else the last one answered). Kept in the session,
 // saved 400ms after typing stops, exported under that question, cleared with the session.
 const note = $("note");
 let noteTimer = 0;
-// Before the first review the 첨삭 tab is not blank (UIUX §11.3): the question being practised and the 4-step structure.
+// Before the first review the 添削 tab is not blank (UIUX §11.3): the question being practised and the 4-step structure.
 // CSS hides this guide once #reviewEmpty is hidden (a review is shown).
 function renderGuide() {
   const q = state.current, t = T();

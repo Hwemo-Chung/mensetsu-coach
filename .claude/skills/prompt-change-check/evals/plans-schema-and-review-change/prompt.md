@@ -5,4 +5,4 @@ timeout_seconds: 900
 allowed_tools: [Read, Glob, Grep, Skill, Write, Bash]
 ---
 
-lib/research.js 추출 스키마에 founded_year 필드를 추가하고, lib/review.js 프롬프트도 한 줄 고칠 예정이야. 크레딧을 아끼면서 뭘 어떤 순서로 돌려야 하는지 plan.md 로 정리해 줘. 코드는 고치지 말고 API 도 호출하지 마.
+lib/research.js の抽出スキーマに founded_year フィールドを追加し、lib/review.js のプロンプトも1行直す予定です。クレジットを節約しながら、何をどの順序で実行すべきかを plan.md にまとめてください。コードは直さず、API も呼び出さないでください。

@@ -1,0 +1,133 @@
+[
+ {
+  "id": "R1SNS-01",
+  "claim_ko": "外国人応募者の面接不合格の事例で、志望動機が日本文化・日本語への個人的な好感にとどまり、応募企業の事業と結びついていない場合や、同じ応募書類を複数の企業に使い回した場合が繰り返し報告されています。",
+  "source_url": "internal-research",
+  "publisher": "community (4 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "志望動機",
+   "日本が好き",
+   "企業研究",
+   "使い回し"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-02",
+  "claim_ko": "JLPT N1保有者でも、面接で表現が不自然であったり、面接向けの回答構造（結論先行・敬語）ができていなかったりして減点・不合格になったという報告が繰り返されており、級は指標にすぎず、実際の会話で評価されるという証言があります。",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "N1",
+   "面接の日本語",
+   "不自然な表現",
+   "結論から"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-03",
+  "claim_ko": "希望年収が求人のレンジと合わずに選考が終わったという報告が2件あります。職種転換なのに高い金額を提示した場合と、現在の年収が企業のレンジよりはるかに高いという理由で、本人がレンジを受け入れても選考が中断された場合です。",
+  "source_url": "internal-research",
+  "publisher": "community (2 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "希望年収",
+   "現年収",
+   "レンジ",
+   "見送り"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-04",
+  "claim_ko": "最終面接は能力よりも入社意欲・長期勤続の意向・会社の方向性への理解を確認する場であるという報告が繰り返されており、意欲が感じられない応募者は面接官の記憶に残らないという面接官側の観察があります。",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "最終面接",
+   "入社意欲",
+   "長く働く",
+   "志望度"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-05",
+  "claim_ko": "企業は不合格の理由を定型文でのみ通知し、具体的なフィードバックを与えない場合がほとんどであるという報告が繰り返されており、面接官側は紛争の恐れがあるため慣行的にフィードバックを与えないと説明しています。",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "不採用理由",
+   "フィードバック",
+   "お見送り"
+  ],
+  "confidence": "medium"
+ },
+ {
+  "id": "R1SNS-06",
+  "claim_ko": "学位・級・語学スコアなどの資格を並べた回答が1~2次で通用せず、面接官はその経験で何を判断したかを尋ねるという報告が繰り返されています。根拠のうち1件は商業コーチングのブログです。",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "資格の羅列",
+   "判断",
+   "自己分析"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-07",
+  "claim_ko": "小さな声・硬い表情・曖昧な回答が入社後の不安として読み取られ、技術評価が良くても採用責任者の段階で落ちるという面接官側の観察が2件あり、緊張そのものは減点ではないとしています。",
+  "source_url": "internal-research",
+  "publisher": "community (2 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "声",
+   "自信",
+   "元気",
+   "緊張"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-08",
+  "claim_ko": "独自の判断・リーダーシップ・変革を前面に出した自己アピールが組織への適合性の懸念として読み取られるという報告が2件あり、逆に慎重すぎると推進力がないように見えるという報告もあります。報告者たちは出身文化を原因として挙げましたが、本文書は行動の基準でのみ記録します。",
+  "source_url": "internal-research",
+  "publisher": "community (2 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "自己主張",
+   "変革",
+   "協調性"
+  ],
+  "confidence": "low"
+ },
+ {
+  "id": "R1SNS-09",
+  "claim_ko": "在留期間の残りが短い状態での転職活動で、面接段階までビザの問題が懸念事項として扱われたという報告と、求人で就労制限のない在留資格の保有者を条件にしている事例の報告があり、必要な残存期間の数値は単一出典のため未確認です。",
+  "source_url": "internal-research",
+  "publisher": "community (3 reports)",
+  "kind": "private",
+  "terms_url": null,
+  "key_tokens": [
+   "在留期限",
+   "ビザ",
+   "在留資格変更"
+  ],
+  "confidence": "low"
+ }
+]

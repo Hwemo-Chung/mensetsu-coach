@@ -1,6 +1,6 @@
 ---
 name: deploy-verify
-description: Vercel 本番へのデプロイと配信内容の確認手順です。送信されるファイル、関数数、環境変数、復旧を確認します。Vercel 배포와 운영 확인. /deploy-verify で実行します。
+description: Vercel 本番へのデプロイと配信内容の確認手順です。送信されるファイル、関数数、環境変数、復旧を確認します。/deploy-verify で実行します。
 disable-model-invocation: true
 ---
 

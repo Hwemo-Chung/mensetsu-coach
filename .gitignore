@@ -1,7 +1,7 @@
 .env
 node_modules/
 sessions/
-02_로컬원본/
+02_*/
 .vercel/
 .pii-denylist.txt
 .vercel
@@ -11,4 +11,4 @@ sessions/
 *.raw.json
 
 # private notes with personal data (contest PREP), never public
-01_설계문서/BUILT-WITH-CLAUDE-JAPAN-2026-PREP.md
+**/BUILT-WITH-CLAUDE-JAPAN-2026-PREP.md
