@@ -727,7 +727,7 @@ $("mailForm").addEventListener("submit", async (ev) => {
   $("mailSubmit").disabled = $("mailLater").disabled = mailSending = true;
   msg.textContent = T().mail.sending; // the digest and two mails take about 30 s
   try {
-    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang: state.lang, ...mailParts });
+    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang: state.lang, pack: packOf(), ...mailParts });
     if (!res.ok) return void (msg.textContent = message(data));
     mailParts = null;
     mailSending = false;

@@ -37,6 +37,7 @@ test("signup after saving sends the saved record and the preview; the dialog say
   const res = await resP;
   const body = req.postDataJSON();
   assert.equal(body.email, "me@example.com");
+  assert.deepEqual([body.lang, body.pack], ["ko", "jp"], "the screen language and the destination decide the mails");
   assert.ok(body.record.startsWith("# ") && (!question || body.record.includes(question.trim())), "the saved Markdown");
   assert.match(body.preview, /일본어 모범답안 예/);
   assert.deepEqual(await res.json(), { ok: true, sent: 2 });

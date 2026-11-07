@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { EXPLAIN_LANGS, loadPack } from "../lib/coach.js";
+import { EXPLAIN_LANGS, PACKS, loadPack } from "../lib/coach.js";
 import { checkAccess, gate, rateLimit } from "../lib/guard.js";
 import { makeStore, makeMailer, signupMails, normalizeEmail, isEmail, subscriberId, mailPublic, ownerToken, validWeak } from "../lib/mail.js";
 import { capRecord, digest } from "../lib/digest.js";
@@ -55,6 +55,7 @@ export async function POST(request, deps = {}) {
   const lang = body?.lang ?? "ko";
   if (!Object.hasOwn(EXPLAIN_LANGS, lang)) return json(400, { code: "lang_unsupported" });
   const record = capRecord(text(body?.record, Infinity)), preview = text(body?.preview, 20_000);
+  const target = PACKS.includes(body?.pack) ? loadPack(body.pack).language_pair.target : "ja"; // the interview language may be quoted
   const store = "store" in deps ? deps.store : makeStore();
   const mailer = "mailer" in deps ? deps.mailer : makeMailer();
   const app = process.env.APP_URL ?? "", keep = store && process.env.MAIL_SECRET && app; // stored only when each mail can carry the link that undoes it
@@ -63,7 +64,7 @@ export async function POST(request, deps = {}) {
   let summary = null;
   // The digest is one counted call; over the daily limit (or on any failure) mail ① is the record itself.
   if (record && !(await gate(request))) {
-    try { summary = await digest(deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 })), record, lang); }
+    try { summary = await digest(deps.client ?? (client ??= new Anthropic({ timeout: 50_000, maxRetries: 1 })), record, lang, target); }
     catch (e) { console.error("digest failed:", e?.status ?? "", e?.message); }
   }
   const id = keep ? subscriberId(email, process.env.MAIL_SECRET) : "";

@@ -11,6 +11,7 @@ import { GET as cron } from "../api/cron/daily.js";
 import { POST as demand, TARGETS } from "../api/demand.js";
 import { fakeClient } from "./fake-claude.js";
 import { MODELS } from "../lib/claude.js";
+import { digestLangOk, buildDigestRequest, DIGEST_HEADS } from "../lib/digest.js";
 
 const pack = loadPack("jp");
 const SECRET = "test-secret";
@@ -584,4 +585,38 @@ test("signup review fixes: no APP_URL → mails without a link and nothing store
   const flaky = { send: async () => { if (n++) throw new Error("mail 421"); return { id: "1" }; } };
   const res = await subscribe(subReq({ email: "a@b.co", consent: true, record: RECORD, preview: PREVIEW }), { store, mailer: flaky, client: fakeClient({ result: "■ 요약" }) });
   assert.deepEqual([res.status, await res.json(), store.m.size], [200, { ok: true, sent: 1 }, 1], "a retry would only mail ① again");
+});
+
+// 11/07 (user): a mail must follow the screen language — never Korean on a Japanese screen. The digest is checked;
+// a digest in another language is not sent, the record (labelled in the screen language) goes instead.
+test("digest language gate: headings in the screen language, no Hangul off a Korean screen unless the interview is Korean", () => {
+  const ja = "■ 今日の要点\n- 結論から話す\n\n■ 質問ごとの振り返り\n「自己紹介をお願いします。」\n\n■ 次に練習すること\n- 数字を入れる";
+  const ko = "■ 오늘의 요점\n- 결론부터 말하기\n\n■ 질문별 돌아보기\n「自己紹介をお願いします。」\n\n■ 다음 연습\n- 숫자 넣기";
+  const en = "■ Key points today\n- Lead with the conclusion\n\n■ Question by question\n「自己紹介をお願いします。」\n\n■ What to practise next\n- Add a number";
+  assert.deepEqual([digestLangOk(ja, "ja"), digestLangOk(ko, "ko"), digestLangOk(en, "en")], [true, true, true]);
+  assert.deepEqual([digestLangOk(ko, "ja"), digestLangOk(ko, "en"), digestLangOk(ja, "ko"), digestLangOk(ja, "en"), digestLangOk(en, "ja"), digestLangOk(en, "ko")], [false, false, false, false, false, false]);
+  assert.equal(digestLangOk(`${ja}\n- 번역: 결론부터`, "ja"), false, "one Korean line on a Japanese screen fails");
+  assert.equal(digestLangOk(`${ja}\n「일정이 밀렸을 때는」`, "ja", "ko"), true, "a Korean interview quote is fine on the kr pack");
+  assert.equal(digestLangOk("本文だけで見出しがない", "ja"), false, "no heading, no proof");
+  assert.equal(digestLangOk(`${en}\n■ 질문 2`, "en"), false, "every heading counts");
+});
+
+test("signup on a Japanese screen: a Korean digest is never sent; the record goes, subject and note in Japanese", async () => {
+  env();
+  const mailer = fakeMailer();
+  const res = await subscribe(subReq({ email: "a@b.co", consent: true, lang: "ja", pack: "jp", record: RECORD, preview: "■ 最近のニュース\n- なし" }), { store: fakeStore(), mailer, client: fakeClient({ result: "■ 오늘의 요점\n- 결론부터 말하기\n■ 다음 연습\n- 숫자" }) });
+  assert.equal(res.status, 200);
+  assert.ok(!/[\uac00-\ud7af]/.test(mailer.sent.map((m) => m.subject + m.text).join("")), "no Hangul anywhere");
+  assert.ok(mailer.sent[0].text.includes("影響範囲を確認します") && mailer.sent[0].text.includes("まとめを作れなかった"));
+  assert.match(mailer.sent[0].subject, /今日の練習のまとめ/);
+  for (const m of mailer.sent) assert.match(m.text, /補強・追加する予定/);
+});
+
+test("digest prompt: the three headings are given in the screen language (an English digest kept Japanese headings, 11/07)", () => {
+  for (const lang of ["ko", "ja", "en"]) {
+    const sys = buildDigestRequest("記録", lang).system;
+    for (const h of DIGEST_HEADS[lang]) assert.ok(sys.includes(`■ ${h}`), `${lang}: ${h}`);
+    assert.ok(digestLangOk(DIGEST_HEADS[lang].map((h) => `■ ${h}\n- x`).join("\n"), lang), `${lang} headings pass the gate`);
+  }
+  assert.ok(!buildDigestRequest("記録", "en").system.includes("今日の要点"));
 });
