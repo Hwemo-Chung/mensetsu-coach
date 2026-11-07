@@ -107,7 +107,9 @@ test("kr/ja script gate: katakana reading; a Japanese explanation may quote Kore
   const ok = { text: "네, 일정이 밀렸을 때는 먼저 영향 범위를 확인합니다.", reading: "ネ、/イルジョンイ 《ミルリョッスル》 テヌン↘", translation: "はい、日程が遅れたときは、まず影響範囲を確認します。", points: ["「은/는」ではなく「이/가」で新しい情報を示す。", "最後は下げて言い切る。"] };
   assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(ok, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" })), ok);
   const hangulReading = { ...ok, reading: "네, 일정이" };
-  await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(hangulReading, "ko"), asModelScript(hangulReading, "ko")] }), kr, { question: "Q", answer: "A", lang: "ja" }), /language check/);
+  // Intent changed 11/07 (prod 502): a reading that stays wrong is dropped, the script is not failed.
+  const noReading = await generateScript(fakeClient({ responses: [asModelScript(hangulReading, "ko"), asModelScript(hangulReading, "ko")] }), kr, { question: "Q", answer: "A", lang: "ja" });
+  assert.ok(!("reading" in noReading));
   // The quote tolerance is for a Korean target only: on the jp pack a Japanese explanation still may not contain Hangul.
   assert.equal(EXPLAIN_LANGS.ja.isText("「은/는」ではなく「이/가」を使う。", "ko"), true);
   assert.equal(EXPLAIN_LANGS.ja.isText("「은/는」ではなく「이/가」を使う。", "ja"), false);
@@ -236,12 +238,14 @@ test("ko translation gate: Hangul must be the majority; review notes may still q
 
 // Intent changed (11/03): the fixHangulReading hack (drop ッ, ー → -) turned もっとも into 모토모. The model now writes
 // hiragana and lib/kana.js converts it; a Hangul reading with leftover kana is no longer patched, it is retried.
-test("Hangul reading comes from hiragana: もっとも → 못토모, ルール → 루우루; a mixed reading is rejected", async () => {
+test("Hangul reading comes from hiragana: もっとも → 못토모, ルール → 루우루; a mixed reading is not accepted", async () => {
   const jp = loadPack("jp");
   const out = await generateScript(fakeClient({ result: { ...asModelScript(scriptFixture), reading: "ぜんしょくで 《もっとも》 かんりるーる" } }), jp, { question: "Q", answer: "A", lang: "ko" });
   assert.equal(out.reading, "젠쇼쿠데 《못토모》 칸리루우루");
   const mixed = { ...asModelScript(scriptFixture), reading: "젠쇼쿠데 《모ッ토모》" };
-  await assert.rejects(generateScript(fakeClient({ responses: [mixed, mixed] }), jp, { question: "Q", answer: "A", lang: "ko" }), /language check/);
+  // Intent changed 11/07 (prod 502): still never patched; a reading that stays wrong is dropped instead of failing the script.
+  const noReading = await generateScript(fakeClient({ responses: [mixed, mixed] }), jp, { question: "Q", answer: "A", lang: "ko" });
+  assert.ok(!("reading" in noReading) && !("kana" in noReading));
   assert.equal("fixHangulReading" in await import("../lib/lang.js"), false);
 });
 

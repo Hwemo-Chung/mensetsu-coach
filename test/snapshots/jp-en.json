@@ -501,7 +501,8 @@
                     "type": "string"
                   },
                   "intent": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "質問の狙い。英語で書く"
                   }
                 },
                 "required": [
@@ -527,7 +528,7 @@
     "messages": [
       {
         "role": "user",
-        "content": "<company_material>\n{\"company\":\"株式会社サンプル（仮）\",\"position\":\"バックエンドエンジニア\",\"facts\":[\"物流向け在庫管理SaaS\",\"チーム5名\"]}\n</company_material>\n\n逆質問を3つ作ってください。"
+        "content": "<company_material>\n{\"company\":\"株式会社サンプル（仮）\",\"position\":\"バックエンドエンジニア\",\"facts\":[\"物流向け在庫管理SaaS\",\"チーム5名\"]}\n</company_material>\n\n逆質問を3つ作ってください。intent は英語で書いてください。"
       }
     ]
   }

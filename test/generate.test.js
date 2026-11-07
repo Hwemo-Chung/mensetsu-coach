@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, READINGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk, buildTranslationRequest } from "../lib/coach.js";
+import { loadPack, generateQuestions, generateScript, buildScriptRequest, buildQuestionRequest, isJapanese, hasHangul, EXPLAIN_LANGS, READINGS, maskInput, MODELS, buildReviewRequest, generateReview, buildReverseRequest, generateReverse, countSpecific, reverseQuestionOk, buildAidsRequest } from "../lib/coach.js";
 import { kanaToHangul } from "../lib/kana.js";
 import { POST } from "../api/questions.js";
 import { POST as scriptPOST } from "../api/script.js";
@@ -164,10 +164,13 @@ test("generateScript gate follows the language: en needs romaji/English, ja need
   assert.deepEqual(enBad.points, []);
   assert.ok(!("translation" in enBad));
   assert.ok(!/[\uac00-\ud7af]/.test(JSON.stringify(enBad)), "no Hangul left");
-  // kanji left in a kana reading → rejected (kana reading = Korean script for a Japanese speaker, see jaScript note)
+  // kanji left in a kana reading → not accepted (kana reading = Korean script for a Japanese speaker, see jaScript note).
+  // Intent changed 11/07 (prod 502): the reading alone is asked again; still bad → the script without a reading, not a 502.
   assert.deepEqual(core(await generateScript(fakeClient({ result: asModelScript(krJaScript, "ko") }), kr, { question: "Q", answer: "A", lang: "ja" })), krJaScript);
   const kanji = { ...krJaScript, reading: "日程が 《ミルリョッスル》" };
-  await assert.rejects(generateScript(fakeClient({ responses: [asModelScript(kanji, "ko"), asModelScript(kanji, "ko")] }), kr, { question: "Q", answer: "A", lang: "ja" }), /language check/);
+  const noReading = await generateScript(fakeClient({ responses: [asModelScript(kanji, "ko"), asModelScript(kanji, "ko")] }), kr, { question: "Q", answer: "A", lang: "ja" });
+  assert.ok(!("reading" in noReading) && !("kana" in noReading));
+  assert.equal(noReading.translation, krJaScript.translation);
 });
 
 test("generateQuestions gate: question_tr must be in the explain language", async () => {
@@ -366,6 +369,22 @@ test("F10 generateReverse gates: exactly 3, Japanese question, intent in the exp
   await assert.rejects(generateReverse(fakeClient({ responses: [reverseFixture, reverseFixture] }), pack, { context: CTX, lang: "en" }), /reverse check/);
 });
 
+// prod 11/07: on a Japanese-only material the intent came back in Japanese on both attempts (6/6) → 502.
+test("F10 intent language: asked in the schema and the task; Japanese intents on both attempts still return the questions", async () => {
+  const ko = buildReverseRequest(pack, { context: CTX, lang: "ko" }), ja = buildReverseRequest(pack, { context: CTX, lang: "ja" });
+  assert.match(ko.output_config.format.schema.properties.questions.items.properties.intent.description, /韓国語/);
+  assert.match(ko.messages[0].content, /intent は韓国語で書いてください。/);
+  assert.equal(ja.output_config.format.schema.properties.questions.items.properties.intent.description, undefined, "same language: request unchanged");
+  assert.doesNotMatch(ja.messages[0].content, /intent は/);
+  const jaIntents = { questions: reverseFixture.questions.map((q) => ({ ...q, intent: "入社後の期待値を確認するための質問。" })) };
+  const client = fakeClient({ responses: [jaIntents, jaIntents] });
+  const out = await generateReverse(client, pack, { context: CTX, lang: "ko" });
+  assert.deepEqual([out.questions.map((q) => q.question), client.calls()], [reverseFixture.questions.map((q) => q.question), 2]);
+  // one Korean intent on attempt 2 comes first; the Japanese ones fill the rest
+  const mixed = { questions: [reverseFixture.questions[0], ...jaIntents.questions.slice(1)] };
+  assert.equal((await generateReverse(fakeClient({ responses: [jaIntents, mixed] }), pack, { context: CTX, lang: "ko" })).questions[0].intent, reverseFixture.questions[0].intent);
+});
+
 test("F10 reverse API: codes, masking of context, 200 with fake client", async () => {
   process.env.ACCESS_CODE = "c0de";
   let ip = 0;
@@ -486,7 +505,8 @@ test("V4: kana = the model's raw hiragana reading (marks kept) for jp + ko/en; n
   assert.equal(JSON.stringify(buildScriptRequest(pack, { question: "Q", answer: "A", lang: "ko" })).includes("kana"), false);
 });
 
-test("hiragana gate: kanji, 々, Hangul, Latin or digits in the model's reading are rejected (retried, then fail)", async () => {
+// Intent changed 11/07 (prod 502 on a reading with digits): a bad reading is asked again alone, then dropped; the script still returns.
+test("hiragana gate: kanji, 々, Hangul, Latin or digits in the model's reading are rejected (asked again alone, then dropped)", async () => {
   const gate = READINGS.ja.ko.ask;
   assert.equal(gate, READINGS.ja.en.ask);
   for (const ok of ["もっとも↗ /《かんり》", "コーヒーを ［ここに実績の数字］ へらしました↘。", "るーる、 [期限]"]) assert.equal(gate.is(ok), true, ok);
@@ -495,7 +515,9 @@ test("hiragana gate: kanji, 々, Hangul, Latin or digits in the model's reading 
     for (const reading of ["ぜんしょくで 最も", "젠쇼쿠데 못토모", "zenshoku de"]) {
       const bad = { ja: scriptFixture.text, reading, translation: lang === "ko" ? scriptFixture.translation : enScript.translation, points: lang === "ko" ? scriptFixture.points : enScript.points };
       const client = fakeClient({ responses: [bad, bad] });
-      await assert.rejects(generateScript(client, pack, { question: "Q", answer: "A", lang }), /language check/, `${lang}: ${reading}`);
+      const out = await generateScript(client, pack, { question: "Q", answer: "A", lang });
+      assert.ok(!("reading" in out) && !("kana" in out), `${lang}: ${reading}`);
+      assert.deepEqual([out.translation, out.points], [bad.translation, bad.points], "what passed on call 1 is kept");
       assert.equal(client.calls(), 2);
     }
   }
@@ -523,7 +545,7 @@ test("translation-only retry: one small call for the translation, never more tha
   const tr = fixed.requests[1];
   assert.deepEqual(tr.output_config.format.schema.required, ["translation"]);
   assert.ok(tr.messages[0].content.includes(`<text>\n${scriptFixture.text}\n</text>`) && tr.system.includes("韓国語"));
-  assert.deepEqual(tr, buildTranslationRequest(pack, scriptFixture.text, "ko"));
+  assert.deepEqual(tr, buildAidsRequest(pack, scriptFixture.text, "ko", ["translation"]));
   // The translation-only call fails too → no 3rd call. Intent changed (11/06): the script comes back without its translation, not as an error.
   const still = fakeClient({ responses: [badTr, { translation: jpTr }, asModelScript(scriptFixture)] });
   assert.ok(!("translation" in await generateScript(still, pack, { question: "Q", answer: "A", lang: "ko" })));
@@ -702,6 +724,46 @@ test("C5: soft retry inside the 2-call budget — better 2nd call wins, otherwis
   assert.deepEqual((await generateScript(fakeClient({ responses: [issueful, hardFail] }), pack, q)).issues, ["closing"]);
   const c = fakeClient({ responses: [clean] });
   assert.deepEqual([(await generateScript(c, pack, q)).issues, c.calls()], [[], 1], "clean first call: no retry");
+});
+
+// prod 11/07: a reading with digits (3かげつ) on both calls was a 502, and a full retry re-rolled the passed translation and points.
+test("only the reading fails on call 1: the reading alone is asked again, the translation and points of call 1 are kept", async () => {
+  const digits = { ...asModelScript(scriptFixture), reading: "まず 3かげつで ほうこくしました↘。" };
+  const client = fakeClient({ responses: [digits, { reading: scriptKana }] });
+  const out = await generateScript(client, pack, { question: "Q", answer: "A", lang: "ko" });
+  assert.equal(client.calls(), 2);
+  assert.deepEqual(Object.keys(client.raw[1].output_config.format.schema.properties), ["reading"], "2nd call asks for the reading only");
+  assert.match(client.requests[1].messages[0].content, /さんかげつ/);
+  assert.deepEqual([out.kana, out.reading], [scriptKana, kanaToHangul(scriptKana)]);
+  assert.deepEqual([out.translation, out.points], [scriptFixture.translation, scriptFixture.points]);
+});
+
+// Real runs 11/07: points and translation in Japanese on 3/11 first calls; the reading had passed and must not be re-rolled.
+test("points and translation in the wrong language on call 1: one call asks for both, the reading of call 1 is kept", async () => {
+  const jp = { ...asModelScript(scriptFixture), translation: "見積もりがずれた場合は、まず確認します。", points: ["語尾を下げる。"] };
+  const client = fakeClient({ responses: [jp, { translation: scriptFixture.translation, points: scriptFixture.points }] });
+  const out = await generateScript(client, pack, { question: "Q", answer: "A", lang: "ko" });
+  assert.deepEqual(core(out), scriptOut);
+  assert.deepEqual(client.raw[1].output_config.format.schema.required, ["translation", "points"]);
+  assert.match(client.requests[1].messages[0].content, /translation と points は韓国語で書いてください。/);
+  // the aids call fails again → no translation, no points, still the script and its reading (2 calls, never a 502)
+  const still = fakeClient({ responses: [jp, jp] });
+  const bare = await generateScript(still, pack, { question: "Q", answer: "A", lang: "ko" });
+  assert.deepEqual([bare.points, "translation" in bare, bare.kana, still.calls()], [[], false, scriptKana, 2]);
+  // same-language screen (ja): a points-only re-ask never says "write it in Japanese, not Japanese"
+  const ja = buildAidsRequest(pack, scriptFixture.text, "ja", ["points"]);
+  assert.doesNotMatch(ja.system + ja.messages[0].content, /残しません|書いてください/);
+  assert.deepEqual(ja.output_config.format.schema.required, ["points"]);
+});
+
+test("a hard-clean call 1 kept for its soft issues beats a call 2 whose points or reading would be dropped", async () => {
+  const q = { question: "見積もりがずれたとき、どのように判断しますか。", answer: "前職で見積もりのずれを判断し、三つから選び、基準を二つ置いて範囲を縮小する案を出しました" };
+  const mk = (ja, x = {}) => ({ ...asModelScript(scriptFixture), ja, ...x });
+  const issueful = mk(P({ sentakushi: "以上です。" }));
+  for (const bad of [mk(P(), { points: ["語尾を下げる。"] }), mk(P(), { reading: "ぜんしょくで 最も" })]) {
+    const out = await generateScript(fakeClient({ responses: [issueful, bad] }), pack, q);
+    assert.deepEqual([out.issues, out.points, out.kana], [["closing"], scriptFixture.points, scriptKana]);
+  }
 });
 
 // Live 11/03 (3 scripts): a short user answer gives a short script (no invented facts), and the retry stayed short both
