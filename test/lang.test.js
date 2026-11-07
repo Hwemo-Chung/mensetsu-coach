@@ -228,6 +228,17 @@ test("labels follow the pack target and the native script (kr session, Japanese 
 test("ko translation gate: Hangul must be the majority; review notes may still quote Japanese heavily", async () => {
   assert.equal(EXPLAIN_LANGS.ko.isProse("前職で最も大変だったことは、新しい管理ツールの導入です。［여기］"), false);
   assert.equal(EXPLAIN_LANGS.ko.isProse("전 직장에서 가장 힘들었던 점은 새 관리 도구 도입입니다."), true);
+  // The ko tour recording (11/03) passed with its first sentence still Japanese (production walk 11/07): a mostly-Hangul
+  // translation may not carry a pasted Japanese sentence either. Same cap as the prep document's (20 hiragana outside blanks).
+  const mixed = "見積もりがずれたときの判断と対応、ですね。前職では、新しい管理ツール導入プロジェクトで見積もりがずれた際、［구체적인 대응 내용］을 실행하여 프로젝트를 성공시켰습니다. 판단 기준은 ［실적 숫자］입니다. 貴社でも、수요 예측 기능 쇄신 프로젝트에서 견적이 어긋났을 때 이 판단 절차를 활용하여 팀의 납기를 지키겠습니다.";
+  assert.equal(EXPLAIN_LANGS.ko.isProse(mixed), false);
+  // Re-recorded 11/07: only a clause left in Japanese (10 hiragana, under the cap) — judged per sentence, without blanks.
+  const clause = "前職では、見積もりがずれた際に、［여기에 판단과 대응 내용］라고 판단하여 대응했습니다. 판단 기준은 ［여기에 기준이나 숫자］입니다. 사례로는, 팀에서 새로운 관리 도구를 도입하고 팀원들과 협력하여 프로젝트를 성공시켰습니다.";
+  assert.equal(EXPLAIN_LANGS.ko.isProse(clause), false);
+  assert.equal(EXPLAIN_LANGS.ko.isProse("전 직장에서 「見積もり」라는 말을 자주 썼습니다. 그래서 견적이 어긋나면 먼저 범위를 확인합니다."), true, "a quoted Japanese word inside a Korean sentence passes");
+  assert.equal(EXPLAIN_LANGS.ko.isProse("サンプルのかんばん 프로젝트에서 재고 관리 시스템의 개발을 담당했습니다."), true, "a short proper noun with kana passes");
+  const blankKana = "［ここにじっせきのすうじをいれてください、ここにじっせきのすうじ］"; // 30 hiragana, all inside a blank
+  assert.equal(EXPLAIN_LANGS.ko.isProse(`전 직장에서 새 관리 도구를 도입했고, 팀과 함께 일정과 범위를 다시 정해 납기를 지켰습니다. 그 결과 ${blankKana}를 달성했습니다.`), true, "hiragana inside a blank does not count");
   assert.equal(EXPLAIN_LANGS.ko.isText("예: 「前職で最も大変だったことですね。」"), true);
   const jp = loadPack("jp");
   const jpTranslation = asModelScript({ ...scriptFixture, translation: "前職で最も大変だったことは導入です。여기" });

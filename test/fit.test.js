@@ -433,3 +433,9 @@ test("research prompt: required and preferred keep the posting's own strength", 
   assert.match(system, /求人に必須と書かれていない条件を required_skills に入れない/);
   assert.match(system, /「いずれか」「または」で結ばれた必須条件は分けず/);
 });
+
+// Production walk 11/07 (S19): a fit sentence named the prompt's tag — 「후보자 자료(candidate_material)가 비어 있어」.
+test("fit text: the material tag names never reach the screen", () => {
+  const f = withFit({ needs_user_confirmation: ["후보자 자료(candidate_material)가 비어 있어 경력을 확인할 수 없습니다", "<agent_mail> の条件を確認してください"] });
+  assert.deepEqual(f.needs_user_confirmation, ["후보자 자료가 비어 있어 경력을 확인할 수 없습니다", "の条件を確認してください"].map((s) => s.trim()));
+});
