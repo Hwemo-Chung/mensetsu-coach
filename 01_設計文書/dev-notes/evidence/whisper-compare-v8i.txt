@@ -1,0 +1,50 @@
+# 公開用の伏せ字版: whisper-roundtrip.sh の v8i 実行結果（compare.txt、2026-11-07）。
+# 各行の類似度スコアと平均値は削除しました。「要確認」は閾値を下回った行、右側は台詞→聞き取りの文字差分です。
+       build.intro1           (exact)
+       build.intro2           「∅」→「送り」 「バツ」→「∅」
+       build.intro3           (exact)
+       build.promise          (exact)
+       build.f15a             (exact)
+       build.f15b             (exact)
+       build.f15c             (exact)
+       build.prep1            (exact)
+要確認 build.stage            「∅」→「す」 「内定ま」→「ないテーマ」
+       build.prep2            (exact)
+       build.prep3            (exact)
+       build.prep4            (exact)
+       build.prep5            (exact)
+       build.reverse          (exact)
+       build.calendar         (exact)
+       build.practice         (exact)
+       build.mail             (exact)
+       build.impact           (exact)
+       build.ko               (exact)
+       build.en               (exact)
+       build.more1            「履歴」→「∅」 「照合」→「称号」 「認」→「∅」
+       build.more2            「口ぐせ」→「∅」 「は別」→「∅」
+       build.more3            「ベータ」→「β」 「も」→「∅」
+       build.limit            「∅」→「でも」 「∅」→「以上」
+       build.models           (exact)
+       build.built            (exact)
+       build.packs            「∅」→「ン」 「くに」→「国」
+       build.wall             「面」→「連」
+       build.end              (exact)
+       record.paste           (exact)
+       record.questions       (exact)
+       record.research        (exact)
+       record.brief           (exact)
+       record.pick            (exact)
+       record.voice           (exact)
+       record.verdict         (exact)
+       record.steps           (exact)
+       record.rule            (exact)
+       record.habit           「口ぐせ」→「∅」
+要確認 record.script          「もと」→「元」 「自分の数字」→「通じ」
+       record.retry           「数字」→「通じ」
+       record.compare         「∅」→「度」 「なら」→「並」
+       record.waitQuestions   (exact)
+       record.mic             (exact)
+       record.waitReview      (exact)
+       record.waitAgain       (exact)
+
+照合: 46行すべて実施、要確認 2行: build.stage, record.script

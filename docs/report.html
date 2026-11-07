@@ -115,7 +115,7 @@ footer{border-top:1px solid var(--line);background:var(--band);padding:16px 0;co
    <tr><td>模範スクリプトの読み上げ</td><td><code>gemini-3.8-flash-lite-tts</code></td><td>使えない場合は端末の音声</td></tr>
    <tr><td>音声での回答</td><td>Whisper-small（ブラウザ内）</td><td>録音を端末の外に出さず、フィラーを残す</td></tr>
   </tbody></table></div>
- <p class="note">想定質問・構成チェック＋添削・模範スクリプト・逆質問・面接準備資料は <code>fallbacks: "default"</code>（server-side fallback、ベータ）を指定しています。MCP はアプリにも開発の手順にも組み込んでいません。</p>
+ <p class="note">想定質問・構成チェック＋添削・模範スクリプト・逆質問・面接準備資料は <code>fallbacks: "default"</code>（server-side fallback、ベータ）を指定しています。MCP はアプリに組み込んでいません。開発では、実際のブラウザでの確認に MCP の Claude in Chrome を、デプロイの確認に Vercel の MCP を一部で使いました。</p>
 </section>
 
 <section id="gates">
@@ -153,6 +153,7 @@ footer{border-top:1px solid var(--line);background:var(--band);padding:16px 0;co
 <section id="dev">
  <h2><span class="n">6</span>Claude Code での開発</h2>
  <p>Claude Code を開発の中心に置き、プロジェクトの規則は <code>CLAUDE.md</code> にまとめて毎回の作業で読み込ませました。大きな作業は Workflow（サブエージェントの編成）で進め、エージェントが作ったものを別のエージェントが反証する形にしています。</p>
+ <p>大会前の構想（10/28）は作者が行い、大会期間中の調査・設計・実装・攻撃によるテスト・評価・デモ動画の制作・提出フォームの入力は Claude Code が担いました。作者は判断とフィードバックに徹しました。作者の指示318件に対して、Claude Code のツール呼び出しは15,799回、サブエージェントは638です（11/07 22:49 時点のセッション記録の集計）。工程の流れは <a href="dev-pipeline.html">開発工程（全画面）</a>、証拠は <code>01_設計文書/dev-notes/PROCESS-EVIDENCE.md</code> にあります。</p>
  <h3>Workflow スクリプト</h3>
  <div class="tw"><table>
   <thead><tr><th>スクリプト</th><th>構成</th><th>目的</th></tr></thead>

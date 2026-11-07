@@ -1,0 +1,75 @@
+META {"main_files_skipped_cwd": 4, "main_files_scanned": 13, "dup_uuid_skipped": 1400, "sub_files_scanned": 638, "sub_files_skipped_cwd": 1, "workflow_agent_files": 556}
+
+===== WINDOW contest =====
+day   | sessions human slash bash | main_asst main_tools tools/human | sub_files sub_asst sub_tools | files_edited(main,sub,union)
+11-02 |        4    35     8    1 |       542        562   16.1(all 78.6) |       268     1695      2188 | 31,57,87 in-project:57
+11-03 |        3    66     1    0 |      1064       1031   15.6(all 55.4) |        92     2220      2628 | 13,99,111 in-project:92
+11-04 |        2    45     6    0 |       319        334    7.4(all 48.9) |       138     1070      1865 | 7,27,31 in-project:29
+11-05 |        2    50     5    1 |       336        372    7.4(all 31.4) |        36      507      1199 | 19,32,49 in-project:27
+11-06 |        3    81    21    0 |       564        516    6.4(all 53.9) |        86     2278      3850 | 7,69,76 in-project:60
+11-07 |        2    41     2    0 |       726        727   17.7(all 30.6) |        19      487       527 | 14,24,38 in-project:11
+TOTAL |       11   318    43    2 |      3551       3542   11.1(all 49.7) |       638     8256     12257 | 84,284,344 in-project:228
+
+-- contest main top tools: [["Bash", 2765], ["Read", 238], ["Write", 84], ["Agent", 76], ["AskUserQuestion", 74], ["Edit", 66], ["Workflow", 63], ["ToolSearch", 34], ["TaskStop", 34], ["Skill", 27], ["SendUserFile", 21], ["WebSearch", 18], ["SendMessage", 13], ["Monitor", 12], ["WebFetch", 5], ["ListAgents", 3], ["EnterWorktree", 2], ["ExitWorktree", 2], ["ReadNotifications", 2], ["mcp__claude-in-chrome__tabs_context_mcp", 2], ["mcp__plugin_vercel_vercel__get_runtime_logs", 1]]
+-- contest main skills: [["insane-search:insane-search", 6], ["claude-api", 5], ["ego-browser", 4], ["workflow-authoring", 3], ["claude-in-chrome", 2], ["vercel:ai-gateway", 1], ["anthropic-skills:skill-creator", 1], ["tokeneconomizer:toolprune", 1], ["update-config", 1], ["publish-check", 1], ["aside-browser", 1], ["ui-ux-pro-max:design", 1]]
+-- contest main agent subagent_types: [["general-purpose", 72], ["web-fetch", 3], ["claude-code-guide", 1]]
+-- contest main human promptSource: [["typed", 206], ["queued", 71], ["suggestion_accepted", 28], ["None", 13]]
+-- contest main slash commands: [["/login", 9], ["/effort", 7], ["/chrome", 5], ["/usage-credits", 4], ["/model", 4], ["/clear", 3], ["/mcp", 2], ["/compact", 2], ["/advisor", 2], ["/exit", 2], ["/rate-limit-options", 1], ["/goal", 1], ["/remote-env", 1]]
+-- contest main mcp__ total: 3
+-- contest main model <synthetic>: {"msgs": 34}
+-- contest main model claude-fable-5-1: {"msgs": 91, "input_tokens": 1940, "output_tokens": 107570, "cache_creation_input_tokens": 1321919, "cache_read_input_tokens": 37520629}
+-- contest main model claude-opus-5-5: {"msgs": 3426, "input_tokens": 7801, "output_tokens": 3706950, "cache_read_input_tokens": 1631413091, "cache_creation_input_tokens": 34577839}
+
+-- contest sub top tools: [["Bash", 7176], ["Read", 2269], ["WebFetch", 1075], ["WebSearch", 506], ["Edit", 442], ["StructuredOutput", 344], ["Write", 273], ["ToolSearch", 105], ["Skill", 21], ["Monitor", 20], ["SubagentHandback", 8], ["Agent", 5], ["mcp__claude-in-chrome__javascript_tool", 2], ["mcp__claude-in-chrome__read_network_requests", 2], ["SendMessage", 1], ["mcp__plugin_vercel_vercel__get_project", 1], ["mcp__claude-in-chrome__tabs_context_mcp", 1], ["mcp__claude-in-chrome__navigate", 1], ["mcp__claude-in-chrome__find", 1], ["mcp__claude-in-chrome__resize_window", 1], ["mcp__claude-in-chrome__computer", 1], ["mcp__claude-in-chrome__tabs_close_mcp", 1], ["TaskStop", 1]]
+-- contest sub skills: [["claude-api", 10], ["insane-search:insane-search", 7], ["ego-browser", 2], ["claude-in-chrome", 1], ["anthropic-skills:chrome-browser", 1]]
+-- contest sub agent subagent_types: [["general-purpose", 5]]
+-- contest sub mcp__ total: 11
+-- contest sub model <synthetic>: {"msgs": 127}
+-- contest sub model claude-fable-5-1: {"msgs": 601, "input_tokens": 71298, "output_tokens": 1488335, "cache_creation_input_tokens": 8803419, "cache_read_input_tokens": 73178932}
+-- contest sub model claude-haiku-5-5: {"msgs": 13, "input_tokens": 28, "output_tokens": 23988, "cache_creation_input_tokens": 169697, "cache_read_input_tokens": 312210}
+-- contest sub model claude-opus-5-5: {"msgs": 7318, "input_tokens": 18276, "output_tokens": 12588020, "cache_creation_input_tokens": 60686085, "cache_read_input_tokens": 963027541}
+-- contest sub model claude-sonnet-5-5: {"msgs": 197, "input_tokens": 394, "output_tokens": 539162, "cache_read_input_tokens": 11132830, "cache_creation_input_tokens": 2063204}
+   day 11-02 main <synthetic>: {"msgs": 7}
+   day 11-02 main claude-fable-5-1: {"msgs": 24, "input_tokens": 500, "output_tokens": 46383, "cache_read_input_tokens": 5277580, "cache_creation_input_tokens": 250876}
+   day 11-02 main claude-opus-5-5: {"msgs": 511, "input_tokens": 1104, "output_tokens": 556259, "cache_read_input_tokens": 227533818, "cache_creation_input_tokens": 4133992}
+   day 11-02 sub <synthetic>: {"msgs": 113}
+   day 11-02 sub claude-fable-5-1: {"msgs": 216, "input_tokens": 59764, "output_tokens": 597957, "cache_creation_input_tokens": 3119927, "cache_read_input_tokens": 11268667}
+   day 11-02 sub claude-haiku-5-5: {"msgs": 5, "input_tokens": 10, "output_tokens": 9068, "cache_creation_input_tokens": 84035, "cache_read_input_tokens": 251356}
+   day 11-02 sub claude-opus-5-5: {"msgs": 1164, "input_tokens": 2875, "output_tokens": 1828728, "cache_creation_input_tokens": 7182799, "cache_read_input_tokens": 110232127}
+   day 11-02 sub claude-sonnet-5-5: {"msgs": 197, "input_tokens": 394, "output_tokens": 539162, "cache_read_input_tokens": 11132830, "cache_creation_input_tokens": 2063204}
+   day 11-03 main claude-opus-5-5: {"msgs": 1064, "input_tokens": 2406, "output_tokens": 999307, "cache_read_input_tokens": 449468811, "cache_creation_input_tokens": 3110468}
+   day 11-03 sub claude-haiku-5-5: {"msgs": 4, "input_tokens": 10, "output_tokens": 8691, "cache_creation_input_tokens": 48294, "cache_read_input_tokens": 50958}
+   day 11-03 sub claude-opus-5-5: {"msgs": 2216, "input_tokens": 6747, "output_tokens": 2837840, "cache_read_input_tokens": 257890074, "cache_creation_input_tokens": 11089673}
+   day 11-04 main claude-opus-5-5: {"msgs": 319, "input_tokens": 795, "output_tokens": 426916, "cache_read_input_tokens": 189065280, "cache_creation_input_tokens": 3857113}
+   day 11-04 sub claude-opus-5-5: {"msgs": 1069, "input_tokens": 2294, "output_tokens": 2280983, "cache_read_input_tokens": 113687582, "cache_creation_input_tokens": 15294332}
+   day 11-05 main <synthetic>: {"msgs": 1}
+   day 11-05 main claude-opus-5-5: {"msgs": 335, "input_tokens": 824, "output_tokens": 512875, "cache_read_input_tokens": 142262081, "cache_creation_input_tokens": 2952705}
+   day 11-05 sub <synthetic>: {"msgs": 2}
+   day 11-05 sub claude-haiku-5-5: {"msgs": 4, "input_tokens": 8, "output_tokens": 6229, "cache_creation_input_tokens": 37368, "cache_read_input_tokens": 9896}
+   day 11-05 sub claude-opus-5-5: {"msgs": 501, "input_tokens": 1322, "output_tokens": 1578424, "cache_read_input_tokens": 66335345, "cache_creation_input_tokens": 7590570}
+   day 11-06 main <synthetic>: {"msgs": 24}
+   day 11-06 main claude-fable-5-1: {"msgs": 67, "input_tokens": 1440, "output_tokens": 61187, "cache_creation_input_tokens": 1071043, "cache_read_input_tokens": 32243049}
+   day 11-06 main claude-opus-5-5: {"msgs": 473, "input_tokens": 1114, "output_tokens": 492946, "cache_creation_input_tokens": 16211596, "cache_read_input_tokens": 272521550}
+   day 11-06 sub <synthetic>: {"msgs": 10}
+   day 11-06 sub claude-fable-5-1: {"msgs": 385, "input_tokens": 11534, "output_tokens": 890378, "cache_creation_input_tokens": 5683492, "cache_read_input_tokens": 61910265}
+   day 11-06 sub claude-opus-5-5: {"msgs": 1883, "input_tokens": 4029, "output_tokens": 3491829, "cache_creation_input_tokens": 17171104, "cache_read_input_tokens": 350696309}
+   day 11-07 main <synthetic>: {"msgs": 2}
+   day 11-07 main claude-opus-5-5: {"msgs": 724, "input_tokens": 1558, "output_tokens": 718647, "cache_read_input_tokens": 350561551, "cache_creation_input_tokens": 4311965}
+   day 11-07 sub <synthetic>: {"msgs": 2}
+   day 11-07 sub claude-opus-5-5: {"msgs": 485, "input_tokens": 1009, "output_tokens": 570216, "cache_creation_input_tokens": 2357607, "cache_read_input_tokens": 64186104}
+
+===== WINDOW prep =====
+day   | sessions human slash bash | main_asst main_tools tools/human | sub_files sub_asst sub_tools | files_edited(main,sub,union)
+TOTAL |        0     0     0    0 |         0          0      -(all -) |         0        0         0 | 0,0,0 in-project:0
+
+-- prep main top tools: []
+-- prep main skills: []
+-- prep main agent subagent_types: []
+-- prep main human promptSource: []
+-- prep main slash commands: []
+-- prep main mcp__ total: 0
+
+-- prep sub top tools: []
+-- prep sub skills: []
+-- prep sub agent subagent_types: []
+-- prep sub mcp__ total: 0
