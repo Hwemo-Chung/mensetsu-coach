@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>面接コーチ 技術レポート</title>
+<style>
+:root{--bg:#08080f;--band:#0c0b16;--card:#12121c;--pill:#181826;--wire:#2f3146;--line:#23243a;--t1:#f4f3fa;--t2:#c9c7d6;--t3:#9a98aa;--sel:#8e76f1;--pass:#6fe27f;--fail:#f2566f;--chip:#d4d0de;--chipt:#1b1a24}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg);scroll-behavior:smooth}
+body{background:var(--bg);color:var(--t2);font:13px/1.75 Pretendard,"Pretendard JP","Apple SD Gothic Neo","Hiragino Sans","Malgun Gothic","Yu Gothic",sans-serif;overflow-x:hidden}
+a{color:var(--t1);text-decoration-color:var(--sel);text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+code{font:12px ui-monospace,Menlo,monospace;background:var(--pill);border:1px solid var(--line);border-radius:3px;padding:0 4px;color:var(--t1);word-break:break-all}
+header{background:var(--band);border-bottom:1px solid var(--line)}
+.in{max-width:1040px;margin:0 auto;padding:0 16px}
+.hd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:20px 0 12px}
+.logo{width:10px;height:10px;border:2px solid var(--sel);border-radius:2px;transform:rotate(45deg);flex-shrink:0}
+h1{font-size:18px;color:var(--t1);font-weight:600}
+.ver{background:var(--pill);border:1px solid var(--line);border-radius:999px;padding:0 8px;font-size:10px}
+.links{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-block;background:var(--pill);border:1px solid var(--line);border-radius:4px;padding:4px 12px;text-decoration:none;font-size:12px}
+.btn:hover{border-color:var(--sel)}
+.lead{padding:0 0 16px;color:var(--t3);font-size:12px}
+nav.toc{display:flex;gap:4px;overflow-x:auto;padding:0 0 12px;scrollbar-width:none}
+nav.toc a{white-space:nowrap;color:var(--t3);text-decoration:none;padding:2px 8px;border:1px solid transparent;border-radius:4px;font-size:12px}
+nav.toc a:hover{color:var(--t1);border-color:var(--line)}
+main{padding:24px 0 48px}
+section{margin-bottom:40px;scroll-margin-top:16px}
+h2{display:flex;align-items:center;gap:8px;font-size:15px;color:var(--t1);font-weight:600;margin-bottom:12px}
+h2 .n{font-size:10px;color:var(--chipt);background:var(--chip);border-radius:3px;padding:0 6px;font-variant-numeric:tabular-nums}
+h3{font-size:13px;color:var(--t1);margin:20px 0 8px}
+p+p{margin-top:8px}
+.facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}
+.fact{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.fact b{display:block;font-size:22px;color:var(--t1);font-variant-numeric:tabular-nums;line-height:1.3}
+.fact small{color:var(--t3);font-size:11px}
+.flow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px}
+.flow span{background:var(--pill);border:1px solid var(--line);border-radius:999px;padding:2px 10px}
+.flow i{font-style:normal;color:var(--t3)}
+.frame{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);height:560px}
+.frame iframe{width:100%;height:100%;border:0;display:block}
+.note{color:var(--t3);font-size:11px;margin-top:8px}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:560px;font-size:12px}
+th,td{text-align:left;padding:8px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+th{color:var(--t3);font-weight:400;font-size:11px;background:var(--band)}
+td:first-child{color:var(--t1);white-space:nowrap}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.k{display:inline-block;font-size:10px;border-radius:3px;padding:0 5px;margin-right:4px;border:1px solid var(--line);color:var(--t2)}
+ul.g{list-style:none;display:grid;gap:8px}
+ul.g li{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--c,var(--sel));border-radius:8px;padding:8px 12px}
+ul.g li b{color:var(--t1);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips span{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-size:12px}
+.chips span small{color:var(--t3);margin-left:6px}
+ol.steps{list-style:none;counter-reset:s;display:grid;gap:8px}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:8px;align-items:start}
+ol.steps li::before{content:counter(s);font-size:10px;color:var(--chipt);background:var(--chip);border-radius:3px;text-align:center;line-height:18px;margin-top:3px;font-variant-numeric:tabular-nums}
+ol.steps b{color:var(--t1)}
+.pos{color:var(--pass)}
+footer{border-top:1px solid var(--line);background:var(--band);padding:16px 0;color:var(--t3);font-size:11px}
+@media (max-width:767px){
+ .facts{grid-template-columns:1fr}
+ .links{margin-left:0}
+ .frame{height:70vh}
+ body{font-size:13px}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="in">
+  <div class="hd"><i class="logo"></i><h1>面接コーチ 技術レポート</h1><span class="ver">v0.1.0</span>
+   <div class="links"><a class="btn" href="https://mensetsu-coach-ten.vercel.app" target="_blank" rel="noopener">本番アプリ ↗</a><a class="btn" href="node-viewer.html">ワークフロー（全画面）</a></div></div>
+  <p class="lead">Built with Claude: Japan 2026 の提出作品で使った技術、モデル、Claude Code の開発手法をまとめたものです。内容はリポジトリの README.md と設定ファイルに基づきます。</p>
+  <nav class="toc" aria-label="目次"><a href="#overview">1 概要</a><a href="#flow">2 ワークフロー</a><a href="#models">3 モデルと役割</a><a href="#gates">4 コードのゲート</a><a href="#stack">5 技術スタック</a><a href="#dev">6 Claude Code での開発</a><a href="#eval">7 評価と制約</a></nav>
+ </div>
+</header>
+<main class="in">
+
+<section id="overview">
+ <h2><span class="n">1</span>概要</h2>
+ <p>日本で転職する人のための面接コーチです。求人やエージェントのメールを貼ると、その会社専用の想定質問を10問作ります。質問を選んで答えると、構成のチェック、ルールに基づく日本語の添削、模範スクリプト（約60秒。日本語・読み方・訳・イントネーション）を返します。</p>
+ <p>自律エージェントではなく、Messages API 上のワークフローです。段階の間にプログラムのゲートを置き、モデルの自己申告をそのまま信じません。</p>
+ <div class="flow" aria-label="入力から結果まで"><span>求人メール・履歴書</span><i>→</i><span>想定質問10問</span><i>→</i><span>回答</span><i>→</i><span>構成チェック・添削</span><i>→</i><span>模範スクリプト</span><i>→</i><span>面接準備資料・まとめメール</span></div>
+ <div class="facts">
+  <div class="fact"><b>10問</b><small>会社専用の想定質問（10問中6問以上が資料の語句を含むことをコードで確認）</small></div>
+  <div class="fact"><b>21件</b><small>日本語添削のルールDB（ルールIDをスキーマの enum で固定）</small></div>
+  <div class="fact"><b>3種</b><small>Claude のモデル（Sonnet 5.5 で生成、Opus 5.5 で採点、Haiku 5.5 で調査）</small></div>
+ </div>
+</section>
+
+<section id="flow">
+ <h2><span class="n">2</span>ワークフロー</h2>
+ <div class="frame"><iframe src="node-viewer.html" title="面接コーチのワークフロー（ノードビューア）" loading="lazy"></iframe></div>
+ <p class="note">カードを押すと詳細、▶ 実行で各段階の状態（待機 → 実行中 → 通過・失敗・停止）を再生します。失敗の設定は、公開コミット <code>0925a35</code>・<code>828f3ac</code> で直した「説明言語でないと 502」の事例です。数値は例示で、実測ではありません。操作: ホイールで拡大、ドラッグで移動、F で全体表示、G で簡易表示。</p>
+</section>
+
+<section id="models">
+ <h2><span class="n">3</span>モデルと役割</h2>
+ <div class="tw"><table>
+  <thead><tr><th>段階</th><th>モデル</th><th>選んだ理由・設計</th></tr></thead>
+  <tbody>
+   <tr><td>想定質問10問</td><td><code>claude-sonnet-5-5</code></td><td>構造化出力。会社固有性はコードのゲートで確認</td></tr>
+   <tr><td>構成チェック＋添削</td><td><code>claude-opus-5-5</code></td><td>生成とは別の呼び出し。作ったモデルが自分の答えを採点しないため</td></tr>
+   <tr><td>模範スクリプト・逆質問</td><td><code>claude-sonnet-5-5</code></td><td>説明言語の検査に通らなければ1回だけ再生成</td></tr>
+   <tr><td>企業・職種の調査</td><td><code>claude-haiku-5-5</code></td><td>費用を抑えるため。基本版の <code>web_search_20250305</code>・<code>web_fetch_20250910</code> を使用（新しい版は Haiku との組み合わせで検索が0回だった）</td></tr>
+   <tr><td>調査結果との比較</td><td><code>claude-sonnet-5-5</code></td><td>ツールなし。応募者の資料が検索語に入る余地をなくすため</td></tr>
+   <tr><td>台本・模範スクリプトの照合</td><td><code>claude-sonnet-5-5</code></td><td>ツールなし。根拠が見つからない文だけを挙げ、文の実在はコードで確認</td></tr>
+   <tr><td>面接準備資料</td><td><code>claude-sonnet-5-5</code></td><td>節のまとまりごとに並列で呼び出す。会社の事実・固定の文・空欄の集計はコードが組み立てる</td></tr>
+   <tr><td>練習のまとめメール</td><td><code>claude-sonnet-5-5</code></td><td>失敗・上限超過のときは記録をそのまま送る</td></tr>
+   <tr><td>模範スクリプトの読み上げ</td><td><code>gemini-3.8-flash-lite-tts</code></td><td>使えない場合は端末の音声</td></tr>
+   <tr><td>音声での回答</td><td>Whisper-small（ブラウザ内）</td><td>録音を端末の外に出さず、フィラーを残す</td></tr>
+  </tbody></table></div>
+ <p class="note">想定質問・構成チェック＋添削・模範スクリプト・逆質問・面接準備資料は <code>fallbacks: "default"</code>（server-side fallback、ベータ）を指定しています。MCP はアプリにも開発の手順にも組み込んでいません。</p>
+</section>
+
+<section id="gates">
+ <h2><span class="n">4</span>コードのゲート</h2>
+ <ul class="g">
+  <li style="--c:#c38af6"><b>入力のマスキング</b> — メール・電話・郵便番号・宛名行を Claude に送る前に伏せる。貼り付けた資料の中の指示には従わない</li>
+  <li style="--c:#c38af6"><b>会社固有性</b> — 10問中6問以上が資料の語句を含む（一般語は数えない）</li>
+  <li style="--c:#f47eb9"><b>調査の出典</b> — 検索・取得の結果に実在する URL を引用し、同じ企業と確認できた出典だけを数える</li>
+  <li style="--c:#948ceb"><b>添削の引用</b> — 回答にない箇所を引用した添削は捨てる。語彙ルール16個は引用箇所の表現もコードで確認</li>
+  <li style="--c:#f8cd52"><b>説明言語</b> — 日本語欄が日本語でなければ1回だけ再生成し、2回目も失敗すればエラーを返す</li>
+  <li style="--c:#f8cd52"><b>数字</b> — 模範スクリプトの数字は回答・質問・資料にある数と一致するものだけ。なければ［空欄］</li>
+  <li style="--c:#6df4d1"><b>面接準備資料</b> — 数字と単位、肩書きを履歴書と質問に照合し、照合できない文は「要本人確認」に集める</li>
+ </ul>
+</section>
+
+<section id="stack">
+ <h2><span class="n">5</span>技術スタック</h2>
+ <div class="chips">
+  <span>Node.js 20 以上<small>ES Modules</small></span>
+  <span>Vercel<small>関数・デプロイ</small></span>
+  <span>@anthropic-ai/sdk<small>Messages API・構造化出力</small></span>
+  <span>web_search / web_fetch<small>Anthropic のサーバー側ツール</small></span>
+  <span>Gemini TTS<small>読み上げ</small></span>
+  <span>Whisper-small<small>transformers.js・onnxruntime-web</small></span>
+  <span>mammoth<small>DOCX の読み込み</small></span>
+  <span>nodemailer<small>Gmail（SMTP）</small></span>
+  <span>Upstash Redis<small>1日の利用回数・メール登録</small></span>
+  <span>node:test<small>自動テスト</small></span>
+  <span>playwright-core<small>画面のテスト・デモ録画</small></span>
+  <span>VOICEVOX<small>デモ動画のナレーション</small></span>
+ </div>
+ <p class="note">本体の依存パッケージは <code>@anthropic-ai/sdk</code>・<code>mammoth</code>・<code>nodemailer</code> の3つです（package.json）。画面はフレームワークを使わない HTML・CSS・JavaScript です。</p>
+</section>
+
+<section id="dev">
+ <h2><span class="n">6</span>Claude Code での開発</h2>
+ <p>Claude Code を開発の中心に置き、プロジェクトの規則は <code>CLAUDE.md</code> にまとめて毎回の作業で読み込ませました。大きな作業は Workflow（サブエージェントの編成）で進め、エージェントが作ったものを別のエージェントが反証する形にしています。</p>
+ <h3>Workflow スクリプト</h3>
+ <div class="tw"><table>
+  <thead><tr><th>スクリプト</th><th>構成</th><th>目的</th></tr></thead>
+  <tbody>
+   <tr><td><code>research-r1-web.js</code></td><td>複数の調査エージェント</td><td>面接・書類の規範を公的資料から調査</td></tr>
+   <tr><td><code>verify-research-prd.js</code></td><td>6観点で批判 → 懐疑役が反証 → 修正 → 完全性の確認</td><td>調査の前に要件の穴をつぶす</td></tr>
+   <tr><td><code>eval-adversarial-gold.js</code></td><td>生成 → 独立した反証役が曖昧なラベルを除去</td><td>表面の手がかりがない評価データを作る</td></tr>
+   <tr><td><code>aggressive-audit.js</code></td><td>6観点で監査 → 観点ごとに懐疑役が反証 → 順位付け</td><td>公開前の監査</td></tr>
+   <tr><td><code>docs-truth-sync.js</code></td><td>文書ごとに検出 → 懐疑役2体が検証 → 確認済みだけ修正 → 批評</td><td>文書と実装の食い違いを直す</td></tr>
+  </tbody></table></div>
+ <h3>プロジェクトスキル（<code>.claude/skills/</code>）</h3>
+ <div class="tw"><table>
+  <thead><tr><th>スキル</th><th>呼び出し方</th><th>防ぐ事故</th></tr></thead>
+  <tbody>
+   <tr><td><code>publish-check</code></td><td>手動のみ</td><td>個人情報やシークレットの公開、誤った作者のコミット</td></tr>
+   <tr><td><code>deploy-verify</code></td><td>手動のみ</td><td>未コミットの変更や無視ファイルの配信、反映されていない状態の見逃し</td></tr>
+   <tr><td><code>prompt-change-check</code></td><td>手動、または関連の変更時に自動</td><td>スキーマの 400 エラーの見逃し、不要な実呼び出しの費用、古いデモの放置</td></tr>
+   <tr><td><code>add-pack</code></td><td>手動、または関連の依頼時に自動</td><td>登録漏れ、JP 専用機能の誤った有効化、動かないパックの見逃し</td></tr>
+  </tbody></table></div>
+ <p class="note">公開前のスキャンは git の <code>pre-push</code> フックでも動き、Claude Code を通さない <code>git push</code> でも同じ検査をします。</p>
+ <h3>開発の進め方</h3>
+ <ol class="steps">
+  <li><span><b>復唱</b> — 着手前に、何を・どこに・完了基準を言い直して認識を合わせる</span></li>
+  <li><span><b>ASCII モックアップ</b> — 画面は実装前に記号で確認し、作り直しを減らす</span></li>
+  <li><span><b>PRD → TDD</b> — 目標・範囲・完了基準を決め、失敗するテストを書いてから実装する</span></li>
+  <li><span><b>データ収集</b> — 公開資料の調査は Sonnet の複数エージェントに分け、別のエージェントが検証する。同時実行は10体まで</span></li>
+  <li><span><b>スクリーンショットと動画での確認</b> — ブラウザの回帰テストが画面を撮影し、サブエージェントがアプリとデモを攻撃する</span></li>
+  <li><span><b>公開</b> — push の前に個人情報と秘密情報をスキャンする（<code>/publish-check</code>）</span></li>
+  <li><span><b>使用量の管理</b> — コンテキスト・5時間枠・週間枠の使用率と費用を見ながら作業し、RTK と TokenEconomizer でトークンの消費を抑える</span></li>
+ </ol>
+ <h3>攻撃レビューで見つけて直した例</h3>
+ <p>DOCX の圧縮爆弾の検査回避、数字ゲートの部分一致（「2015年」があると「15%」が通る）、誤入力が続くと正しいアクセスコードまで拒否される問題。報告はそのまま信じず、手元で再現できたものだけを、失敗するテストを先に書いて修正しました。</p>
+</section>
+
+<section id="eval">
+ <h2><span class="n">7</span>評価と制約</h2>
+ <p class="note" style="margin:0 0 8px">README の「評価」より。11/06 の実装で再測定、実呼び出し各1回、架空データ（<code>npm run eval</code>）。n は小さいため傾向として見てください。</p>
+ <div class="tw"><table>
+  <thead><tr><th>項目</th><th class="num">このツール</th><th>比較</th></tr></thead>
+  <tbody>
+   <tr><td>添削の再現（ルールDBの例文21件）</td><td class="num pos">21/21</td><td>—</td></tr>
+   <tr><td>添削の誤検出（近接例文48件）</td><td class="num">1/48</td><td>語彙ルールの誤検出は0件</td></tr>
+   <tr><td>構成チェック・敵対的セット（29件、4要素）</td><td class="num pos">73/77</td><td>正規表現3本: 51/77</td></tr>
+   <tr><td>「質問に答えているか」（敵対的29件）</td><td class="num pos">28/29</td><td>常に「はい」と答える基準: 20/29</td></tr>
+   <tr><td>会社固有性ゲート（架空企業15社）</td><td class="num">全社通過</td><td>基準は 6/10</td></tr>
+   <tr><td>プロンプトインジェクション</td><td class="num">従わない</td><td>メール・回答に埋め込んだ指示</td></tr>
+   <tr><td>1セッションの原価（回答3件＋逆質問）</td><td class="num">約0.26 USD</td><td>Opus 採点 約0.031 USD/回、Sonnet 約0.037 USD/回</td></tr>
+  </tbody></table></div>
+ <h3>制約</h3>
+ <ul class="g">
+  <li style="--c:#f2566f">評価データは Claude が作り、別の Claude エージェントが反証チェックしたもの。口語の回答では質問とのずれを見逃す例がある</li>
+  <li style="--c:#f2566f">構成チェックはモデルの判定で、判定と説明が食い違うことがある</li>
+  <li style="--c:#f2566f">PDF・画像の添付はマスクしない。履歴書の氏名・住所などは本文のまま AI に送られる</li>
+  <li style="--c:#f2566f">提出版は審査と試用のための構成。実運用前に必要な修正は README の「実運用前に修正が必要な点」に記載</li>
+ </ul>
+</section>
+</main>
+<footer><div class="in">出典: README.md（概要・実装範囲・Claude の使い方・Claude Code での開発・評価・制約）、package.json、<code>.claude/skills/</code>、<code>lib/claude.js</code>。ワークフローのノードは <code>lib/</code> の各モジュールに対応します。</div></footer>
+</body>
+</html>
