@@ -207,7 +207,23 @@
     },
     "closing": "contribution",
     "kana": "みつもりが ずれた ときの はんだんと たいおう、ですね↘。/ ぜんしょくで あたらしい かんりつーるを ちーむで どうにゅうした さい、［ここに見積もりがずれた内容］が しょうじ、《［ここに判断した対応］》を えらびました↘。/ はんだんの きじゅんは、《［ここに基準や数字］》です↘。めんばーと きょうりょくして すすめ、ぷろじぇくとわ ぶじに せいこうしました↘。しゃないでも ひょうかを うけました↘。/ おんしゃでも、かいがいきょてんえの どうにゅうや じゅようよそくきのうの さっしんで みつもりが ずれた ときに、この はんだんを ちーむで 《きょうゆう》して いかします↘。にゅうしゃごわ、めんばーの いくせいにも やくだてます↘。",
-    "issues": []
+    "issues": [],
+    "check": {
+     "unsupported": [
+      {
+       "sentence": "前職で新しい管理ツールをチームで導入した際、［ここに見積もりがずれた内容］が生じ、［ここに判断した対応］を選びました。",
+       "kind": "judgment"
+      },
+      {
+       "sentence": "御社でも、海外拠点への導入や需要予測機能の刷新で見積もりがずれたときに、この判断をチームで共有して活かします。",
+       "kind": "judgment"
+      },
+      {
+       "sentence": "入社後は、メンバーの育成にも役立てます。",
+       "kind": "judgment"
+      }
+     ]
+    }
    }
   },
   {
@@ -499,5 +515,84 @@
   "excluded_roles": "Delivery only",
   "exclude_client_site": "1"
  },
- "extras_recorded": "2026-11-07"
+ "extras_recorded": "2026-11-07",
+ "reverse": {
+  "questions": [
+   {
+    "question": "需要予測機能の刷新で見積もりがずれた際、最終的な判断は誰がどの基準で行いますか。",
+    "intent": "To understand how decisions are made when estimates slip and how much authority the engineering manager holds."
+   },
+   {
+    "question": "半期ごとのOKRにおいて、入社後の半年でエンジニアリングマネージャーに最も期待される成果は何でしょうか。",
+    "intent": "To clarify concrete expectations and evaluation criteria for the first six months in the role."
+   },
+   {
+    "question": "海外拠点の倉庫への導入にあたり、現場担当者との要件調整はどのような体制で進める想定でしょうか。",
+    "intent": "To learn how requirement coordination with overseas sites is structured and what role the manager plays in it."
+   }
+  ]
+ },
+ "verify": {
+  "script": "ご質問は、志望動機ですね。御社の理念に感動したので志望しました。前職では新しいシステムの導入で売上を三倍にしました。その経験を、御社の在庫管理サービスの改善に生かしたいと考えています。入社後は、まず［ここに担当したい領域］を担当し、半年で成果を出したいと考えています。",
+  "material": "サンプル物流（架空） 在庫管理システムの開発を担当。",
+  "review": {
+   "answers_question": "no",
+   "answers_question_reason": "The question asks how the candidate judged and responded when a development estimate slipped, with a concrete example. The answer instead gives a prepared motivation answer: admiration for the company's philosophy, a sales-tripling achievement, and future plans. It describes no estimate deviation, judgment criterion, or response.",
+   "steps": {
+    "fukusho": {
+     "present": false,
+     "note": "The opening misrestates the question as 'motivation'. Restate it correctly, e.g., 'You are asking how I judged and responded when an estimate slipped.'"
+    },
+    "ketsuron": {
+     "present": false,
+     "note": "No conclusion about the estimate deviation. State right away what you did, e.g., 'I [the action you took: rescoped / renegotiated the deadline / added resources].'"
+    },
+    "kijun": {
+     "present": false,
+     "note": "'Sales tripled' is unrelated to the question. Give one criterion or number behind the decision, e.g., 'If the slip exceeded [X]% / [N] days, I [action].'"
+    },
+    "sentakushi": {
+     "present": true,
+     "note": "There is a contribution-style closing, but it is tied to the motivation answer. Close by explaining how this estimate-handling experience would apply at the company."
+    }
+   },
+   "corrections": [],
+   "closing": "contribution",
+   "dropped": 0
+  },
+  "verify": {
+   "chars": 122,
+   "seconds": [
+    24,
+    37
+   ],
+   "rate": [
+    5,
+    3.3333333333333335
+   ],
+   "target_seconds": 60,
+   "over": false,
+   "blanks": 1,
+   "checked": true,
+   "unsupported": [
+    {
+     "sentence": "御社の理念に感動したので志望しました。",
+     "kind": "motive"
+    },
+    {
+     "sentence": "前職では新しいシステムの導入で売上を三倍にしました。",
+     "kind": "achievement"
+    },
+    {
+     "sentence": "その経験を、御社の在庫管理サービスの改善に生かしたいと考えています。",
+     "kind": "motive"
+    },
+    {
+     "sentence": "入社後は、まず［ここに担当したい領域］を担当し、半年で成果を出したいと考えています。",
+     "kind": "judgment"
+    }
+   ],
+   "dropped": 0
+  }
+ }
 }

@@ -295,6 +295,20 @@ export function scriptCheck(s) {
   return p;
 }
 
+// F10 card: the app's /api/reverse reply and the tour's recorded one draw the same way.
+export function renderReverse(data) {
+  const t = T().reverse;
+  const b = bubble("coach script reverse", null);
+  b.append(el("p", "title", t.title));
+  data.questions.forEach((q, i) => {
+    b.append(el("p", "ja", `${i + 1}. ${q.question}`), el("p", "tr", `${t.intent}: ${q.intent}`));
+    if (q.source_ids?.length) b.append(el("p", "legend", `${t.source}: ${q.source_ids.join(", ")}`));
+  });
+  if (data.research_basis && !data.research_basis.passed) b.append(el("p", "legend", t.lowResearch));
+  b.append(iel("p", "legend", "tip", t.tip));
+  return b;
+}
+
 export function renderScript(s, slot) {
   const t = T().script;
   const b = fill(slot, "coach script");
@@ -321,11 +335,11 @@ export function renderScript(s, slot) {
 }
 
 // F9: one line after each answer with the running count of rule hits in this session. Nodes (icons), or null when empty.
-export function habitsLine() {
-  const h = state.session ? habitCounts(state.session) : [];
+export function habitsLine(session = state.session) { // the tour passes its recorded attempts
+  const h = session ? habitCounts(session) : [];
   if (!h.length) return null;
   const t = T().habits;
-  const out = [icon("habits"), `${t.title({ n: state.session.attempts.length })}\n`];
+  const out = [icon("habits"), `${t.title({ n: session.attempts.length })}\n`];
   h.forEach((x, i) => {
     const s = el("span", "habit", `${x.label} ${t.times({ c: x.count })}`);
     if (x.habit) s.append(icon("warning"));

@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { LANGS } from "../../public/i18n/index.js";
 import { scriptFixture } from "../fake-claude.js";
 import { startServer, launch, openApp, bubbles, send, noHorizontalOverflow, shot, scriptCard, CODE, MAIL, ANSWER, VIEWPORTS } from "./harness.js";
+const demo = JSON.parse(readFileSync(new URL("../../public/demo/demo-ko.json", import.meta.url), "utf8"));
 
 const ko = LANGS.ko;
 const FLAGGED = "前職では、遅れを［期限］以内に報告するルールを作り、手戻りを［ここに実績の数字］減らしました。"; // the MOCK /api/verify names this sentence of the MOCK script
@@ -320,7 +321,10 @@ test("the no-code demo has no check mode and makes no verify call; its last step
   await page.getByRole("button", { name: ko.demo.try }).waitFor();
   assert.equal(verifies, 0);
   assert.equal(await page.locator(".pick-mode").count(), 0, "the demo never offers the pasted-script mode");
-  assert.equal(await page.locator(".script-check:not([hidden])").count(), 0, "a recorded script is not checked");
+  // Intent changed 11/07: the check is now part of the recording (record-demo.mjs --extras), so it is shown — as a recording, with no call.
+  const check = page.locator(".script-check:not([hidden])").first();
+  await check.waitFor();
+  assert.ok((await check.textContent()).includes(demo.steps[0].script.check.unsupported[0].sentence), "the recorded check");
   assert.deepEqual(errors, []);
   await context.close();
 });

@@ -46,9 +46,11 @@ const flagInSight = (page) => page.locator("#log > .msg.brief.spot").evaluate((c
   if (last.bottom > limit) throw new Error(`the mismatch flag ends at ${last.bottom}, visible until ${limit}`);
 });
 
-test("tour: 10 steps — action then result is spotlit, whole page dimmed, Back undoes a step, Close at the end (desktop)", async () => {
+// Intent changed 11/07 (user: the tour explains every feature, i18n strict): 16 steps; 9–14 show the rest of the service
+// with recorded outputs (record-demo.mjs --extras) or the real control, disabled. Notes/save and try moved to 15 and 16.
+test("tour: 16 steps — action then result is spotlit, whole page dimmed, Back undoes a step, Close at the end (desktop)", async () => {
   const { context, page, errors, api } = await open(VIEWPORTS.desktop);
-  assert.equal(N, 10); // was 9; +1 for the fictional brief step (Stage R step 6)
+  assert.equal(N, 16); // was 10; +6 for the rest of the service (11/07)
   await page.getByRole("button", { name: ko.demo.button }).click();
   await stepIs(page, 1);
   assert.equal(await page.textContent("#tourTitle"), ko.tour.steps[0].title);
@@ -120,19 +122,54 @@ test("tour: 10 steps — action then result is spotlit, whole page dimmed, Back 
   await framed(page, "8");
   await shot(page, "desktop-15-tour-7");
 
-  await next(page, 9); // 9: notes tab and Finish·save
+  await next(page, 9); // 9: the habit tally of both recorded answers
+  await page.locator("#log > .msg.note.spot", { hasText: ko.habits.title({ n: 2 }).trim() }).waitFor();
+  await framed(page, "9");
+
+  await next(page, 10); // 10: Answer / Check my script (disabled) and the recorded F15 card
+  await page.locator("#log > .msg.spot .pick-mode[aria-pressed=true]", { hasText: ko.chat.modeVerify }).waitFor();
+  assert.equal(await page.locator("#log > .msg.spot .pick-mode").first().isDisabled(), true, "nothing is clickable in the tour");
+  await page.locator("#log > .msg.verify.spot").waitFor();
+  const vtext = await page.locator("#log > .msg.verify.spot").textContent();
+  assert.ok(vtext.includes(demo.verify.verify.unsupported[0].sentence), vtext.slice(0, 300));
+  await framed(page, "10");
+
+  await next(page, 11); // 11: the recorded reverse questions
+  const rev = page.locator("#log > .msg.reverse.spot");
+  await rev.waitFor();
+  for (const r of demo.reverse.questions) assert.ok((await rev.innerText()).includes(r.question));
+  await framed(page, "11");
+
+  await next(page, 12); // 12: the prep document button (disabled) and its six stages, from the i18n stage names
+  const prep = page.locator("#log > .msg.spot", { has: page.locator(".prep-ctl") });
+  await prep.waitFor();
+  for (const k of ["casual", "first", "second", "executive", "final", "offer"]) assert.ok((await prep.innerText()).includes(ko.prep.stageNames[k]), k);
+  await framed(page, "12");
+
+  await next(page, 13); // 13: calendar button, the practice record on the picked question, the debrief button
+  await page.locator(".calendar-open.spot").waitFor();
+  await page.locator(`.q[data-q="${demo.questions[demo.pick].id}"] .practice-log.spot`).waitFor();
+  await page.locator("#log > .msg.spot button", { hasText: ko.debrief.button }).waitFor();
+  await framed(page, "13");
+
+  await next(page, 14); // 14: screen language and destination pickers
+  await page.locator(".picker.spot #lang").waitFor();
+  await page.locator(".picker.spot #dest").waitFor();
+  await framed(page, "14");
+
+  await next(page, 15); // 15: notes tab and Finish·save
   await page.locator("#tabNotes.spot").waitFor();
   await page.locator("#end.spot").waitFor();
   // A spotlit control is opaque: a transparent tab let the dimmer show through (11/03).
   assert.equal(await page.locator("#tabNotes").evaluate((e) => getComputedStyle(e).backgroundColor), "rgb(255, 255, 255)");
-  await framed(page, "9");
+  await framed(page, "15");
 
-  await next(page, 10);
+  await next(page, 16);
   assert.equal(await page.locator(".next-btn").count(), 0, "no Next on the last step");
   assert.equal(await page.textContent("#tourNext"), ko.tour.close);
   assert.equal(await page.locator("#tourSkip").isHidden(), true);
   await page.getByRole("button", { name: ko.demo.try }).and(page.locator(".spot")).waitFor();
-  await framed(page, "10");
+  await framed(page, "16");
   await page.click("#tourNext");
   await page.locator("#tour").waitFor({ state: "hidden" });
   assert.equal(await page.locator(".spot").count(), 0);
@@ -143,6 +180,25 @@ test("tour: 10 steps — action then result is spotlit, whole page dimmed, Back 
   assert.deepEqual(api, [], "tour must not call the API");
   assert.deepEqual(errors, []);
   await context.close();
+});
+
+// 11/07 (i18n strict): every step in ja and en too — the popup text is the language's own, nothing is called, no errors.
+test("tour: ja and en run all 16 steps in their own language, with no API call and no error", async () => {
+  for (const lang of ["ja", "en"]) {
+    const t = LANGS[lang], { context, page, errors, api } = await open(VIEWPORTS.desktop, lang);
+    await page.getByRole("button", { name: t.demo.button }).click();
+    for (let n = 1; n <= N; n++) {
+      if (n > 1) await next(page, n);
+      else await stepIs(page, 1); // the popup is up before its text is read
+      await page.waitForFunction(() => !document.querySelector("#tourNext").disabled, null, { timeout: 15000 });
+      assert.equal(await page.textContent("#tourTitle"), t.tour.steps[n - 1].title, `${lang} ${n}`);
+      assert.equal(await page.textContent("#tourBody"), t.tour.steps[n - 1].body, `${lang} ${n}`);
+      assert.ok(await page.locator(".spot").count() > 0, `${lang} ${n}: something is spotlit`);
+    }
+    assert.deepEqual(api, [], `${lang}: tour must not call the API`);
+    assert.deepEqual(errors, [], lang);
+    await context.close();
+  }
 });
 
 test("tour: reduced motion shows each step at once; Esc skips to the code button; fits 390px (mobile)", async () => {

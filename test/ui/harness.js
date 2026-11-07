@@ -132,7 +132,8 @@ export const micStub = ({ denied = false, unsupported = false } = {}) => {
 
 // Tutorial steps by name (10 steps since the fictional brief, 11/04). tourTo presses Next until that step is shown and has finished playing,
 // so tests name the step instead of counting clicks.
-export const TOUR = { mail: 1, questions: 2, brief: 3, pick: 4, answer: 5, review: 6, script: 7, compare: 8, notes: 9, try: 10 };
+// 16 steps since 11/07 (user: the tour explains every feature); steps 9–14 are the rest of the service.
+export const TOUR = { mail: 1, questions: 2, brief: 3, pick: 4, answer: 5, review: 6, script: 7, compare: 8, habits: 9, verify: 10, reverse: 11, prep: 12, calendar: 13, lang: 14, notes: 15, try: 16 };
 export async function tourTo(page, step) {
   const done = () => page.waitForFunction(() => !document.querySelector("#tourNext").disabled, null, { timeout: 15000 });
   await page.locator("#tourStep", { hasText: "/" }).waitFor();

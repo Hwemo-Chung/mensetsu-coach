@@ -1,5 +1,5 @@
 // No-code demo and tutorial: replays a real recorded run (public/demo/demo-<lang>.json; only its "brief" is hand-written, and its card says so). No API, no session, no storage.
-import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript, renderRail } from "./render.js";
+import { $, el, icon, state, T, message, bubble, still, withTr, renderQuestions, renderReview, renderCompare, renderScript, renderRail, renderVerify, renderReverse, habitsLine, practiceLog } from "./render.js";
 import { showReview, resetPanel, openByDefault, wide } from "./panel.js";
 import { addListen } from "./voice.js";
 import { renderBrief } from "./brief.js";
@@ -83,7 +83,7 @@ function demoScenes(d, me, onTry) {
   ];
 }
 
-// Tutorial (UIUX-SPEC (k), rework 11/03): popup n/10 above the composer and a page-wide dimmer. Each step spotlights the
+// Tutorial (UIUX-SPEC (k), rework 11/03; 16 steps since 11/07): popup n/16 above the composer and a page-wide dimmer. Each step spotlights the
 // user's action first (composer row with 📎, then Send), then its result; on desktop the readable panel copy is the
 // result. prefers-reduced-motion: no typing, no pauses, no fade (the spotlight is not motion and stays).
 const tourBox = $("tour"), dim = $("tourDim"), row = document.querySelector(".composer .row");
@@ -100,8 +100,8 @@ function spot(target) {
 }
 const panelOpen = () => wide.matches && !$("panel").hidden;
 function tourScenes(d, say, onTry) {
-  const q = d.questions[d.pick];
-  const cmp = compareAttempts({ attempts: d.steps.map((x) => ({ question_id: q.id, ...x })) }, q.id);
+  const q = d.questions[d.pick], attempts = d.steps.map((x) => ({ question_id: q.id, ...x }));
+  const cmp = compareAttempts({ attempts }, q.id);
   const reviewed = (r) => { const b = bubble("coach", ""); renderReview(r, b); return b; };
   const inPanel = (sel, chat) => (panelOpen() ? $("reviewBox").querySelector(sel) ?? chat : chat);
   const last = demoScenes(d, null, onTry).at(-1); // the "try it with your code" step is shared with the plain replay
@@ -126,9 +126,47 @@ function tourScenes(d, say, onTry) {
       showReview(d.steps[1].review, cmp);
       return inPanel(":scope > .compare", c);
     },
+    // The rest of the service (user 11/07: the tour explains every feature). Recorded outputs where the run has them
+    // (record-demo.mjs --extras); the controls themselves are shown disabled, as nothing is called in the tour.
+    async () => {
+      const b = bubble("coach note", null);
+      b.append(...(habitsLine({ questions: d.questions, attempts }) ?? [T().habits.title({ n: attempts.length })]));
+      return b;
+    },
+    async () => {
+      const t = T().chat, b = bubble("coach", null);
+      for (const [mode, text] of [["answer", t.modeAnswer], ["verify", t.modeVerify]]) b.append(off("inline-btn pick-mode", text, { "aria-pressed": String(mode === "verify") }), " ");
+      if (!d.verify) return b;
+      const v = bubble("coach", "");
+      renderVerify(d.verify.verify, v);
+      return [b, v];
+    },
+    async () => (d.reverse ? renderReverse(d.reverse) : bubble("coach", null).appendChild(off("inline-btn", T().reverse.button)).parentElement),
+    async () => {
+      const p = T().prep, b = bubble("coach", null);
+      b.append(off("inline-btn prep-ctl", p.button), el("p", "legend", STAGES.map((k) => p.stageNames[k]).join(" → ")));
+      return b;
+    },
+    async () => {
+      const item = log.querySelector(`.msg.qs .q[data-q="${q.id}"]`);
+      if (item) practiceLog(item, q.id, attempts.map((a) => ({ ...a, at: new Date().toISOString() }))); // practised now, in the tour
+      const b = bubble("coach", null);
+      b.append(off("inline-btn", T().debrief.button));
+      return [log.querySelector(".msg.qs .calendar-open"), item?.querySelector(".practice-log"), b].filter(Boolean);
+    },
+    async () => [$("lang").closest(".picker"), $("dest").closest(".picker")],
     async () => [panelOpen() ? $("tabNotes") : $("panelToggle"), $("end")],
     last,
   ];
+}
+const STAGES = ["casual", "first", "second", "executive", "final", "offer"]; // index.html #prepStage, in order
+// A control as the tour shows it: the real class and label, never clickable.
+function off(cls, text, attrs = {}) {
+  const b = el("button", cls, text);
+  b.type = "button";
+  b.disabled = true;
+  for (const [k, v] of Object.entries(attrs)) b.setAttribute(k, v);
+  return b;
 }
 function startTour(d, my, onTry) {
   const tr = { i: 0, marks: [], panels: [], targets: [] };

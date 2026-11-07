@@ -2,7 +2,7 @@ import { LANGS } from "./i18n/index.js";
 import { calendarLink } from "./calendar.js";
 import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap, mailPreview, mailSafe } from "./export.js";
 import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, fitDesired, loadDebrief, saveDebrief, clearDebriefs, clearCompanyNotes, SESSION_KEY } from "./session.js";
-import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, practiceLog, retireBriefMarks, renderReview, renderVerify, renderCompare, renderScript, scriptCheck, renderRail, readAttachment, JP_STEPS } from "./render.js";
+import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderReverse, renderQuestions, practiceLog, retireBriefMarks, renderReview, renderVerify, renderCompare, renderScript, scriptCheck, renderRail, readAttachment, JP_STEPS } from "./render.js";
 import { panel, wide, closePanel, showReview, showVerify, renderNotes, resetPanel, openByDefault } from "./panel.js";
 import { startDemo, endTour, skipTour, tourTipsOn, TOUR_TIPS, tourEndMode, TOUR_END } from "./demo.js";
 import { renderConfirm, renderBrief, showFit, showConditions } from "./brief.js";
@@ -321,15 +321,7 @@ async function makeReverse() {
     if (!res.ok) return failed(res, data);
     // Their ids and wording come from a brief the user has since replaced.
     if (brief.length && research_brief !== state.session.company_context.research_brief) return offerReverseAgain();
-    const t = T().reverse;
-    const b = bubble("coach script reverse", null);
-    b.append(el("p", "title", t.title));
-    data.questions.forEach((q, i) => {
-      b.append(el("p", "ja", `${i + 1}. ${q.question}`), el("p", "tr", `${t.intent}: ${q.intent}`));
-      if (q.source_ids?.length) b.append(el("p", "legend", `${t.source}: ${q.source_ids.join(", ")}`));
-    });
-    if (data.research_basis && !data.research_basis.passed) b.append(el("p", "legend", t.lowResearch));
-    b.append(iel("p", "legend", "tip", t.tip));
+    renderReverse(data);
     state.session.reverse = data.questions;
     persist();
   } catch {

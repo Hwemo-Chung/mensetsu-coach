@@ -2,7 +2,7 @@
 // Usage: ENV_FILE=… node scripts/record-demo.mjs [--voice] [ja ko en]   (5 calls per language, costs credits)
 //        ENV_FILE=… node scripts/record-demo.mjs --extras [ja ko en]  adds to the existing recording, nothing else moves:
 //        the app's own checks through its route handlers (script check, reverse questions, F15 verify of a pasted script;
-//        ja only, for the video) and a fresh model script for any step whose script no longer passes today's gates.
+//        every language, for the tour and the video) and a fresh model script for any step whose script no longer passes today's gates.
 // --voice: the first answer is spoken (macOS `say`, voice Kyoko) and transcribed by the app's own in-browser recogniser
 // code (public/stt-whisper.js, run in Node), so it is exactly what the 🎤 puts in the box, fillers included (video ③-a,
 // 11/03). Needs macOS and `npm i --no-save @huggingface/transformers@=4.3.2`; 0 extra AI calls (Whisper is local).
@@ -44,7 +44,7 @@ if (EXTRAS) {
       step.script = fresh;
       console.log(lang, "re-made a script that failed today's gates");
     }
-    if (lang === "ja") {
+    if (!demo.reverse || !demo.verify || demo.steps[0].script.check === undefined) {
       // app.js checkScript: the first model script against the answer it came from; a 200 without checked is "not checked".
       const c = await call(verifyRoute, { script: demo.steps[0].script.text, question: q.question, category: q.category, facts: demo.company_context.facts, material: demo.steps[0].answer, pack: "jp" });
       demo.steps[0].script.check = c.checked ? { unsupported: c.unsupported, ...(c.dropped > 0 && { dropped: c.dropped }) } : null;
