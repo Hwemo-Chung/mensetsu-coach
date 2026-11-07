@@ -173,7 +173,7 @@ footer{border-top:1px solid var(--line);background:var(--band);padding:16px 0;co
    <tr><td><code>prompt-change-check</code></td><td>手動、または関連の変更時に自動</td><td>スキーマの 400 エラーの見逃し、不要な実呼び出しの費用、古いデモの放置</td></tr>
    <tr><td><code>add-pack</code></td><td>手動、または関連の依頼時に自動</td><td>登録漏れ、JP 専用機能の誤った有効化、動かないパックの見逃し</td></tr>
   </tbody></table></div>
- <p class="note">公開前のスキャンは git の <code>pre-push</code> フックでも動き、Claude Code を通さない <code>git push</code> でも同じ検査をします。</p>
+ <p class="note">公開前のスキャンは、Claude Code のフック（<code>.claude/settings.json</code> の PreToolUse）が <code>git push</code> と Vercel のデプロイの直前に動かし、問題があればコマンドを止めます。Claude Code を通さない <code>git push</code> には、git の <code>pre-push</code> フックで同じ検査をかけます。</p>
  <h3>開発の進め方</h3>
  <ol class="steps">
   <li><span><b>復唱</b> — 着手前に、何を・どこに・完了基準を言い直して認識を合わせる</span></li>

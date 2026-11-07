@@ -7,7 +7,7 @@
 // also misses a term split by spaces or base64; upgrade if such a case appears.
 import { execFileSync } from "node:child_process";
 import { existsSync, lstatSync, readFileSync, readlinkSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 
 const cannot = (why) => { console.log(`CANNOT CHECK: ${why}`); process.exit(2); };
 process.on("uncaughtException", (e) => cannot(`unexpected ${e.code ?? e.name}`)); // git and fs errors carry no list value
@@ -34,7 +34,9 @@ function decode(buf) {
 
 const at = process.argv.indexOf("--private");
 if (at > 0 && !process.argv[at + 1]) cannot("--private needs a folder");
-const priv = at > 0 ? resolve(process.argv[at + 1]) : resolve(top, "../BuiltWithClaude-2026-private/secrets");
+// The default sits beside the main checkout, not beside a git worktree (git-common-dir is the main checkout's .git).
+const mainTop = dirname(git("rev-parse", "--path-format=absolute", "--git-common-dir").trim());
+const priv = at > 0 ? resolve(process.argv[at + 1]) : resolve(mainTop, "../BuiltWithClaude-2026-private/secrets");
 const readPrivate = (name) => {
   const file = join(priv, name);
   if (!existsSync(file)) cannot(`${name} not found in the private folder`);

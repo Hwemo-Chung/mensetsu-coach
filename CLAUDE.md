@@ -16,7 +16,7 @@ Public GitHub repo. Only publicly shareable data is committed; secrets and perso
 - `npm run eval` — real-API evals (F4/F3/F2/consistency, costs credits): `ENV_FILE=… node scripts/eval.mjs --only …`.
 - `npm i --no-save @huggingface/transformers@=4.3.2 && npm run vendor:stt` — re-copy the in-browser STT runtime into `public/vendor/` (`--no-save` keeps it out of the Vercel install). Then `STT_SAMPLES=<dir> node --test test/stt-local.live.test.js` runs the real Whisper model in Node (0 credits, ~260 MB download once).
 
-- Before any commit or push, follow `/publish-check`; for a production deploy, follow `/deploy-verify`, never `vercel:deploy` (it says uncommitted changes stay out, here they ship). These two skills do not load by themselves. A local `pre-push` hook runs the same scan.
+- Before any commit or push, follow `/publish-check`; for a production deploy, follow `/deploy-verify`, never `vercel:deploy` (it says uncommitted changes stay out, here they ship). These two skills do not load by themselves. The project hook `.claude/settings.json` → `.claude/hooks/publish-gate.mjs` runs the same scan before any `git push` or Vercel deploy that Claude Code starts and blocks on a hit (exit 2); a local `pre-push` hook covers pushes typed by hand.
 
 ## Code map (only what the code does not show)
 - All errors are `{ code }`; the UI turns codes into sentences. `dev.js` runs the same handlers with `vercel.json` headers; `MOCK_CLAUDE=1` uses per-route fixtures (0 tokens). Model ids live only in `lib/claude.js` `MODELS`.

@@ -131,6 +131,20 @@ test("scan: without the private lists it refuses to say the repository is clean 
   assert.equal(s.run().status, 2);
 });
 
+// 11/07: from a git worktree under .claude/worktrees/ the default private folder resolved next to the worktree,
+// so every scan there (and the shared pre-push hook) stopped with exit 2. The default sits beside the main checkout.
+test("scan: from a git worktree, the default private folder is found beside the main checkout", (t) => {
+  const s = sandbox();
+  t.after(s.done);
+  const secrets = join(s.dir, "BuiltWithClaude-2026-private", "secrets");
+  mkdirSync(secrets, { recursive: true });
+  for (const f of [".pii-denylist.txt", ".publish-terms.txt", ".env", ".publish-identity.txt"]) writeFileSync(join(secrets, f), readFileSync(join(s.dir, "private", f)));
+  const wt = join(s.repo, ".claude", "worktrees", "w");
+  s.git("worktree", "add", "-q", "--detach", wt);
+  const r = spawnSync("node", [scan], { cwd: wt, encoding: "utf8" });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
+});
+
 test("scan: without a tracking branch, origin/<branch> still limits it to what is about to leave", (t) => {
   const s = sandbox();
   t.after(s.done);
@@ -278,4 +292,43 @@ test("scan: more key shapes block, ordinary identifiers do not, risky file names
 
 test("skills folder holds only the listed skills", () => {
   assert.deepEqual(readdirSync(root).filter((n) => !n.startsWith(".")).sort(), SKILLS);
+});
+
+// The Claude Code hook (.claude/settings.json → .claude/hooks/publish-gate.mjs) runs the same scan before a push or a
+// deploy that Claude Code itself starts; exit 2 makes Claude Code refuse the command. Other commands are not scanned.
+const gate = fileURLToPath(new URL("../.claude/hooks/publish-gate.mjs", import.meta.url));
+const hook = (s, command) => spawnSync("node", [gate], { cwd: s.repo, encoding: "utf8", input: JSON.stringify({ tool_name: "Bash", tool_input: { command } }), env: { ...process.env, PUBLISH_PRIVATE: join(s.dir, "private") } });
+
+test("hook: settings.json wires publish-gate to Bash before the call", () => {
+  const settings = JSON.parse(readFileSync(new URL("../.claude/settings.json", import.meta.url), "utf8"));
+  const pre = settings.hooks.PreToolUse.find((h) => h.matcher === "Bash");
+  assert.match(pre.hooks[0].command, /publish-gate\.mjs/);
+});
+
+test("hook: a push from a clean repository passes; other commands are not scanned", (t) => {
+  const s = sandbox();
+  t.after(s.done);
+  writeFileSync(join(s.repo, "b.md"), "架空太郎\n");
+  assert.equal(hook(s, "ls -la").status, 0);
+  assert.equal(hook(s, "git status").status, 0);
+  rmSync(join(s.repo, "b.md"));
+  assert.equal(hook(s, "git push origin main").status, 0);
+});
+
+test("hook: a push or deploy that the scan blocks is refused (exit 2), without printing the term", (t) => {
+  const s = sandbox();
+  t.after(s.done);
+  writeFileSync(join(s.repo, "b.md"), "架空太郎\n");
+  for (const command of ["git push origin main", "git -C . push", "cd x && git push -u origin HEAD", "vercel deploy --prod", "npx vercel --prod"]) {
+    const r = hook(s, command);
+    assert.equal(r.status, 2, command);
+    assert.match(r.stderr, /publish-check/);
+    assert.doesNotMatch(r.stdout + r.stderr, /架空太郎/);
+  }
+});
+
+test("hook: when the scan cannot check, the push is refused too", (t) => {
+  const s = sandbox({ deny: null });
+  t.after(s.done);
+  assert.equal(hook(s, "git push").status, 2);
 });
