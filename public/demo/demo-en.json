@@ -498,5 +498,6 @@
   "locations": "Tokyo",
   "excluded_roles": "Delivery only",
   "exclude_client_site": "1"
- }
+ },
+ "extras_recorded": "2026-11-07"
 }
