@@ -373,8 +373,13 @@ test("reading: hiragana from the model, converted by the existing kana code; a k
   assert.ok(!bad.failed.some((f) => f.key === "top_result"));
   assert.equal(find(bad, "top_result").reading, null);
   assert.ok(badClient.calls() >= 2, "the reading is still asked again once");
-  const wrong = await run(fakeClient({ result: withItem("top_result", { translation: "在庫管理システムの刷新です。" }) }));
-  assert.deepEqual(wrong.failed[0].reason, ["translation"]);
+  // Intent changed 11/07 (prod: an item dropped for its translation alone): a translation that stays wrong drops only the
+  // translation; the item keeps its answer and reading, and the translation is still asked again once.
+  const wrongClient = fakeClient({ result: withItem("top_result", { translation: "在庫管理システムの刷新です。" }) });
+  const wrong = await run(wrongClient);
+  assert.ok(!wrong.failed.some((f) => f.key === "top_result"));
+  assert.ok(!("translation" in find(wrong, "top_result")) && find(wrong, "top_result").reading);
+  assert.ok(wrongClient.calls() >= 2, "the translation is still asked again once");
   const kr = await run(fakeClient({ result: withItem("top_result", { answer: "한국어 답변입니다." }) }));
   assert.deepEqual(kr.failed[0].reason, ["language"]);
 });
@@ -490,8 +495,11 @@ test("C3: a translation spells 千 and thousand its own way", async () => {
 
 test("translation: Japanese left in it fails, a short proper noun does not", async () => {
   const pasted = "이 답변을 한국어로 옮기면 다음과 같습니다: 재고 관리 시스템의 개발을 담당했고 요건 정의부터 운영까지 맡았으며 관계자와 논점을 먼저 맞추는 것을 중시해 왔습니다. これまでに開発を担当してまいりましたので、そのことをお話しいたします。";
-  assert.deepEqual(await failedOf("top_result", { translation: pasted }), ["translation"]);
-  assert.equal(await failedOf("top_result", { translation: "サンプルのかんばん 프로젝트에서 재고 관리 시스템의 개발을 담당했습니다." }), undefined);
+  // Intent changed 11/07: the gate still rejects the pasted Japanese, but after the retry only the translation is dropped (the item stays).
+  const kept = async (translation) => find(await run(fakeClient({ result: withItem("top_result", { translation }) })), "top_result");
+  assert.ok(!("translation" in await kept(pasted)), "the pasted Japanese never shows");
+  const proper = "サンプルのかんばん 프로젝트에서 재고 관리 시스템의 개발을 담당했습니다.";
+  assert.equal((await kept(proper)).translation, proper, "a short proper noun passes");
   const reverse = await run(fakeClient({ result: { ...fixture, reverse: fixture.reverse.map((x) => ({ ...x, translation: pasted })) } }));
   assert.equal(section(reverse, "reverse_questions").items.length, 0, "the reverse questions go through the same check");
   assert.match(buildPrepRequest(pack, planBundles(pack, { questions: QUESTIONS, company: "サンプルテック" }).bundles[0], { material: RESUME }).system, /前置きと原文を入れない/);
