@@ -37,7 +37,7 @@ const CAPTIONS = {
   steps: ["足りない部分が\n赤で分かる", "直し方も、すぐ下に出ます"],
   rule: ["直すのは\nルール表だけ", "どのルールかを、ルールIDで示します"],
   habit: ["口ぐせまで\n見つける", "声で答えると「なんか」も<br>そのまま残るから"],
-  script: ["自分の答えを\nもとにした台本", "数字は［空欄］。自分の事実で埋めます"],
+  script: ["自分の答えを\nもとにした台本", "自分の数字は［空欄］。自分の事実で埋めます"],
   retry: ["空欄を埋めて\n答え直す", "デモでは、架空の数字を入れています"],
   compare: [allOk ? "答え直したら\nすべて ✓" : "答え直したら\n✗ が ✓ に", "最初の答えと並べて比べます"],
 };
@@ -60,7 +60,7 @@ const SAY = {
   steps: "足りない部分が赤。直し方も、すぐ下に。",
   rule: "直すのは、ルール表の項目だけ。IDで示します。",
   habit: "口ぐせも見つけます。声だと、「なんか」まで残るからです。", // まで: 「も残る」 was heard as 物凝る (Whisper, smoke v8d)
-  script: "自分の答えをもとにした台本。数字は空欄のまま。",
+  script: "自分の答えをもとにした台本。自分の数字は空欄のまま。",
   retry: "空欄を埋めて、答え直します。数字は架空です。",
   compare: `${allOk ? "答え直したら、すべてにチェック。" : "答え直したら、バツがチェックに。"}最初の答えとならべて比べます。`, // ならべて: the engine read 並べて as なべて (Whisper round trip of v7)
   // Bridges: spoken over a wait, so the take has no long silence (v5 measured up to 5.4 s). The wait stays over 3 s for the app's label.

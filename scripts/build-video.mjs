@@ -37,11 +37,12 @@ const LINES = {
   stage: "カジュアル面談から内定まで、段階ごとに。",
   prep2: "最初に、必ず確認、と出ます。",
   prep3: "全文を読まず、聞かれていることと話す順序だけを見ます。",
-  prep4: "事実には出典。経験は空欄のまま、自分で埋めます。",
+  prep4: "事実には出典。資料にない経験は空欄、自分で埋めます。",
   prep5: "マークダウンでも、持ち出せます。",
   reverse: "逆質問も、会社の情報から作ります。条件の話は、エージェントに。",
   calendar: "面接の日時は、カレンダーに登録。",
   practice: "練習した時刻も残ります。",
+  mail: "登録すると、練習のまとめと、今後のメールの見本が、すぐに届きます。",
   impact: "この在留資格で働く外国人は、約47万人。",
   ko: "韓国語の画面なら、解説も翻訳も韓国語。読み方はハングル。",
   en: "英語なら、解説も翻訳も英語。読み方はローマ字。",
@@ -51,7 +52,7 @@ const LINES = {
   limit: "コードは不要。1日の上限で案内が出て、審査用コードで外れます。",
   models: "調査はハイク、質問と台本はソネット、採点はオーパス。",
   built: "開発はクロードコード。スキル、攻撃するサブエージェント、プッシュ前のスキャン。",
-  packs: "ルールはくにごと。国も言葉も足せます。",
+  packs: "ルールは、くにごとに分かれています。国も言葉も、増やせます。", // 国ごと reads コクゴト (VOICEVOX 11/07)
   wall: "面接の壁は、言葉の壁ではなく、答え方の壁でした。",
   end: "次に日本で転職する、外国人のために。",
 };
@@ -62,14 +63,14 @@ if (process.argv.includes("--lines")) { console.log(JSON.stringify(LINES)); proc
 // once, nothing else moves. shortcut: null = the scene is skipped under PREVIEW=1 and stops the build otherwise; replace
 // with the real selectors when the UI lands.
 const SEL = {
-  prepStage: null, // the stage choice in the prep form #prep (a <select>: the scene calls selectOption; adapt that one line if it is not)
-  prepStageBadge: null, // the stage shown in the prep card (#log > .msg.prep), e.g. ".stage"
-  calendar: { open: null, input: null, link: null }, // the button that opens the interview-date box, its datetime input, the Google prefilled link
-  practice: { log: null }, // the practice-time record
+  prepStage: "#prepStage", // the stage choice in the prep form #prep (index.html, a <select> of 6)
+  prepStageBadge: ".tag.stage", // the stage shown in the prep card (prep.js)
+  calendar: { open: ".calendar-open:enabled", input: "#calendarAt", link: "#calendarLink" }, // render.js button, index.html #calendar dialog
+  practice: { log: ".practice-log" }, // render.js: the practice record on the question card
   scriptCheck: ".script-check", // the F15 ⑤ line on the generated script card (render.js scriptCheck; the F15 work may rename it)
   // The daily limit: the { code } /api/questions returns at the limit, the notice's selector, the field the judges' code
   // goes into, and the button that sends it (the field's own form: the same selector as Enter would use).
-  limit: { code: null, notice: null, unlock: null, submit: null },
+  limit: { code: "quota", notice: "#log .msg:has(.code-field)", unlock: "#log .code-field input", submit: "#log .code-field button" }, // app.js codeField()
 };
 const PREVIEW = process.env.PREVIEW === "1";
 if (!PREVIEW && process.env.NARRATE !== "1") throw new Error("the final build needs NARRATE=1 (a silent build is a preview: PREVIEW=1)");
@@ -207,7 +208,7 @@ const big = (a, b, bg = INK, ca = "#fff", cb = GREEN) => `<div style="position:a
   const table = (flipped) => `<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:44px 90px;box-sizing:border-box"><div style="font-size:50px;font-weight:900;margin-bottom:24px">同じ質問に、答え直す</div>
     <table style="width:100%;border-collapse:collapse;font-size:44px;font-weight:800"><tr style="font-size:26px;color:${SOFT}"><td></td><td style="text-align:center;width:190px">最初</td><td style="text-align:center;width:190px">答え直し</td></tr>
     ${rows.map(([label], i) => `<tr style="border-top:2px solid #22332b"><td style="padding:16px 0">${label}</td><td style="text-align:center;color:${RED};font-size:62px">✗</td><td data-row="${i}" style="text-align:center;color:${GREEN};font-size:62px">${i < flipped ? "✓" : ""}</td></tr>`).join("")}</table>
-    <div style="position:absolute;right:90px;bottom:26px;font-size:20px;color:${SOFT};font-weight:600">実際の出力の録画</div></div>`;
+    <div style="position:absolute;right:90px;bottom:26px;font-size:20px;color:${SOFT};font-weight:600">実際の出力から作成</div></div>`;
   const frames = [...(await reveal("聞かれたことに、", "答えていなかった。", INK, "#fff", RED)).map((f) => ({ ...f, sec: f.sec * 0.75 })), { file: await snap(table(0)), sec: 0.5 }];
   for (let k = 1; k <= rows.length; k++) {
     const file = await snap(table(k)), r = await rectOf(`[data-row="${k - 1}"]`);
@@ -223,7 +224,7 @@ const big = (a, b, bg = INK, ca = "#fff", cb = GREEN) => `<div style="position:a
 const demoOf = (lang) => JSON.parse(readFileSync(new URL(`../public/demo/demo-${lang}.json`, import.meta.url), "utf8"));
 const routeAnswers = (page, answers) => page.route("**/api/**", (r) => { const p = new URL(r.request().url()).pathname; return answers[p] ? r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(answers[p]()) }) : r.continue(); });
 const sessionAnswers = (demo) => ({
-  "/api/access": () => ({ ok: true, stt: false }),
+  "/api/access": () => ({ ok: true, open: true, stt: false }), // the submission's public mode: no code asked
   "/api/questions": () => ({ company_context: demo.company_context, questions: demo.questions, specificity: demo.specificity, pack: { id: "jp", target: "ja", steps } }),
   "/api/review": () => demo.steps[0].review,
   "/api/script": () => demo.steps[0].script,
@@ -267,7 +268,7 @@ const SCRIPT = "#log .msg.script:not(.review)", REVIEW = "#log .msg.review";
 async function reviewed(lang, { viewport, access, init, routes, second } = {}) {
   const demo = demoOf(lang);
   let reviews = 0, scripts = 0;
-  const { ctx, page } = await live(lang, { viewport, init, routes: { ...sessionAnswers(demo), "/api/access": () => ({ ok: true, stt: false, ...access }), "/api/review": () => demo.steps[Math.min(reviews++, 1)].review, "/api/script": () => demo.steps[Math.min(scripts++, 1)].script ?? demo.steps[0].script, ...routes } });
+  const { ctx, page } = await live(lang, { viewport, init, routes: { ...sessionAnswers(demo), "/api/access": () => ({ ok: true, open: true, stt: false, ...access }), "/api/review": () => demo.steps[Math.min(reviews++, 1)].review, "/api/script": () => demo.steps[Math.min(scripts++, 1)].script ?? demo.steps[0].script, ...routes } });
   await enterCode(page);
   const send = async (t) => { await page.fill("#input", t); await page.click("#send"); };
   await send(demo.mail); await page.locator("#log .q").first().waitFor();
@@ -430,6 +431,7 @@ let desiredFrames, debriefFrames, f10Frame;
     await page.evaluate((s) => { const e = document.querySelector(s); if (e.tagName === "SELECT") e.size = e.options.length; }, SEL.prepStage); // all six stages visible in the frame
     stageFrames = await annotated(page, "#prep", [[SEL.prepStage, "面接の段階を選ぶ（6種）"]], stagePanel, 1.2);
     await page.evaluate((s) => { const e = document.querySelector(s); if (e.tagName === "SELECT") e.size = 0; }, SEL.prepStage);
+    await page.selectOption(SEL.prepStage, "first"); // the scenes below read the first-interview document's sections
   } else skip("interview stage in the prep form (SEL.prepStage)", LINES.stage);
   let release;
   const gate = new Promise((r) => { release = r; });
@@ -544,11 +546,32 @@ let desiredFrames, debriefFrames, f10Frame;
     await page.click(C.open);
     await page.fill(C.input, "2026-12-01T10:00");
     await page.waitForTimeout(200);
-    await scene(10, await annotated(page, C.input, [[C.input, "面接の日時を入れる"], [C.link, "カレンダーに登録"]], { title: "面接の日時を\nカレンダーへ", note: "Google カレンダーに登録" }, 1.3), LINES.calendar);
+    await scene(10, await annotated(page, C.input, [[C.input, "架空の日時を入れる"], [C.link, "カレンダーに登録"]], { title: "面接の日時を\nカレンダーへ", note: "Google カレンダーに登録" }, 1.3), LINES.calendar);
   } else skip("calendar (SEL.calendar)", LINES.calendar);
   if (P.log && await page.locator(P.log).count()) await scene(10, await annotated(page, P.log, [[P.log, "練習した時刻"]], { title: "練習の\n記録", note: "いつ練習したかが残る" }, 1.6), LINES.practice);
   else skip("practice record (SEL.practice)", LINES.practice);
   await ctx.close();
+}
+
+// ⑩b Mail signup (user 11/07): after the save, the dialog sends ① a digest and ② a preview at once. MOCK sends nothing
+// (dev.js fake mailer); the inbox frame quotes the first lines of the two mails production really delivered on 11/07 for
+// the synthetic job mail (Japanese screen, another practice than the take's), so it is labelled as real output. Quoted
+// verbatim from the saved bodies (private 05-raw/scores/mail-20261107/ja-1-digest-*.txt, ja-2-preview-*.txt); "…" marks a cut.
+{
+  const { ctx, page } = await reviewed("ja", { access: { mail: true } });
+  await Promise.all([page.waitForEvent("download"), page.click("#end")]);
+  await page.locator("#mail[open]").waitFor();
+  await page.fill("#mailEmail", "you@example.com");
+  const a = await annotated(page, "#mail", [["#mailEmail", "メールアドレスだけ"], ["#mailSubmit", "すぐに2通届く"]], { title: "練習のまとめを\nメールで", note: "登録すると、すぐに届く" }, 1.3);
+  await ctx.close();
+  const card = (subject, lines) => `<div style="background:#fff;border-radius:12px;padding:18px 22px;margin-bottom:18px;box-shadow:0 2px 10px rgba(0,0,0,.25)">
+    <div style="font-size:21px;font-weight:800;color:${INK}">${subject}</div>${lines.map((l) => `<div style="font-size:17px;line-height:1.5;color:#33433b;margin-top:6px">${l}</div>`).join("")}</div>`;
+  const inbox = `${panelHtml({ title: "届いた\nメール", note: "架空の求人の別の練習で、本番から届いた2通（実際の出力・抜粋）" })}
+    <div style="position:absolute;left:460px;right:40px;top:60px">
+    ${card("[面接コーチ] 今日の練習のまとめ 11/07", ["■ 今日の要点", "今日は想定質問10問のうち、Q1（これまでのマネジメント経験と技術経験）を1問だけ練習しました。", "…", "結論、数字の根拠、入社後の貢献での締めが不足しており、次回はこの3つを入れて話します。"])}
+    ${card("[面接コーチ] 次のメールのプレビュー 11/07", ["■ 最近のニュース", "企業調査をすると、最近のニュースがここに入ります。", "■ ポジションの論点 …"])}
+    <div style="font-size:18px;color:${SOFT};font-weight:700">※ メールの内容は今後、補強・追加する予定です。</div></div>`;
+  await scene(10, [...a, { file: await snap(`<div style="position:relative;width:1280px;height:720px;background:${INK}">${inbox}</div>`), sec: 2.6, keep: true }], LINES.mail);
 }
 
 // ⑬ Who it is for (user 11/06 18:40): README line 15's two figures, word for word, with both sources and the caution that
@@ -696,6 +719,7 @@ await langScene("en", LINES.en, "英語", "ローマ字", "英語", 0.8);
       const c = await annotated(page, L.unlock, [[L.unlock, "審査用コードの欄"]], unlock, 1.0);
       await page.fill(L.unlock, CODE); // off camera: no frame until the limit is gone
       await page.click(L.submit);
+      await page.evaluate(() => { for (const i of document.querySelectorAll("#log .code-field input")) i.value = ""; }); // not even masked dots on screen (user 11/06 18:12)
       // The app may retry the mail by itself or ask for it again: either way the questions come with the code.
       if (!await page.locator("#log .q").first().waitFor({ timeout: 5000 }).then(() => true, () => false)) await send(demo.mail);
       await page.locator("#log .q").first().waitFor({ timeout: 10000 });
@@ -710,7 +734,7 @@ await langScene("en", LINES.en, "英語", "ローマ字", "英語", 0.8);
 // gates, PRD F15 (the verify call is Sonnet).
 const flow = (items) => items.map((x, i) => `<div style="padding:20px 28px;border-radius:8px;background:#16271e;color:#fff;font-size:34px;font-weight:700;line-height:1.35">${x}</div>${i < items.length - 1 ? `<div style="text-align:center;color:${GREEN};font-size:28px;line-height:1.2;margin:6px 0">↓</div>` : ""}`).join("");
 {
-  const BOX = ["調査は Haiku（基本版の web_search）", "質問・台本・準備資料・台本の検証は Sonnet", "採点は別の呼び出しで Opus", "出典のない情報とルール外の添削は<br>プログラムが捨てる"];
+  const BOX = ["調査は Haiku（基本版の web_search）", "質問・台本・準備資料・検証・メールのまとめは Sonnet", "採点は別の呼び出しで Opus", "出典のない情報と、回答にない添削は<br>プログラムが捨てる"];
   const frames = [];
   for (let k = 1; k <= BOX.length; k++) {
     const file = await snap(`<div style="position:absolute;inset:0;background:${INK};color:#fff;padding:44px 200px;box-sizing:border-box"><div style="font-size:42px;font-weight:800;color:${GREEN};margin-bottom:28px">アプリの中の Claude</div>${flow(BOX.map((b, i) => (i < k ? `<span data-b${i}>${b}</span>` : `<span style="opacity:.12">${b}</span>`)))}</div>`);
