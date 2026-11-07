@@ -1,6 +1,6 @@
 import { LANGS } from "./i18n/index.js";
 import { calendarLink } from "./calendar.js";
-import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap } from "./export.js";
+import { sessionToMarkdown, exportFileName, compareAttempts, statusOf, briefFacts, reverseFacts, questionOverlap, mailPreview, mailSafe } from "./export.js";
 import { loadSession, clearSession, forgetBrief, forgetFit, loadDesired, saveDesired, clearDesired, fitDesired, loadDebrief, saveDebrief, clearDebriefs, clearCompanyNotes, SESSION_KEY } from "./session.js";
 import { $, el, iel, icon, state, T, message, LS, persist, bubble, fill, waiting, withTr, targetOf, habitsLine, renderQuestions, practiceLog, retireBriefMarks, renderReview, renderVerify, renderCompare, renderScript, scriptCheck, renderRail, readAttachment, JP_STEPS } from "./render.js";
 import { panel, wide, closePanel, showReview, showVerify, renderNotes, resetPanel, openByDefault } from "./panel.js";
@@ -675,7 +675,11 @@ function finish() {
   if (!state.session) return bubble("coach", T().export.empty);
   const file = exportFileName(new Date());
   try {
-    download(file, sessionToMarkdown(state.session, T(), researchOn ? loadDebrief(LS, researchNames().company) : null));
+    const record = sessionToMarkdown(state.session, T(), researchOn ? loadDebrief(LS, researchNames().company) : null);
+    download(file, record);
+    // The session is cleared below, so the signup mails it from memory: without the debrief (privacy page: never sent) and
+    // without checkpoints quoting the desired profile (mailSafe).
+    mailParts = mailOn ? { record: sessionToMarkdown(mailSafe(state.session), T()), preview: mailPreview(state.session, T()) } : null;
   } catch {
     return bubble("err", message({ code: "unknown" }));
   }
@@ -697,8 +701,11 @@ function finish() {
 }
 $("end").addEventListener("click", finish);
 
-// Daily-tip signup: offered once after the first save; "not now" is remembered too.
+// Mail signup: offered once after the first save; "not now" is remembered too. Signing up mails ① a digest of the
+// session just saved and ② a preview of later mails, at once (11/07); scheduled mail is the operator's MAIL_ROUTINE.
 const MAIL_ASKED = "mensetsu-mail-asked";
+let mailParts = null; // { record, preview } of the session just saved, memory only
+let mailSending = false; // the ~30 s send: "not now" and Esc wait for it, so a dismissed dialog never mails or hides an error
 const dialog = $("mail");
 function offerMail() {
   if (!mailOn) return;
@@ -708,23 +715,28 @@ function offerMail() {
   dialog.showModal();
 }
 function closeMail() {
+  if (mailSending) return;
   try { localStorage.setItem(MAIL_ASKED, "1"); } catch {}
   dialog.close();
 }
 $("mailLater").addEventListener("click", closeMail);
+dialog.addEventListener("cancel", (e) => { if (mailSending) e.preventDefault(); });
 $("mailForm").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const msg = $("mailMsg");
-  $("mailSubmit").disabled = true;
+  $("mailSubmit").disabled = $("mailLater").disabled = mailSending = true;
+  msg.textContent = T().mail.sending; // the digest and two mails take about 30 s
   try {
-    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang: state.lang });
+    const { res, data } = await post("/api/subscribe", { email: $("mailEmail").value, consent: $("mailConsent").checked, lang: state.lang, ...mailParts });
     if (!res.ok) return void (msg.textContent = message(data));
+    mailParts = null;
+    mailSending = false;
     closeMail();
     bubble("coach", T().mail.done);
   } catch {
     msg.textContent = message({ code: "network" });
   } finally {
-    $("mailSubmit").disabled = false;
+    $("mailSubmit").disabled = $("mailLater").disabled = mailSending = false;
   }
 });
 

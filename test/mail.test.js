@@ -9,6 +9,8 @@ import { POST as subscribe } from "../api/subscribe.js";
 import { GET as unsubscribe } from "../api/unsubscribe.js";
 import { GET as cron } from "../api/cron/daily.js";
 import { POST as demand, TARGETS } from "../api/demand.js";
+import { fakeClient } from "./fake-claude.js";
+import { MODELS } from "../lib/claude.js";
 
 const pack = loadPack("jp");
 const SECRET = "test-secret";
@@ -25,8 +27,9 @@ const fakeMailer = () => {
   return { sent, send: async (msg) => (sent.push(msg), { id: `m${sent.length}` }) };
 };
 // Intent changed 11/05: signup and the subscriber loop now need MAIL_PUBLIC=1, so the tests of that path set it.
+// Intent changed 11/07 (user): scheduled mail runs only with the operator switch MAIL_ROUTINE=1, so the cron tests set it too.
 const env = () => {
-  Object.assign(process.env, { ACCESS_CODE: "c0de", MAIL_SECRET: SECRET, CRON_SECRET: "cron", APP_URL: "https://app.example", MAIL_PUBLIC: "1" });
+  Object.assign(process.env, { ACCESS_CODE: "c0de", MAIL_SECRET: SECRET, CRON_SECRET: "cron", APP_URL: "https://app.example", MAIL_PUBLIC: "1", MAIL_ROUTINE: "1" });
   delete process.env.MAIL_OWNER_TO;
   delete process.env.MAIL_OWNER_TOKEN;
 };
@@ -76,7 +79,8 @@ test("subscribe API: access code, email format, explicit consent, lang; stores o
   await check(await subscribe(subReq({ email: "nope", consent: true }), deps), 400, { code: "email_invalid" });
   await check(await subscribe(subReq({ email: "a@b.co" }), deps), 400, { code: "consent_required" });
   await check(await subscribe(subReq({ email: "a@b.co", consent: true, lang: "xx" }), deps), 400, { code: "lang_unsupported" });
-  await check(await subscribe(subReq({ email: "A@B.co", consent: true, lang: "en" }), { store, now: () => new Date("2026-11-02T10:00:00Z") }), 200, { ok: true });
+  // Intent changed 11/07: the reply says how many mails went out at once (none without a record or a preview).
+  await check(await subscribe(subReq({ email: "A@B.co", consent: true, lang: "en" }), { store, now: () => new Date("2026-11-02T10:00:00Z") }), 200, { ok: true, sent: 0 });
   const [[id, v]] = [...store.m.entries()];
   assert.equal(id, subscriberId("a@b.co", SECRET));
   assert.deepEqual(v, { email: "a@b.co", lang: "en", consented_at: "2026-11-02T10:00:00.000Z" });
@@ -484,4 +488,100 @@ test("weakSummary: the counts the server allowlist accepts, and nothing else", a
 
 test("deploy config: /api/subscribe can read the pack", () => {
   assert.equal(JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8")).functions["api/subscribe.js"]?.includeFiles, "packs/**");
+});
+
+// ---- 11/07 (user): signup sends two mails at once — ① a Claude digest of the session record, ② a preview of later mails.
+const RECORD = "# 面接練習の記録\n\n連絡先 090-1234-5678\n\n## 見積もりがずれたとき、どう判断しますか。\n\n回答: 影響範囲を確認します。";
+const PREVIEW = "■ 최근 뉴스\n- 海外拠点の倉庫への導入を開始（架空）";
+const fixedReq = (body, code) => new Request("http://x/api/subscribe", { method: "POST", headers: { ...(code !== undefined && { "x-access-code": code }), "x-forwarded-for": "9.9.9.9", "content-type": "application/json" }, body: JSON.stringify(body) });
+
+test("signup sends ① the Claude digest and ② the preview at once; both carry the 'more later' note; the subscriber is stored", async () => {
+  env();
+  const store = fakeStore(), mailer = fakeMailer(), client = fakeClient({ result: "■ 오늘의 요점\n- 결론부터 말하기" });
+  const res = await subscribe(subReq({ email: "a@b.co", consent: true, lang: "ko", record: RECORD, preview: PREVIEW }), { store, mailer, client, now: () => new Date("2026-11-07T01:00:00Z") });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { ok: true, sent: 2 });
+  assert.deepEqual(mailer.sent.map((m) => m.to), ["a@b.co", "a@b.co"]);
+  assert.match(mailer.sent[0].subject, /연습 정리 11\/07$/);
+  assert.ok(mailer.sent[0].text.startsWith("■ 오늘의 요점"));
+  assert.match(mailer.sent[1].subject, /다음 메일 미리보기 11\/07$/);
+  assert.ok(mailer.sent[1].text.startsWith(PREVIEW));
+  for (const m of mailer.sent) assert.match(m.text, /추후 보완·추가 예정/);
+  for (const m of mailer.sent) assert.ok(m.text.includes(`https://app.example/api/unsubscribe?id=${subscriberId("a@b.co", SECRET)}`), "stored, so each mail can undo it");
+  assert.equal(client.calls(), 1);
+  assert.equal(client.requests[0].model, MODELS.digest);
+  assert.match(client.requests[0].system, /韓国語/);
+  assert.ok(!client.requests[0].messages[0].content.includes("090-1234-5678"), "masked before Claude");
+  assert.equal(store.m.size, 1);
+});
+
+test("signup: a failed digest or a used-up daily limit sends the record itself as ①, never fails the signup", async () => {
+  env();
+  const refused = fakeMailer();
+  await subscribe(subReq({ email: "a@b.co", consent: true, record: RECORD, preview: PREVIEW }), { store: fakeStore(), mailer: refused, client: fakeClient({ stop: "refusal" }) });
+  assert.equal(refused.sent.length, 2);
+  assert.ok(refused.sent[0].text.includes("影響範囲を確認します"), "the record itself");
+  // open mode, no code, a limit of 1 per IP: the 1st signup gets the digest, the 2nd is over the limit → the record, no Claude call
+  Object.assign(process.env, { OPEN_ACCESS: "1", DAILY_LIMIT_IP: "1" });
+  try {
+    const first = fakeClient({ result: "■ 요약" }), second = fakeClient({ result: "■ 요약" }), m1 = fakeMailer(), m2 = fakeMailer();
+    assert.equal((await subscribe(fixedReq({ email: "a@b.co", consent: true, record: RECORD }), { store: fakeStore(), mailer: m1, client: first })).status, 200);
+    assert.equal((await subscribe(fixedReq({ email: "a@b.co", consent: true, record: RECORD }), { store: fakeStore(), mailer: m2, client: second })).status, 200);
+    assert.deepEqual([first.calls(), second.calls()], [1, 0]);
+    assert.ok(m1.sent[0].text.startsWith("■ 요약") && m2.sent[0].text.includes("影響範囲を確認します"));
+    assert.equal((await subscribe(fixedReq({ email: "a@b.co", consent: true }, "bad"), { store: fakeStore(), mailer: fakeMailer() })).status, 401, "a wrong code is still 401");
+  } finally {
+    delete process.env.OPEN_ACCESS;
+    delete process.env.DAILY_LIMIT_IP;
+  }
+});
+
+test("signup: Resend's test-only refusal is mail_test_only, another send failure is mail_unavailable; nothing is stored", async () => {
+  env();
+  for (const [err, status, code] of [["mail 403", 403, "mail_test_only"], ["mail 500", 502, "mail_unavailable"]]) {
+    const store = fakeStore();
+    const res = await subscribe(subReq({ email: "a@b.co", consent: true, preview: PREVIEW }), { store, mailer: { send: async () => { throw new Error(err); } } });
+    assert.equal(res.status, status);
+    assert.deepEqual(await res.json(), { code });
+    assert.equal(store.m.size, 0);
+  }
+  const noMailer = await subscribe(subReq({ email: "a@b.co", consent: true, preview: PREVIEW }), { store: fakeStore(), mailer: null });
+  assert.deepEqual([noMailer.status, await noMailer.json()], [503, { code: "mail_unavailable" }]);
+});
+
+test("SMTP mailer (dedicated Gmail): chosen when SMTP_USER and SMTP_PASS are set; always sends from that account", async () => {
+  const calls = [];
+  const createTransport = (opts) => (calls.push(opts), { sendMail: async (msg) => (calls.push(msg), { messageId: "1" }) });
+  const m = makeMailer({ SMTP_USER: "coach@example.com", SMTP_PASS: "abcdabcdabcdabcd", RESEND_API_KEY: "k", MAIL_FROM: "onboarding@resend.dev" }, { createTransport });
+  await m.send({ to: "a@b.co", subject: "S", text: "T", idempotencyKey: "tip/x" });
+  assert.deepEqual(calls, [{ host: "smtp.gmail.com", port: 465, secure: true, auth: { user: "coach@example.com", pass: "abcdabcdabcdabcd" } }, { from: "面接コーチ <coach@example.com>", to: "a@b.co", subject: "S", text: "T" }]);
+  assert.equal(makeMailer({ SMTP_USER: "coach@example.com" }, { createTransport }), null, "no password and no Resend key → no mailer");
+});
+
+test("cron: without MAIL_ROUTINE nothing is sent, owner included (scheduled mail is an operator option, 11/07)", async () => {
+  ownerEnv();
+  delete process.env.MAIL_ROUTINE;
+  const mailer = fakeMailer();
+  const res = await cron(cronReq(), { store: fakeStore(), mailer });
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { code: "routine_off" });
+  assert.deepEqual(mailer.sent, []);
+});
+
+test("signup review fixes: no APP_URL → mails without a link and nothing stored; a failed ② after ① still stands", async () => {
+  env();
+  delete process.env.APP_URL;
+  try {
+    const store = fakeStore(), mailer = fakeMailer();
+    const res = await subscribe(subReq({ email: "a@b.co", consent: true, preview: PREVIEW }), { store, mailer });
+    assert.deepEqual([res.status, await res.json(), store.m.size], [200, { ok: true, sent: 1 }, 0]);
+    assert.ok(!/unsubscribe/.test(mailer.sent[0].text), "no link → not stored");
+  } finally {
+    process.env.APP_URL = "https://app.example";
+  }
+  const store = fakeStore();
+  let n = 0;
+  const flaky = { send: async () => { if (n++) throw new Error("mail 421"); return { id: "1" }; } };
+  const res = await subscribe(subReq({ email: "a@b.co", consent: true, record: RECORD, preview: PREVIEW }), { store, mailer: flaky, client: fakeClient({ result: "■ 요약" }) });
+  assert.deepEqual([res.status, await res.json(), store.m.size], [200, { ok: true, sent: 1 }, 1], "a retry would only mail ① again");
 });

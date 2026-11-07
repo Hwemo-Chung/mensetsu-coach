@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sessionToMarkdown, exportFileName, compareAttempts, mask, statusOf, prepToMarkdown, prepView, prepSlots, mergePrep, prepFileName } from "../public/export.js";
+import { sessionToMarkdown, exportFileName, compareAttempts, mask, statusOf, prepToMarkdown, prepView, prepSlots, mergePrep, prepFileName, mailPreview, mailSafe } from "../public/export.js";
 import { maskInput } from "../lib/privacy.js";
 import { LANGS } from "../public/i18n/index.js";
 import { fixture, scriptFixture, reviewFixture } from "./fake-claude.js";
@@ -384,4 +384,36 @@ test("F6 markdown: an offer-stage prep keeps the pack's sentences in the session
   for (const l of lines) assert.ok(md.includes(l.replace(/^([#>+*|=~-])/, "\\$1")), l);
   const download = prepToMarkdown(doc, LANGS.ko, prepSlots(session, { min_salary_man: "999" }, LANGS.ko, null));
   assert.ok(download.includes("999") && !md.includes("999"), "the user's own conditions stay in the download only");
+});
+
+// 11/07 (user): mail ② at signup — news and position issues from this session's research, and one Japanese model answer. No AI call.
+test("mail preview: news with its source, position issues, one model script with reading and translation; masked", () => {
+  const news = { ...brief, company_snapshot: { ...brief.company_snapshot }, company_checkpoints: [...brief.company_checkpoints, { question: "需要予測の刷新はどこまで進んでいますか（架空）", ask: "interview", source_ids: ["s2"] }] };
+  news.company_snapshot.recent_news = [claim("海外拠点への導入を開始（架空）")];
+  const text = mailPreview(withBrief(news), ko);
+  assert.match(text, /최근 뉴스/);
+  assert.ok(text.includes("海外拠点への導入を開始（架空）") && text.includes(LONG_ID_URL), "news with the URL of its source");
+  assert.ok(text.includes("需要予測の刷新はどこまで進んでいますか（架空）"), "an interview checkpoint is a position issue");
+  assert.ok(!text.includes("残業の実態"), "agent-side conditions stay out");
+  assert.ok(text.includes(scriptFixture.text) && text.includes(scriptFixture.reading) && text.includes(scriptFixture.translation));
+  assert.ok(text.includes(fixture.questions[2].question), "the question the script answers");
+  // no research, no script: each section says how it gets filled; the mail's own facts stand in for the issues
+  const bare = mailPreview({ ...session, attempts: [] }, ko);
+  assert.ok(bare.includes(ko.mailPreview.noNews) && bare.includes(ko.mailPreview.noScript));
+  assert.ok(bare.includes(fixture.company_context.facts[0]));
+  assert.ok(!/0\d{1,3}-\d{2,4}-\d{4}/.test(mailPreview(withBrief({ ...brief, company_snapshot: { ...brief.company_snapshot, recent_news: [claim("連絡先 090-1234-5678")] } }), ko)), "masked");
+});
+
+// Review 11/07: what leaves the browser for the signup mail never carries a checkpoint quoting the desired profile, and the
+// script label follows the destination.
+test("mail copy: checkpoints of desired_profile origin stay in the browser; the kr script is not called Japanese", () => {
+  const prof = { ...brief, company_checkpoints: [...brief.company_checkpoints, { question: "希望年収750万円は可能ですか（架空）", ask: "interview", origin: "desired_profile", source_ids: [] }, { question: "需要予測の刷新の状況は（架空）", ask: "interview", origin: "research", source_ids: ["s1"] }] };
+  const s = withBrief(prof);
+  assert.ok(sessionToMarkdown(s, ko).includes("希望年収750万円"), "the download keeps it");
+  assert.ok(!sessionToMarkdown(mailSafe(s), ko).includes("希望年収750万円"), "the mailed record does not");
+  const text = mailPreview(s, ko);
+  assert.ok(!text.includes("希望年収750万円") && text.includes("需要予測の刷新の状況は（架空）"));
+  assert.match(mailPreview({ ...s, pack: { id: "kr" } }, ko), /한국어 모범답안 예/);
+  assert.match(text, /일본어 모범답안 예/);
+  assert.equal(mailSafe(session), session, "no research: unchanged");
 });

@@ -172,6 +172,29 @@ export const noBareLinks = (s) => s.replace(/(?:https?|ftp):\/\/(?:www\.)?|www\.
 const inert = (s) => noBareLinks(String(s ?? "").replace(/\s+/g, " ")).replace(/[\\[\]<>`]/g, "\\$&");
 
 // Stage R summary, checkpoints and sources. The URLs stay out of mask(): a long numeric page id would read as a phone number.
+// Mail ② at signup (11/07): what later mails will carry, from this session only — news and position issues from the research
+// (else the mail's own facts), and one Japanese model answer. Plain text for the mail body; no AI call.
+// The copy that leaves the browser for the signup mail: no checkpoint that quotes the desired profile (privacy page §2:
+// the profile goes only to the fit call). The interview debrief is left out by the caller.
+export function mailSafe(session) {
+  const b = session.company_context?.research_brief;
+  return b ? { ...session, company_context: { ...session.company_context, research_brief: { ...b, company_checkpoints: objects(b.company_checkpoints).filter((c) => c.origin !== "desired_profile") } } } : session;
+}
+
+export function mailPreview(full, t) {
+  const session = mailSafe(full), m = t.mailPreview, b = session.company_context?.research_brief, facts = briefFacts(b);
+  const urlOf = (ids) => linkable(listOf(b?.sources).find((x) => ids.includes(x?.id))?.url) ?? "";
+  const news = facts.filter((f) => f.kind === "news").map((f) => `- ${mask(f.text)}${urlOf(f.source_ids) ? ` — ${urlOf(f.source_ids)}` : ""}`); // URLs unmasked: an id in a path reads as a phone number
+  const checks = b?.research_status === "ok" ? objects(b.company_checkpoints).filter((c) => c.ask === "interview" && typeof c.question === "string").map((c) => c.question) : []; // agent-side conditions stay out
+  const issues = [...facts.filter((f) => f.kind === "role").map((f) => f.text), ...checks];
+  const list = (issues.length ? issues : listOf(session.company_context?.facts).filter((f) => typeof f === "string")).slice(0, 5);
+  const a = listOf(session.attempts).find((x) => typeof x?.script?.text === "string");
+  const q = a && listOf(session.questions).find((x) => x.id === a.question_id);
+  const script = a ? [...(q?.question ? [`Q. ${q.question}`, ""] : []), a.script.text, ...[a.script.reading, a.script.translation].filter((x) => typeof x === "string").flatMap((x) => ["", x])] : [m.noScript];
+  const out = [`■ ${m.news}${news.length && b.research_date ? ` (${m.asOf({ date: b.research_date })})` : ""}`, ...(news.length ? news : [m.noNews]), "", `■ ${m.issues}`, ...(list.length ? list.map((x) => `- ${mask(x)}`) : [m.noIssues]), "", `■ ${m.script({ kr: session.pack?.id === "kr" })}`, ...script.map(mask)];
+  return out.join("\n");
+}
+
 function researchSection(session, t) {
   const b = session.company_context.research_brief;
   if (b?.research_status !== "ok") return "";

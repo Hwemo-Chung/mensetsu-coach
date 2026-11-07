@@ -9,6 +9,7 @@ export async function GET(request, deps = {}) {
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return Response.json({ code: "access_denied" }, { status: 401 });
   }
+  if (process.env.MAIL_ROUTINE !== "1") return Response.json({ code: "routine_off" }); // scheduled mail is an operator option (11/07)
   const pinned = new URL(request.url).searchParams.get("date");
   const now = pinned === null ? (deps.now ?? (() => new Date()))() : parseTipDate(pinned);
   if (!now) return Response.json({ code: "bad_request" }, { status: 400 });
