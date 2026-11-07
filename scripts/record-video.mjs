@@ -116,7 +116,7 @@ const now = () => Date.now() / 1000;
 let reviews = 0, scripts = 0, questionCalls = 0;
 const steps = pack.answer_structure.steps.map(({ key, label, optional }) => ({ key, label, ...(optional && { optional }) }));
 const answers = {
-  "/api/access": () => ({ ok: true, stt: false, research: true }),
+  "/api/access": () => ({ ok: true, open: true, stt: false, research: true }), // the submission's public mode: no code step
   "/api/research": () => demo.brief,
   "/api/fit": () => ({ fit_evaluation: demo.brief.fit_evaluation, mismatch_flags: demo.brief.mismatch_flags, company_checkpoints: demo.brief.company_checkpoints }),
   "/api/questions": () => ({ company_context: demo.company_context, questions: demo.questions, specificity: demo.specificity, pack: { id: "jp", target: "ja", steps } }),
