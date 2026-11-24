@@ -104,6 +104,10 @@ button, select, textarea, input { font: inherit; color: inherit; }
 .script:not(.review) .ja { font-size: 18px; line-height: 1.9; font-weight: 400; }
 .reading { letter-spacing: .02em; }
 .legend { font-size: 14px; color: var(--muted); margin: 2px 0 0; }
+/* Paid pass: a quiet line where a visitor is stopped; only the link stands out, and it is a plain <a> */
+.pass { margin: 8px 0 0; font-size: 14px; line-height: 1.5; color: var(--muted); }
+.pass-link { color: var(--green-ink); font-weight: 700; text-decoration: underline; text-underline-offset: 2px; }
+.pass-link:focus-visible { outline: 2px solid var(--green-ink); outline-offset: 2px; border-radius: 2px; }
 .points { margin: 0; padding-left: 20px; font-size: 15px; }
 .review .verdict { font-weight: 700; margin: 2px 0; }
 .review .verdict.no { color: var(--red); }
