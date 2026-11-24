@@ -22,6 +22,7 @@ function keepCode(v) {
 }
 let stage = "code"; // code → mail → pick ⇄ answer
 let openMode = false; // OPEN_ACCESS (from /api/access): no code step, the daily limit applies until a code lifts it
+let checkoutUrl = null; // GUMROAD_PRODUCT_URL (from /api/access): where to buy the paid pass; null = no link at all
 let lastMail = null, lastAttachment = null, lastProfile = ""; // memory only, for the career-line and brief regenerations
 let destPack = "jp"; // destination pack for the next question set (jp, or kr beta)
 const packOf = () => state.session?.pack?.id ?? "jp"; // a running session keeps the pack it was made with
@@ -52,6 +53,9 @@ function askForStart() {
   demoBtn.type = "button";
   demoBtn.addEventListener("click", () => { demoBtn.disabled = true; startDemo(askForStart); });
   b.append(el("br"), demoBtn);
+  // Without a code, a visitor with no invitation sees where the pass is: the only way forward that spends money is theirs to choose.
+  const card = openMode ? null : passCard();
+  if (card) b.append(el("br"), card);
 }
 
 function askForMail() {
@@ -71,13 +75,34 @@ async function post(path, body, extraHeaders = {}) {
     body: body == null ? undefined : JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({ code: "generation_failed" }));
+  keepPass(data);
   return { res, data };
+}
+
+// The server sends the purchase page with every refusal (GUMROAD_PRODUCT_URL unset: nothing to show).
+// Only https, only a string: the value becomes an href, so a broken or odd setting shows no link.
+function keepPass(data) {
+  if (typeof data?.checkoutUrl === "string" && /^https:\/\/\S+$/.test(data.checkoutUrl)) checkoutUrl = data.checkoutUrl;
+}
+
+// The paid pass (Gumroad): one quiet line and a link where a visitor is stopped — the code step, and a
+// refusal. Nothing opens by itself and nothing blocks the free trial.
+function passCard() {
+  if (!checkoutUrl) return null;
+  const p = el("p", "pass"), a = el("a", "pass-link", T().pass.cta);
+  a.href = checkoutUrl;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  p.append(document.createTextNode(`${T().pass.pitch} `), a);
+  return p;
 }
 
 // A 401 mid-session means the code changed or expired: start over from the code step (open: go on under the limit).
 function failed(res, data) {
   const b = bubble("err", message(data));
   if (data.code === "quota") b.append(el("br"), codeField());
+  const card = data.code === "quota" || res.status === 401 ? passCard() : null;
+  if (card) b.append(el("br"), card);
   if (res.status === 401) {
     keepCode(null);
     if (!openMode) askForStart();

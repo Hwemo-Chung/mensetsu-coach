@@ -351,8 +351,15 @@ export default {
   },
   stages: { "1차 실무면접": "1st: practitioner interview", "2차 임원면접": "2nd: executive interview", "カジュアル面談": "Casual meeting", "一次面接": "First interview", "二次面接": "Second interview", "役員面接": "Executive interview", "最終面接": "Final interview" },
   categories: { "동기(왜 한국/왜 이 회사)": "Motivation (why Korea, why this company)", "즉시 기여": "Immediate contribution", "의견 표명": "Stating your view", "비자·근속": "Visa & tenure", "과제(PPT)": "Assignment (PPT)", "経歴・志望動機": "Background & motivation", "技術": "Technical", "マネジメント": "Management", "逆質問": "Your questions", "日本で働く理由・在留": "Why Japan & residence status" },
+  // The paid pass: one line and a link, shown where a visitor is stopped (only when GUMROAD_PRODUCT_URL is set)
+  pass: {
+    pitch: "The paid pass (¥1,980) lifts the daily limit.",
+    cta: "Get the pass",
+  },
   errors: {
     access_denied: () => "That access code is not correct.",
+    license_inactive: () => "This pass was refunded, so it cannot be used. A new purchase works again.",
+    license_unavailable: () => "The licence check is unavailable right now. Please try again shortly.",
     quota: () => "The trial without a code is once a day. Reviewers: enter the code provided with the submission to lift the limit.",
     rate_limited: () => "Too many requests. Please try again in 10 minutes.",
     bad_request: () => "The request was not valid.",
